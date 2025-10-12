@@ -1,0 +1,39 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'com.chromashift.helper'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId = project.group
+            artifactId = 'ChormashiftHelperPackage'
+            version = project.version
+        }
+    }
+}
+
+dependencies {
+    api "com.badlogicgames.ashley:ashley:$ashleyVersion"
+    api "com.badlogicgames.box2dlights:box2dlights:$box2dlightsVersion"
+    api "com.badlogicgames.gdx-controllers:gdx-controllers-core:$gdxControllersVersion"
+    api "com.badlogicgames.gdx:gdx-ai:$aiVersion"
+    api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+    api "com.badlogicgames.gdx:gdx-bullet:$gdxVersion"
+    api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+}
