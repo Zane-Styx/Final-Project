@@ -1,5 +1,7 @@
 package com.jjmc.chromashift.player;
 
+// TODO: Add character icon for each color
+// TODO: Add character extra skill srite
 /**
  * Enum for player color/type and corresponding sprite sheet paths.
  */
