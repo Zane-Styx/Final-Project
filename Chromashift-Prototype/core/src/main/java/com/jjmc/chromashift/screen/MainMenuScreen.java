@@ -109,8 +109,8 @@ public class MainMenuScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 String name = nameField.getText().isEmpty() ? "HostPlayer" : nameField.getText();
-                // We use ChromashiftGame.setScreen() here
-                Gdx.app.postRunnable(() -> ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new FirstScreen(true, "localhost", name)));
+                // Use the injected ChromashiftGame instance to switch screens
+                Gdx.app.postRunnable(() -> game.setScreen(new FirstScreen(true, "localhost", name)));
             }
         });
 
@@ -119,8 +119,8 @@ public class MainMenuScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 String name = nameField.getText().isEmpty() ? "Player" : nameField.getText();
                 String host = ipField.getText().isEmpty() ? "localhost" : ipField.getText();
-                // We use ChromashiftGame.setScreen() here
-                Gdx.app.postRunnable(() -> ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new FirstScreen(false, host, name)));
+                // Use the injected ChromashiftGame instance to switch screens
+                Gdx.app.postRunnable(() -> game.setScreen(new FirstScreen(false, host, name)));
             }
         });
 

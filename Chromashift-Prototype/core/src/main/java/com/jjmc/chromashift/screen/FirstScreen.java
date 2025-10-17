@@ -7,8 +7,6 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.utils.Disposable;
-import com.jjmc.chromashift.ChromashiftGame; // Added for context, but not used directly
 import com.jjmc.chromashift.network.GameClient;
 import com.jjmc.chromashift.network.HostServer;
 import com.jjmc.chromashift.network.Network;
@@ -23,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * The main game screen where gameplay occurs.
  * Manages the host/client lifecycle, player objects, and game loop.
  */
-public class FirstScreen implements Screen, Disposable {
+public class FirstScreen implements Screen {
 
     // private final ChromashiftGame game; // Removed, unnecessary field
     private final boolean isHost;
@@ -75,7 +73,7 @@ public class FirstScreen implements Screen, Disposable {
         }
 
         // Always create a client instance to connect to the game
-        gameClient = new GameClient(playerName);
+        gameClient = new GameClient(playerName, PlayerType.BLUE.ordinal());
         gameClient.start();
         gameClient.connectAsync(hostAddress);
 
@@ -148,57 +146,80 @@ public class FirstScreen implements Screen, Disposable {
         }
 
         // CHECK 2: Update all players based on GameState
-        ArrayList<Network.PlayerState> latestStates = gameClient.getLatestStates();
+        Network.GameState currentState = gameClient.getCurrentState();
+        if (currentState == null || currentState.players == null) return;
+
+        float renderAlpha = calculateInterpolationAlpha();
 
         // Housekeeping: Remove players no longer present in the server's state
         activePlayers.entrySet().removeIf(entry -> {
             int id = entry.getKey();
             if (id == myPlayerId || id == -1) return false; // Don't touch our player or temp ID
-            return latestStates.stream().noneMatch(ps -> ps.id == id);
+            return currentState.players.stream().noneMatch(ps -> ps.id == id);
         });
 
-        // Add or update players
-        for (Network.PlayerState state : latestStates) {
+                // Add or update players
+        for (Network.PlayerState state : currentState.players) {
+            if (state.id == myPlayerId) continue; // Skip our own player
 
-            // If this is our player (the local one), skip state application
-            // since we are running local prediction/physics.
-            if (state.id == myPlayerId) {
-                // If you implemented client-side prediction, you would do reconciliation here.
-                continue;
-            }
-
-            Player remotePlayer = activePlayers.get(state.id);
-
-            // Case 1: New remote player found
-            if (remotePlayer == null) {
-                // Initialize remote player instance
-                // NOTE: You must ensure PlayerType.RED constructor args match localPlayer's in number/type
-                remotePlayer = new Player(
+            // Get or create remote player
+            Player player = activePlayers.computeIfAbsent(state.id, id -> {
+                System.out.println("Creating new remote player with id: " + id);
+                Network.PlayerProfile profile = null;
+                // Try to find profile info in game state
+                if (currentState.gameData != null && currentState.gameData.containsKey("profile_" + id)) {
+                    profile = (Network.PlayerProfile) currentState.gameData.get("profile_" + id);
+                }
+                
+                Player p = new Player(
                     state.x, state.y,
-                    0, 0, 0, 0, // Remote players should not read local input
-                    PlayerType.RED, // Use a different color for remote players
+                    Input.Keys.A, Input.Keys.D, Input.Keys.W, Input.Keys.SPACE,
+                    profile != null ? PlayerType.values()[profile.characterType] : PlayerType.RED,
                     6, 10,
                     64, 32, 5,
                     200f, 350f, -900f
                 );
-                remotePlayer.setLocal(false); // CRITICAL: Skip input/physics for remote
-                activePlayers.put(state.id, remotePlayer);
+                p.setLocal(false); // Mark as remote player
+                return p;
+            });
+
+            // Get interpolated state
+            Network.PlayerState interpolated = gameClient.interpolatePlayerState(state.id, renderAlpha);
+            if (interpolated == null) interpolated = state;
+
+            // Apply server state to remote player
+            player.applyState(
+                interpolated.x, interpolated.y,
+                interpolated.vx, interpolated.vy,
+                interpolated.onGround,
+                interpolated.isDashing,
+                interpolated.isAttacking,
+                interpolated.facingLeft
+            );
+            
+            // Update animation if it changed
+            if (interpolated.currentAnim != null) {
+                player.getAnimator().play(interpolated.currentAnim, interpolated.facingLeft);
             }
-
-            remotePlayer.applyState(state.x, state.y, state.vx, state.vy);
-
-            // --- CRITICAL: Apply new boolean states to remote player ---
-            // NOTE: This assumes you have added these getters/setters in Player.java
-            // and Network.PlayerState
-            remotePlayer.setIsDashing(state.isDashing);
-            remotePlayer.setIsAttacking(state.isAttacking);
-            remotePlayer.setOnGround(state.onGround);
-            remotePlayer.setFacingLeft(state.facingLeft);
-            // -----------------------------------------------------------
-
-            // Now call update to advance animation only (since local=false)
-            remotePlayer.update(Gdx.graphics.getDeltaTime(), GROUND_Y);
+            
+            // Advance animation/update for remote player (they are marked local=false)
+            player.update(Gdx.graphics.getDeltaTime(), GROUND_Y);
+            
         }
+}
+
+    private float calculateInterpolationAlpha() {
+        Network.GameState current = gameClient.getCurrentState();
+        Network.GameState previous = gameClient.getPreviousState();
+        
+        if (current == null || previous == null) return 1.0f;
+        
+        long currentTime = gameClient.getServerTime();
+        long dt = current.serverTime - previous.serverTime;
+        if (dt <= 0) return 1.0f;
+        
+        float alpha = (float)(currentTime - previous.serverTime) / dt;
+        return Math.min(1.0f, Math.max(0.0f, alpha));
     }
 
     private void sendInputToServer() {
@@ -211,13 +232,17 @@ public class FirstScreen implements Screen, Disposable {
         else if (Gdx.input.isKeyPressed(localPlayer.getKeyRight())) horizontal = 1f;
 
         msg.horizontal = horizontal;
-        msg.jump = Gdx.input.isKeyJustPressed(localPlayer.getKeyJump());
+        msg.jump = Gdx.input.isKeyPressed(localPlayer.getKeyJump());
 
-        // --- CRITICAL: Populate new state flags from localPlayer ---
+        // State flags
         msg.isDashing = localPlayer.isDashing();
         msg.isAttacking = localPlayer.isAttacking();
         msg.facingLeft = localPlayer.isFacingLeft();
-        // ------------------------------------------------------------
+
+        // Add current predicted state
+        msg.position = new float[] { localPlayer.getX(), localPlayer.getY() };
+        // Note: Player class doesn't expose velocity directly, we'll have to track state changes
+        // for prediction if needed
 
         gameClient.sendInput(msg);
     }

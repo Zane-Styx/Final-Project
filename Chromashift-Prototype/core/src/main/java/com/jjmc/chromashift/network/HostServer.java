@@ -21,15 +21,29 @@ public class HostServer {
     private final AtomicInteger nextId = new AtomicInteger(1);
     private final ConcurrentHashMap<Integer, Connection> connections = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, Network.PlayerState> playerStates = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, Network.PlayerProfile> playerProfiles = new ConcurrentHashMap<>();
 
     private volatile boolean running = false;
+    private volatile long serverTime = 0;
+    private final Object stateLock = new Object();
 
-    // Define a simple gravity constant inside HostServer
+        // Physics and movement constants
     private static final float SERVER_GRAVITY = -900f;
     private static final float GROUND_Y = 100f;
-    // NOTE: Use the same value for speedPerMsg as used in the InputMessage handling
-    private static final float SERVER_SPEED_PER_MSG = 120f * (1f / 20f);
+    private static final float SERVER_SPEED = 200f;
+    private static final float LERP_FACTOR = 0.15f;
+    private static final float DASH_IMPULSE = 400f;
+    private static final float DASH_COOLDOWN = 0.6f;
+    private static final float ATTACK_COOLDOWN = 0.4f;
+    
+    // Update rate
+    private static final float UPDATE_RATE = 1f/60f;
+    private float updateAccumulator = 0;
+
+    // Timing
     private long lastUpdateTime = System.currentTimeMillis();
+    private long lastCleanupTime = System.currentTimeMillis();
+    private long lastBroadcastTime = System.currentTimeMillis();
 
     public void start() throws IOException {
         server = new Server();
@@ -42,65 +56,115 @@ public class HostServer {
             @Override
             public void received(Connection connection, Object object) {
                 long currentTime = System.currentTimeMillis();
-                float delta = (currentTime - lastUpdateTime) / 1000f; // Calculate delta time
+                serverTime = currentTime;
+                float frameDelta = (currentTime - lastUpdateTime) / 1000f;
+                updateAccumulator += frameDelta;
                 lastUpdateTime = currentTime;
-                if (object instanceof Network.JoinRequest) {
-                    Network.JoinRequest jr = (Network.JoinRequest) object;
-                    int assignedId = nextId.getAndIncrement();
-                    connections.put(assignedId, connection);
+                serverTime = currentTime;
 
-                    Network.JoinResponse resp = new Network.JoinResponse();
-                    resp.accepted = true;
-                    resp.assignedId = assignedId;
-                    connection.sendTCP(resp);
-
-                    // initialize player
-                    Network.PlayerState ps = new Network.PlayerState();
-                    ps.id = assignedId;
-                    ps.x = 100 + assignedId * 60;
-                    ps.y = 100;
-                    // Note: vx/vy are currently unused by the host's simple physics but are included in PlayerState
-                    ps.vx = 0;
-                    ps.vy = 0;
-                    playerStates.put(assignedId, ps);
-
-                    System.out.println("[Host] Accepted join from '" + jr.name + "' assignedId=" + assignedId);
-                    System.out.println("[Host] Now tracking players: " + playerStates.size());
-                } else if (object instanceof Network.InputMessage) {
-                    Network.InputMessage im = (Network.InputMessage) object;
-                    Network.PlayerState ps = playerStates.get(im.playerId);
-                    if (ps == null) return;
-
-                    // Simple physics and state mirroring (from previous fix):
-                    float speedPerMsg = 120f * delta; // Use actual delta time
-                    ps.x += im.horizontal * speedPerMsg;
-
-                    // JUMP AND GRAVITY LOGIC
-                    if (im.jump && ps.y <= GROUND_Y) { // Only jump if on ground
-                        ps.vy = 350f; // Jump force
+                synchronized (stateLock) {
+                    // Fixed timestep updates
+                    while (updateAccumulator >= UPDATE_RATE) {
+                        if (object instanceof Network.InputMessage) {
+                            handleInputMessage(connection, (Network.InputMessage) object, UPDATE_RATE);
+                        }
+                        updateAccumulator -= UPDATE_RATE;
                     }
 
-                    // Apply gravity continuously
-                    if (ps.y > GROUND_Y) {
-                        ps.vy += SERVER_GRAVITY * delta;
+                    // Handle non-physics messages immediately
+                    if (object instanceof Network.JoinRequest) {
+                        handleJoinRequest(connection, (Network.JoinRequest) object);
                     }
-                    ps.y += ps.vy * delta;
-
-                    // Ground check
-                    if (ps.y <= GROUND_Y) {
-                        ps.y = GROUND_Y;
-                        ps.vy = 0;
-                        ps.onGround = true;
-                    } else {
-                        ps.onGround = false;
-                    }
-
-                    // Mirror Client State Flags
-                    ps.isDashing = im.isDashing;
-                    ps.isAttacking = im.isAttacking;
-                    ps.facingLeft = im.facingLeft;
-                    ps.vx = im.horizontal * 200f; // Update velocity X for facing direction logic
                 }
+
+                // Cleanup and broadcast
+                if (currentTime - lastCleanupTime > 5000) {
+                    cleanupDisconnectedPlayers();
+                    lastCleanupTime = currentTime;
+                }
+                
+                // Broadcast world state (~20Hz)
+                if (currentTime - lastBroadcastTime > 50) {
+                    broadcastWorldState();
+                    lastBroadcastTime = currentTime;
+                }
+            }
+
+            private void handleJoinRequest(Connection connection, Network.JoinRequest request) {
+                Network.JoinResponse response = new Network.JoinResponse();
+                response.currentPlayers = playerStates.size();
+                
+                // Validate version and enforce 2-player limit
+                if (!request.version.equals("1.0") || playerStates.size() >= 2) {
+                    response.accepted = false;
+                    response.reason = !request.version.equals("1.0") ? "Version mismatch" : "Server full (2 players max)";
+                    connection.sendTCP(response);
+                    System.out.println("[Host] Rejected join: " + response.reason);
+                    return;
+                }
+
+                // Handle returning player
+                int playerId = -1;
+                if (request.profile != null && request.profile.id != 0) {
+                    for (Network.PlayerProfile p : playerProfiles.values()) {
+                        if (p.id == request.profile.id) {
+                            playerId = p.id;
+                            break;
+                        }
+                    }
+                }
+
+                // New player
+                if (playerId == -1) {
+                    playerId = nextId.getAndIncrement();
+                    request.profile.id = playerId;
+                }
+
+                // Update connection and profile
+                connections.put(playerId, connection);
+                playerProfiles.put(playerId, request.profile);
+
+                // Create or update player state
+                Network.PlayerState state = playerStates.computeIfAbsent(playerId, id -> {
+                    Network.PlayerState ps = new Network.PlayerState();
+                    ps.id = id;
+                    ps.x = 100 + id * 60;
+                    ps.y = GROUND_Y;
+                    ps.onGround = true;
+                    return ps;
+                });
+
+                // Send join accepted
+                response.accepted = true;
+                response.assignedId = playerId;
+                connection.sendTCP(response);
+
+                // Broadcast new player joined
+                Network.PlayerJoined joined = new Network.PlayerJoined();
+                joined.id = playerId;
+                joined.profile = request.profile;
+                server.sendToAllTCP(joined);
+
+                // Send full world state to new player
+                sendWorldState(connection);
+
+                System.out.println("[Host] Player joined: " + request.profile.name + " (ID: " + playerId + ")");
+            }
+
+            private void handleInputMessage(Connection connection, Network.InputMessage input, float delta) {
+                Network.PlayerState state = playerStates.get(input.playerId);
+                if (state == null || connections.get(input.playerId) != connection) {
+                    return; // Invalid player or wrong connection
+                }
+
+                // Echo server time for latency calculation
+                input.serverTime = serverTime;
+
+                // Apply input and simulate
+                simulatePlayer(state, input, delta);
+
+                // Save last processed input time
+                state.lastUpdateTime = serverTime;
             }
 
             @Override
@@ -131,14 +195,8 @@ public class HostServer {
                     Thread.sleep(50); // 20 Hz
                 } catch (InterruptedException ignored) {}
 
-                for (Network.PlayerState ps : playerStates.values()) {
-                    // Since we only get input from received(), this simple loop won't work well
-                    // unless we refactor to store the last InputMessage per player.
-
-                    // For now, let's skip continuous simulation in the broadcast loop
-                    // and simply apply continuous gravity inside the received() method
-                    // where input is processed (the least efficient way, but simplest fix):
-                }
+                // Note: continuous per-player simulation is handled in received();
+                // skip per-player processing in the broadcast loop to avoid unused-variable warnings.
 
                 Network.GameState gs = new Network.GameState();
                 gs.tick = tick++;
@@ -158,35 +216,139 @@ public class HostServer {
 
     // --- Add a simulation method ---
     private void simulatePlayer(Network.PlayerState ps, Network.InputMessage im, float delta) {
+        // Save previous state for interpolation
+        ps.lastX = ps.x;
+        ps.lastY = ps.y;
+        ps.lastUpdateTime = serverTime;
 
-        // 1. Apply Input (Horizontal/Jump)
-        // Horizontal movement (simple)
-        ps.x += im.horizontal * SERVER_SPEED_PER_MSG;
-        ps.vx = im.horizontal * 200f; // Set a velocity for facing direction
+        // Update animation state based on movement
+        updateAnimation(ps, im);
 
-        // Check for jump input and set initial velocity
-        if (im.jump && ps.onGround) {
-            ps.vy = 350f; // Jump force (Must match client/Player.java jumpForce)
-            ps.onGround = false;
+        // Handle cooldowns
+        updateCooldowns(ps, delta);
+
+        // Apply horizontal movement
+        float targetVelocityX = im.horizontal * SERVER_SPEED;
+        ps.vx = lerp(ps.vx, targetVelocityX, LERP_FACTOR);
+        
+        // Apply dash if triggered
+        if (im.isDashing && ps.dashCooldownRemaining <= 0f) {
+            float dashDir = ps.facingLeft ? -1f : 1f;
+            ps.vx += DASH_IMPULSE * dashDir;
+            ps.dashCooldownRemaining = DASH_COOLDOWN;
+            ps.currentAnim = "dash";
         }
 
-        // 2. Apply Gravity
+        // Apply horizontal movement
+        ps.x += ps.vx * delta;
+
+        // Handle jump
+        if (im.jump && ps.canJump && ps.onGround) {
+            ps.vy = 350f; // Jump velocity (match Player.java)
+            ps.onGround = false;
+            ps.canJump = false;
+            ps.currentAnim = "jump";
+        }
+
+        // Apply gravity and vertical movement
         if (!ps.onGround) {
             ps.vy += SERVER_GRAVITY * delta;
+            ps.currentAnim = ps.vy < 0 ? "fall" : "jump";
         }
         ps.y += ps.vy * delta;
 
-        // 3. Apply Ground Collision
+        // Ground collision
         if (ps.y <= GROUND_Y) {
             ps.y = GROUND_Y;
             ps.vy = 0;
-            ps.onGround = true;
+            if (!ps.onGround) {
+                ps.onGround = true;
+                ps.canJump = true;
+            }
         }
 
-        // 4. Mirror Client State Flags (Dash/Attack)
-        ps.isDashing = im.isDashing;
-        ps.isAttacking = im.isAttacking;
+        // Mirror client flags with validation
+        ps.isDashing = im.isDashing && ps.dashCooldownRemaining > 0;
+        ps.isAttacking = im.isAttacking && ps.attackCooldownRemaining <= 0;
+        if (ps.isAttacking) {
+            ps.attackCooldownRemaining = ATTACK_COOLDOWN;
+            ps.currentAnim = "attack";
+        }
         ps.facingLeft = im.facingLeft;
+
+        // Update timestamp
+        ps.timestamp = serverTime;
+    }
+
+    private void updateAnimation(Network.PlayerState ps, Network.InputMessage im) {
+        if (ps.isAttacking) return; // Don't interrupt attack animation
+        
+        if (Math.abs(ps.vx) > 1f && ps.onGround) {
+            ps.currentAnim = "run";
+            ps.animTime += 0.1f;
+        } else if (ps.onGround) {
+            ps.currentAnim = "idle";
+            ps.animTime = 0f;
+        }
+    }
+
+    private void updateCooldowns(Network.PlayerState ps, float delta) {
+        if (ps.dashCooldownRemaining > 0f) {
+            ps.dashCooldownRemaining -= delta;
+        }
+        if (ps.attackCooldownRemaining > 0f) {
+            ps.attackCooldownRemaining -= delta;
+        }
+    }
+
+    private float lerp(float start, float end, float t) {
+        return start + (end - start) * t;
+    }
+
+    private void cleanupDisconnectedPlayers() {
+        long timeout = 10000; // 10 seconds
+        long now = System.currentTimeMillis();
+        
+        synchronized (stateLock) {
+            playerStates.entrySet().removeIf(entry -> {
+                int id = entry.getKey();
+                Connection conn = connections.get(id);
+                if (conn == null || !conn.isConnected() || 
+                    (now - entry.getValue().lastUpdateTime > timeout)) {
+                    
+                    connections.remove(id);
+                    playerProfiles.remove(id);
+                    
+                    Network.PlayerLeft left = new Network.PlayerLeft();
+                    left.id = id;
+                    left.reason = "Timeout/Disconnected";
+                    server.sendToAllTCP(left);
+                    
+                    return true;
+                }
+                return false;
+            });
+        }
+    }
+
+    private void broadcastWorldState() {
+        Network.GameState state = new Network.GameState();
+        state.tick = serverTime;
+        state.serverTime = serverTime;
+        synchronized (stateLock) {
+            state.players = new ArrayList<>(playerStates.values());
+        }
+        server.sendToAllTCP(state);
+    }
+
+    private void sendWorldState(Connection connection) {
+        Network.GameState state = new Network.GameState();
+        state.tick = serverTime;
+        state.serverTime = serverTime;
+        synchronized (stateLock) {
+            state.players = new ArrayList<>(playerStates.values());
+        }
+        connection.sendTCP(state);
     }
 
     public void stop() {

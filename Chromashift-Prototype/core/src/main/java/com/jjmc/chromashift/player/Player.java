@@ -111,15 +111,15 @@ public class Player {
      * Useful when receiving Network.PlayerState.
      * This does not run any physics locally — it simply applies values.
      */
-    public void applyState(float nx, float ny, float nvx, float nvy) {
+    public void applyState(float nx, float ny, float nvx, float nvy, boolean onGround, boolean isDashing, boolean isAttacking, boolean facingLeft) {
         this.x = nx;
         this.y = ny;
         this.velocityY = nvy;
-        // set facing based on horizontal velocity (if significant)
-        if (Math.abs(nvx) > 0.001f) this.facingLeft = nvx < 0f;
-    }
-
-    /**
+        this.onGround = onGround;
+        this.dashing = isDashing;
+        this.attacking = isAttacking;
+        this.facingLeft = facingLeft;
+    }    /**
      * Set position directly (used by networking code)
      */
     public void setPosition(float x, float y) {
