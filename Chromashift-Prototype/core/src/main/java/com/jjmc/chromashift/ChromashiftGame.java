@@ -3,10 +3,9 @@ package com.jjmc.chromashift;
 import com.badlogic.gdx.Game;
 import com.jjmc.chromashift.screen.MainMenuScreen;
 
-/** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class ChromashiftGame extends Game {
     @Override
     public void create() {
-        setScreen(new FirstScreen());
+        setScreen(new MainMenuScreen(this));
     }
 }

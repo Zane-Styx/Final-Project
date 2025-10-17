@@ -2,131 +2,142 @@ package com.jjmc.chromashift.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
-import com.badlogic.gdx.scenes.scene2d.ui.Window;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.jjmc.chromashift.network.HostServer;
-import com.jjmc.chromashift.network.GameClient;
-
-import java.io.IOException;
+import com.jjmc.chromashift.ChromashiftGame;
 
 public class MainMenuScreen implements Screen {
 
+    private final ChromashiftGame game;
     private Stage stage;
     private Skin skin;
-    private HostServer hostServer;
-    private GameClient client;
+
+    private TextField nameField;
+    private TextField ipField;
+
+    public MainMenuScreen(ChromashiftGame game) {
+        this.game = game;
+    }
 
     @Override
     public void show() {
         stage = new Stage(new ScreenViewport());
         Gdx.input.setInputProcessor(stage);
 
-        // Load uiskin.json from assets
-        skin = new Skin(Gdx.files.internal("uiskin.json"));
+        // ✅ Create a skin with solid color drawables (no external files)
+        skin = new Skin();
+        BitmapFont font = new BitmapFont();
+        skin.add("default-font", font);
 
+        // Solid texture generator
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(Color.WHITE);
+        pixmap.fill();
+        Texture whiteTex = new Texture(pixmap);
+        pixmap.dispose();
+        skin.add("white", whiteTex);
+
+        // Label style
+        Label.LabelStyle labelStyle = new Label.LabelStyle();
+        labelStyle.font = font;
+        labelStyle.fontColor = Color.WHITE;
+        skin.add("default", labelStyle);
+
+        // Button style
+        TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
+        buttonStyle.up = new TextureRegionDrawable(skin.getRegion("white"));
+        buttonStyle.down = new TextureRegionDrawable(skin.getRegion("white"));
+        buttonStyle.checked = new TextureRegionDrawable(skin.getRegion("white"));
+        buttonStyle.font = font;
+        buttonStyle.fontColor = Color.BLACK;
+        skin.add("default", buttonStyle);
+
+        // Text field style
+        TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
+        textFieldStyle.font = font;
+        textFieldStyle.fontColor = Color.WHITE;
+        textFieldStyle.cursor = new TextureRegionDrawable(skin.getRegion("white"));
+        textFieldStyle.background = new TextureRegionDrawable(skin.getRegion("white"));
+        textFieldStyle.background.setLeftWidth(5);
+        textFieldStyle.background.setRightWidth(5);
+        textFieldStyle.background.setTopHeight(5);
+        textFieldStyle.background.setBottomHeight(5);
+        textFieldStyle.cursor.setMinWidth(2);
+        skin.add("default", textFieldStyle);
+
+        // Layout container for left-aligned UI
         Table table = new Table();
         table.setFillParent(true);
+        table.align(Align.left | Align.center);
+        table.padLeft(80);
         stage.addActor(table);
 
-        TextButton hostBtn = new TextButton("Host", skin);
-        TextButton joinBtn = new TextButton("Join", skin);
+        Label title = new Label("CHROMASHIFT", skin);
+        title.setFontScale(2f);
 
-        table.add(hostBtn).width(200).height(50).padBottom(10).row();
-        table.add(joinBtn).width(200).height(50).padBottom(10).row();
+        nameField = new TextField("Player", skin);
+        ipField = new TextField("localhost", skin);
 
-        // Host button logic
-        hostBtn.addListener(new ClickListener() {
+        TextButton hostButton = new TextButton("Host Game", skin);
+        TextButton joinButton = new TextButton("Join Game", skin);
+        TextButton exitButton = new TextButton("Exit", skin);
+
+        // Layout
+        table.add(title).padBottom(40f).row();
+        table.add(new Label("Name:", skin)).left();
+        table.row();
+        table.add(nameField).width(200).padBottom(20f).row();
+        table.add(new Label("Host IP:", skin)).left();
+        table.row();
+        table.add(ipField).width(200).padBottom(40f).row();
+        table.add(hostButton).width(200).height(40).padBottom(20f).row();
+        table.add(joinButton).width(200).height(40).padBottom(20f).row();
+        table.add(exitButton).width(200).height(40).row();
+
+        // Button actions
+        hostButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                hostBtn.setDisabled(true);
-                new Thread(() -> {
-                    try {
-                        hostServer = new HostServer();
-                        hostServer.start();
-                        System.out.println("Host started!");
-
-                        client = new GameClient("LocalPlayer");
-                        client.start();
-                        client.connectAsync("127.0.0.1");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Gdx.app.postRunnable(() -> hostBtn.setDisabled(false));
-                    }
-                }).start();
+                String name = nameField.getText().isEmpty() ? "HostPlayer" : nameField.getText();
+                // We use ChromashiftGame.setScreen() here
+                Gdx.app.postRunnable(() -> ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new FirstScreen(true, "localhost", name)));
             }
         });
 
-        // Join button logic
-        joinBtn.addListener(new ClickListener() {
+        joinButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                Window joinWindow = new Window("Join Game", skin);
-                joinWindow.setModal(true);
-                joinWindow.setMovable(false);
-                joinWindow.align(1);
+                String name = nameField.getText().isEmpty() ? "Player" : nameField.getText();
+                String host = ipField.getText().isEmpty() ? "localhost" : ipField.getText();
+                // We use ChromashiftGame.setScreen() here
+                Gdx.app.postRunnable(() -> ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new FirstScreen(false, host, name)));
+            }
+        });
 
-                TextField ipField = new TextField("127.0.0.1", skin);
-                TextButton connectBtn = new TextButton("Connect", skin);
-                TextButton cancelBtn = new TextButton("Cancel", skin);
-
-                joinWindow.add("Host IP:").pad(6);
-                joinWindow.add(ipField).width(200).pad(6).row();
-                joinWindow.add(connectBtn).width(100).pad(6);
-                joinWindow.add(cancelBtn).width(100).pad(6).row();
-
-                joinWindow.pack();
-                joinWindow.setPosition((Gdx.graphics.getWidth() - joinWindow.getWidth()) / 2f,
-                    (Gdx.graphics.getHeight() - joinWindow.getHeight()) / 2f);
-
-                stage.addActor(joinWindow);
-
-                connectBtn.addListener(new ClickListener() {
-                    @Override
-                    public void clicked(InputEvent event, float x, float y) {
-                        connectBtn.setDisabled(true);
-                        new Thread(() -> {
-                            try {
-                                client = new GameClient("Player");
-                                client.start();
-                                client.connectAsync(ipField.getText().trim());
-                                Gdx.app.postRunnable(joinWindow::remove);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                Gdx.app.postRunnable(() -> connectBtn.setDisabled(false));
-                            }
-                        }).start();
-                    }
-                });
-
-                cancelBtn.addListener(new ClickListener() {
-                    @Override
-                    public void clicked(InputEvent event, float x, float y) {
-                        joinWindow.remove();
-                    }
-                });
+        exitButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.app.exit();
             }
         });
     }
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(0.1f, 0.12f, 0.16f, 1f);
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         stage.act(delta);
         stage.draw();
-
-        // Process incoming network messages for client
-        if (client != null) {
-            client.consumeNetworkMessages();
-        }
     }
 
     @Override
@@ -134,22 +145,13 @@ public class MainMenuScreen implements Screen {
         stage.getViewport().update(width, height, true);
     }
 
-    @Override
-    public void pause() { }
-
-    @Override
-    public void resume() { }
-
-    @Override
-    public void hide() {
-        dispose();
-    }
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() {}
 
     @Override
     public void dispose() {
         stage.dispose();
         skin.dispose();
-        if (hostServer != null) hostServer.stop();
-        if (client != null) client.stop();
     }
 }
