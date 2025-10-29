@@ -337,6 +337,13 @@ public class HostServer {
         state.serverTime = serverTime;
         synchronized (stateLock) {
             state.players = new ArrayList<>(playerStates.values());
+            // Always include player profiles in gameData
+            for (Integer id : playerProfiles.keySet()) {
+                Network.PlayerProfile profile = playerProfiles.get(id);
+                if (profile != null) {
+                    state.gameData.put("profile_" + id, profile);
+                }
+            }
         }
         server.sendToAllTCP(state);
     }
@@ -347,6 +354,12 @@ public class HostServer {
         state.serverTime = serverTime;
         synchronized (stateLock) {
             state.players = new ArrayList<>(playerStates.values());
+            for (Integer id : playerProfiles.keySet()) {
+                Network.PlayerProfile profile = playerProfiles.get(id);
+                if (profile != null) {
+                    state.gameData.put("profile_" + id, profile);
+                }
+            }
         }
         connection.sendTCP(state);
     }

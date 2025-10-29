@@ -1,6 +1,7 @@
 package com.jjmc.chromashift;
 
 import com.badlogic.gdx.Game;
+import com.jjmc.chromashift.screens.FirstScreen;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class ChromashiftGame extends Game {

@@ -21,12 +21,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * The main game screen where gameplay occurs.
  * Manages the host/client lifecycle, player objects, and game loop.
  */
+import com.jjmc.chromashift.player.PlayerType;
+
 public class FirstScreen implements Screen {
 
     // private final ChromashiftGame game; // Removed, unnecessary field
     private final boolean isHost;
     private final String hostAddress;
     private final String playerName;
+    private final PlayerType selectedColor;
 
     // Networking
     private HostServer hostServer;
@@ -45,11 +48,11 @@ public class FirstScreen implements Screen {
     // Players managed by ID (for easy lookup and update)
     private final ConcurrentHashMap<Integer, Player> activePlayers = new ConcurrentHashMap<>();
 
-    public FirstScreen(boolean isHost, String hostAddress, String playerName) {
-        // this.game = game; // Removed
+    public FirstScreen(boolean isHost, String hostAddress, String playerName, PlayerType selectedColor) {
         this.isHost = isHost;
         this.hostAddress = hostAddress;
         this.playerName = playerName;
+        this.selectedColor = selectedColor;
     }
 
     @Override
@@ -73,22 +76,20 @@ public class FirstScreen implements Screen {
         }
 
         // Always create a client instance to connect to the game
-        gameClient = new GameClient(playerName, PlayerType.BLUE.ordinal());
+        gameClient = new GameClient(playerName, selectedColor.ordinal());
         gameClient.start();
         gameClient.connectAsync(hostAddress);
 
-        // 2. Initialize Local Player
+        // 2. Initialize Local Player with correct color
         localPlayer = new Player(
             50, GROUND_Y,
-            Input.Keys.A, Input.Keys.D, Input.Keys.W, Input.Keys.SPACE, // WASD for movement, Space for Attack
-            PlayerType.BLUE,
+            Input.Keys.A, Input.Keys.D, Input.Keys.W, Input.Keys.SPACE,
+            selectedColor,
             6, 10,
-            64, 32, 5, // 5 frames for attack, based on your final debug
+            64, 32, 5,
             200f, 350f, -900f
         );
-        localPlayer.setLocal(true); // This instance reads input!
-
-        // Use a temporary ID until the server assigns a real one.
+        localPlayer.setLocal(true);
         activePlayers.put(-1, localPlayer);
     }
 
@@ -154,40 +155,41 @@ public class FirstScreen implements Screen {
         // Housekeeping: Remove players no longer present in the server's state
         activePlayers.entrySet().removeIf(entry -> {
             int id = entry.getKey();
-            if (id == myPlayerId || id == -1) return false; // Don't touch our player or temp ID
+            if (id == myPlayerId || id == -1) return false;
             return currentState.players.stream().noneMatch(ps -> ps.id == id);
         });
 
-                // Add or update players
+        // Add or update remote players
         for (Network.PlayerState state : currentState.players) {
-            if (state.id == myPlayerId) continue; // Skip our own player
+            if (state.id == myPlayerId) continue;
 
-            // Get or create remote player
-            Player player = activePlayers.computeIfAbsent(state.id, id -> {
-                System.out.println("Creating new remote player with id: " + id);
-                Network.PlayerProfile profile = null;
-                // Try to find profile info in game state
-                if (currentState.gameData != null && currentState.gameData.containsKey("profile_" + id)) {
-                    profile = (Network.PlayerProfile) currentState.gameData.get("profile_" + id);
-                }
-                
-                Player p = new Player(
+            // Get profile from gameData or fallback to PlayerType.RED
+            Network.PlayerProfile profile = null;
+            if (currentState.gameData != null && currentState.gameData.containsKey("profile_" + state.id)) {
+                profile = (Network.PlayerProfile) currentState.gameData.get("profile_" + state.id);
+            }
+            int colorType = (profile != null) ? profile.characterType : PlayerType.RED.ordinal();
+
+            Player player = activePlayers.get(state.id);
+            if (player == null) {
+                System.out.println("Creating new remote player with id: " + state.id);
+                player = new Player(
                     state.x, state.y,
                     Input.Keys.A, Input.Keys.D, Input.Keys.W, Input.Keys.SPACE,
-                    profile != null ? PlayerType.values()[profile.characterType] : PlayerType.RED,
+                    PlayerType.values()[colorType],
                     6, 10,
                     64, 32, 5,
                     200f, 350f, -900f
                 );
-                p.setLocal(false); // Mark as remote player
-                return p;
-            });
+                player.setLocal(false);
+                activePlayers.put(state.id, player);
+            }
 
-            // Get interpolated state
+            // Interpolated state
             Network.PlayerState interpolated = gameClient.interpolatePlayerState(state.id, renderAlpha);
             if (interpolated == null) interpolated = state;
 
-            // Apply server state to remote player
+            // Apply all relevant state for sync
             player.applyState(
                 interpolated.x, interpolated.y,
                 interpolated.vx, interpolated.vy,
@@ -196,15 +198,13 @@ public class FirstScreen implements Screen {
                 interpolated.isAttacking,
                 interpolated.facingLeft
             );
-            
-            // Update animation if it changed
+            player.setCanJump(interpolated.canJump);
+
+            // Animation sync
             if (interpolated.currentAnim != null) {
                 player.getAnimator().play(interpolated.currentAnim, interpolated.facingLeft);
             }
-            
-            // Advance animation/update for remote player (they are marked local=false)
             player.update(Gdx.graphics.getDeltaTime(), GROUND_Y);
-            
         }
 }
 

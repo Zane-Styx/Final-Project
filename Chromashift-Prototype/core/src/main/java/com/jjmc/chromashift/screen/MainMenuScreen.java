@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.jjmc.chromashift.ChromashiftGame;
 
 public class MainMenuScreen implements Screen {
+    private SelectBox<com.jjmc.chromashift.player.PlayerType> colorBox;
 
     private final ChromashiftGame game;
     private Stage stage;
@@ -75,6 +76,20 @@ public class MainMenuScreen implements Screen {
         textFieldStyle.cursor.setMinWidth(2);
         skin.add("default", textFieldStyle);
 
+    // SelectBox style
+    SelectBox.SelectBoxStyle selectBoxStyle = new SelectBox.SelectBoxStyle();
+    selectBoxStyle.font = font;
+    selectBoxStyle.fontColor = Color.WHITE;
+    selectBoxStyle.background = new TextureRegionDrawable(skin.getRegion("white"));
+    selectBoxStyle.scrollStyle = new ScrollPane.ScrollPaneStyle();
+    List.ListStyle listStyle = new List.ListStyle();
+    listStyle.font = font;
+    listStyle.fontColorSelected = Color.BLACK;
+    listStyle.fontColorUnselected = Color.DARK_GRAY;
+    listStyle.selection = new TextureRegionDrawable(skin.getRegion("white"));
+    selectBoxStyle.listStyle = listStyle;
+    skin.add("default", selectBoxStyle);
+
         // Layout container for left-aligned UI
         Table table = new Table();
         table.setFillParent(true);
@@ -82,6 +97,9 @@ public class MainMenuScreen implements Screen {
         table.padLeft(80);
         stage.addActor(table);
 
+        colorBox = new SelectBox<>(skin);
+        colorBox.setItems(com.jjmc.chromashift.player.PlayerType.values());
+        colorBox.setSelected(com.jjmc.chromashift.player.PlayerType.RED);
         Label title = new Label("CHROMASHIFT", skin);
         title.setFontScale(2f);
 
@@ -105,12 +123,15 @@ public class MainMenuScreen implements Screen {
         table.add(exitButton).width(200).height(40).row();
 
         // Button actions
+        table.add(new Label("Color:", skin)).left();
+        table.row();
+        table.add(colorBox).width(200).padBottom(20f).row();
         hostButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 String name = nameField.getText().isEmpty() ? "HostPlayer" : nameField.getText();
-                // Use the injected ChromashiftGame instance to switch screens
-                Gdx.app.postRunnable(() -> game.setScreen(new FirstScreen(true, "localhost", name)));
+                com.jjmc.chromashift.player.PlayerType color = colorBox.getSelected();
+                Gdx.app.postRunnable(() -> game.setScreen(new FirstScreen(true, "localhost", name, color)));
             }
         });
 
@@ -119,8 +140,8 @@ public class MainMenuScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 String name = nameField.getText().isEmpty() ? "Player" : nameField.getText();
                 String host = ipField.getText().isEmpty() ? "localhost" : ipField.getText();
-                // Use the injected ChromashiftGame instance to switch screens
-                Gdx.app.postRunnable(() -> game.setScreen(new FirstScreen(false, host, name)));
+                com.jjmc.chromashift.player.PlayerType color = colorBox.getSelected();
+                Gdx.app.postRunnable(() -> game.setScreen(new FirstScreen(false, host, name, color)));
             }
         });
 

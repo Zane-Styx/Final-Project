@@ -1,0 +1,248 @@
+package com.jjmc.chromashift.player;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Circle;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.Array;
+import com.chromashift.helper.SpriteAnimator;
+import com.jjmc.chromashift.environment.Wall;
+import com.jjmc.chromashift.environment.interactable.Button;
+import com.jjmc.chromashift.environment.interactable.Interactable;
+import com.jjmc.chromashift.environment.Solid;
+
+/**
+ * Cleaned Player implementation — single, consistent class.
+ */
+public class Player {
+    private SpriteAnimator anim;
+
+    // Input keys
+    private final int keyLeft, keyRight, keyJump, keyAttack;
+    private final int keyDash = Input.Keys.SHIFT_LEFT;
+
+    // Position and physics
+    private float x, y;
+    private float velocityY = 0f;
+    private boolean onGround = true;
+    private boolean facingLeft = false;
+    private boolean dashing = false;
+    protected boolean canJump = true;
+    private boolean moving = false;
+
+    // Timers / state
+    protected float dashTimer = 0f;
+    protected float dashCooldownTimer = 0f;
+    protected boolean dashUsed = false;
+
+    private boolean attacking = false;
+    protected boolean airAttacking = false;
+    protected float airAttackTimer = 0f;
+    protected float attackCooldownTimer = 0f;
+
+    // Wall
+    private boolean onWall = false;
+    private boolean wallSliding = false;
+    private Circle wallSensor;
+
+    // Config
+    private final PlayerConfig config;
+    protected final float baseWidth, baseHeight;
+    protected float hitboxOffsetX, hitboxOffsetY, hitboxWidth, hitboxHeight;
+
+    protected boolean groundedBySolid = false;
+    private PlayerType type;
+    protected int rows, cols, attackFrames;
+    protected int attackFrameW, attackFrameH;
+
+    public Player(float startX, float startY,
+                  int keyLeft, int keyRight, int keyJump, int keyAttack,
+                  PlayerType type,
+                  int rows, int cols,
+                  int attackFrameW, int attackFrameH, int attackFrames,
+                  PlayerConfig config) {
+        this.x = startX;
+        this.y = startY;
+        this.keyLeft = keyLeft;
+        this.keyRight = keyRight;
+        this.keyJump = keyJump;
+        this.keyAttack = keyAttack;
+        this.config = config;
+        this.type = type;
+        this.rows = rows;
+        this.cols = cols;
+        this.attackFrames = attackFrames;
+        this.attackFrameW = attackFrameW;
+        this.attackFrameH = attackFrameH;
+
+        this.baseWidth = config.baseWidth;
+        this.baseHeight = config.baseHeight;
+        this.hitboxOffsetX = config.hitboxOffsetX;
+        this.hitboxOffsetY = config.hitboxOffsetY;
+        this.hitboxWidth = config.hitboxWidth;
+        this.hitboxHeight = config.hitboxHeight;
+
+        anim = new SpriteAnimator(this.type.getSpritePath(), rows, cols);
+        anim.addAnimation("run", 0, 0, 9, 0.1f, true);
+        anim.addAnimation("jump", 1, 0, 8, 0.1f, true);
+        anim.addAnimation("fall", 2, 0, 8, 0.1f, true);
+        anim.addAnimation("idle", 3, 0, 1, 0.1f, true);
+        anim.addAnimation("wallslide", 4, 0, 8, 0.1f, true);
+        anim.addAnimation("dash", 5, 0, 9, 0.05f, false);
+        anim.addAnimationFromTexture("attack", type.getAttackSpritePath(), attackFrameW, attackFrameH, attackFrames, 0.08f, false);
+
+        wallSensor = new Circle(x, y, 5f);
+    }
+
+    public void update(float delta, float groundY, Array<Wall> walls) {
+    moving = false;
+    groundedBySolid = false;
+
+    PlayerLogic.handleAttackCooldown(this, delta);
+    
+    if (dashing) {
+        PlayerLogic.handleDash(this, delta, walls);
+        anim.update(delta);
+        return;
+    }
+
+    PlayerLogic.handleGroundMovement(this, delta, walls);
+    PlayerLogic.handleJump(this);
+    PlayerLogic.handleAttack(this, delta);
+
+    if (Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
+        dashing = true;
+        dashTimer = config.dashTime;
+        anim.play("dash", facingLeft);
+        canJump = true;
+        velocityY = 0f;
+        updateWallSensor();
+        return;
+    }
+
+    PlayerCollision.resolveWallCollision(getHitboxRect(), walls);
+    PlayerLogic.updateWallState(this, walls);
+    PlayerLogic.handleWallJump(this);
+
+    if (airAttacking) { 
+        anim.update(delta); 
+        updateWallSensor(); 
+        return; 
+    }
+
+    PlayerLogic.handleVerticalMovement(this, delta, walls);
+    PlayerLogic.handlePlatformLanding(this, walls);
+    PlayerLogic.handleGroundCheck(this, groundY);
+
+    if (onGround || onWall || wallSliding) dashUsed = false;
+
+    anim.update(delta);
+    PlayerLogic.handleAnimationState(this);
+}
+    public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables) {
+        Array<Wall> walls = new Array<>();
+        for (Solid s : solids) {
+            if (!s.isBlocking()) continue;
+            if (s instanceof Wall w) walls.add(w);
+        }
+        groundedBySolid = false;
+        
+        // Handle solid collisions first
+        Rectangle beforeMove = getHitboxRect();
+        PlayerCollision.resolveSolidCollision(getHitboxRect(), solids);
+        Rectangle afterMove = getHitboxRect();
+        // Update position based on solid collision resolution
+        x += afterMove.x - beforeMove.x;
+        y += afterMove.y - beforeMove.y;
+        
+        update(delta, groundY, walls);
+        
+        if (onGround || onWall || wallSliding) dashUsed = false;
+        
+        // Handle interactables
+        Rectangle playerHitbox = getHitboxRect();
+        for (Interactable i : interactables) {
+            i.checkInteraction(playerHitbox);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+            for (Interactable i : interactables) {
+                if (i instanceof Button && i.canInteract()) {
+                    ((Button)i).interact();
+                }
+            }
+        }
+    }
+
+    protected void updateWallSensor() {
+        float centerX = x + hitboxOffsetX + hitboxWidth / 2f;
+        float centerY = y + hitboxOffsetY + hitboxHeight / 2f;
+        float offsetX = facingLeft ? -6f : 6f;
+        wallSensor.setPosition(centerX + offsetX, centerY);
+        wallSensor.setRadius(3f);
+    }
+
+    public void render(SpriteBatch batch) {
+        String cur = anim.getCurrentAnimationName();
+        float width = "attack".equals(cur) ? attackFrameW : baseWidth;
+        float height = baseHeight;
+        float drawX = x;
+        if ("attack".equals(cur) && facingLeft) drawX = x - (width - baseWidth);
+        anim.render(batch, drawX, y, width, height);
+    }
+
+    // Hitbox helpers
+    public void setHitbox(float offsetX, float offsetY, float width, float height) { this.hitboxOffsetX = offsetX; this.hitboxOffsetY = offsetY; this.hitboxWidth = width; this.hitboxHeight = height; }
+    public float getHitboxX() { return x + hitboxOffsetX; }
+    public float getHitboxY() { return y + hitboxOffsetY; }
+    public float getHitboxWidth() { return hitboxWidth; }
+    public float getHitboxHeight() { return hitboxHeight; }
+    public Rectangle getHitboxRect() { return new Rectangle(getHitboxX(), getHitboxY(), getHitboxWidth(), getHitboxHeight()); }
+
+    // Getters
+    public float getX() { return x; }
+    public float getY() { return y; }
+    public float getVelocityY() { return velocityY; }
+    public boolean isFacingLeft() { return facingLeft; }
+    public boolean isWallSliding() { return wallSliding; }
+    public boolean isDashing() { return dashing; }
+    public boolean isAttacking() { return attacking; }
+    public boolean isAttackingJustNow() { return (attacking || airAttacking); }
+    public boolean isOnGround() { return onGround; }
+    public boolean isOnWall() { return onWall; }
+    public boolean isMoving() { return moving; }
+    public Circle getWallSensor() { return wallSensor; }
+    public PlayerConfig getConfig() { return config; }
+    public SpriteAnimator getAnim() { return anim; }
+    public int getKeyLeft() { return keyLeft; }
+    public int getKeyRight() { return keyRight; }
+    public int getKeyJump() { return keyJump; }
+    public int getKeyAttack() { return keyAttack; }
+
+    // Setters
+    public void setX(float x) { this.x = x; }
+    public void setY(float y) { this.y = y; }
+    public void setVelocityY(float velocityY) { this.velocityY = velocityY; }
+    public void setFacingLeft(boolean facingLeft) { this.facingLeft = facingLeft; }
+    public void setWallSliding(boolean wallSliding) { this.wallSliding = wallSliding; }
+    public void setDashing(boolean dashing) { this.dashing = dashing; }
+    public void setAttacking(boolean attacking) { this.attacking = attacking; }
+    public void setOnGround(boolean onGround) { this.onGround = onGround; }
+    public void setOnWall(boolean onWall) { this.onWall = onWall; }
+    public void setMoving(boolean moving) { this.moving = moving; }
+
+    public void dispose() { anim.dispose(); }
+
+    public void debugDrawHitbox(ShapeRenderer shape) {
+        shape.setColor(new Color(1f, 0f, 0f, 0.4f));
+        shape.rect(getHitboxX(), getHitboxY(), getHitboxWidth(), getHitboxHeight());
+        shape.setColor(onWall ? Color.RED : Color.CYAN);
+        shape.circle(wallSensor.x, wallSensor.y, wallSensor.radius);
+        float centerX = getHitboxX() + getHitboxWidth()/2;
+        shape.setColor(onGround ? Color.GREEN : Color.YELLOW);
+        shape.circle(centerX, getHitboxY(), 3f);
+        if (groundedBySolid) { shape.setColor(Color.WHITE); shape.circle(centerX, getHitboxY() - 4f, 2f); }
+    }
+}
