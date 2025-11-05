@@ -209,13 +209,6 @@ public class TestSceneScreen implements Screen {
         font.draw(batch, "Left: Pressure Button -> Green Door (walk onto button)", camController.getCamera().position.x - 480 + 8, camController.getCamera().position.y + 220);
         font.draw(batch, "Center: Lever -> Blue Door (press F when near)", camController.getCamera().position.x - 480 + 8, camController.getCamera().position.y + 200);
         font.draw(batch, "Right: Red Button -> Red Door (pressure)", camController.getCamera().position.x - 480 + 8, camController.getCamera().position.y + 180);
-        // Zone labels
-        font.setColor(Color.GREEN);
-        font.draw(batch, "LEFT: Pressure Button -> Green Door", baseLeft.bounds.x + 8, baseLeft.bounds.y + 180);
-        font.setColor(Color.CYAN);
-        font.draw(batch, "CENTER: Lever -> Blue Door", baseCenter.bounds.x + 8, baseCenter.bounds.y + 180);
-        font.setColor(Color.RED);
-        font.draw(batch, "RIGHT: Pressure Button -> Red Door", baseRight.bounds.x + 8, baseRight.bounds.y + 180);
         font.setColor(Color.WHITE);
         font.draw(batch, "Press R to respawn", camController.getCamera().position.x + 280, camController.getCamera().position.y - 220);
         batch.end();
@@ -227,7 +220,7 @@ public class TestSceneScreen implements Screen {
         shape.rect(-2000, groundY - 5, 4000, 5);
         shape.end();
 
-        shape.begin(ShapeRenderer.ShapeType.Filled);
+        shape.begin(ShapeRenderer.ShapeType.Line);
         // draw walls and interactables debug shapes (rect/circle outlines)
         for (Wall w : walls) w.debugDraw(shape);
         for (Interactable i : interactables) i.debugDraw(shape);
