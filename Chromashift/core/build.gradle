@@ -23,5 +23,5 @@ dependencies {
 
   if(enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
-  }
+  }// Note: dependencies for desktop, android, ios, and html projects are in their respective build.gradle files
 }

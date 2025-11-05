@@ -8,10 +8,12 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
+import com.jjmc.chromashift.environment.interactable.Box;
+import com.jjmc.chromashift.environment.interactable.Orb;
 import com.chromashift.helper.SpriteAnimator;
 import com.jjmc.chromashift.environment.Wall;
-import com.jjmc.chromashift.environment.interactable.Button;
 import com.jjmc.chromashift.environment.interactable.Interactable;
+import com.jjmc.chromashift.environment.interactable.Pickable;
 import com.jjmc.chromashift.environment.Solid;
 
 /**
@@ -32,11 +34,22 @@ public class Player {
     private boolean dashing = false;
     protected boolean canJump = true;
     private boolean moving = false;
+    private com.badlogic.gdx.graphics.Camera gameCamera;
 
     // Timers / state
     protected float dashTimer = 0f;
     protected float dashCooldownTimer = 0f;
     protected boolean dashUsed = false;
+    
+    public void setCamera(com.badlogic.gdx.graphics.Camera camera) {
+        this.gameCamera = camera;
+        // Also set camera for held object if any
+        if (heldObject instanceof Box box) {
+            box.setCamera(camera);
+        } else if (heldObject instanceof Orb orb) {
+            orb.setCamera(camera);
+        }
+    }
 
     private boolean attacking = false;
     protected boolean airAttacking = false;
@@ -97,71 +110,74 @@ public class Player {
         wallSensor = new Circle(x, y, 5f);
     }
 
+    // Currently held pickable
+    private com.jjmc.chromashift.environment.interactable.Pickable heldObject = null;
+
     public void update(float delta, float groundY, Array<Wall> walls) {
-    moving = false;
-    groundedBySolid = false;
+        update(delta, groundY, walls, null);
+    }
 
-    PlayerLogic.handleAttackCooldown(this, delta);
-    
-    if (dashing) {
-        PlayerLogic.handleDash(this, delta, walls);
+    public void update(float delta, float groundY, Array<Wall> walls, Array<Solid> solids) {
+        moving = false;
+        groundedBySolid = false;
+
+        PlayerLogic.handleAttackCooldown(this, delta);
+
+        if (dashing) {
+            PlayerLogic.handleDash(this, delta, walls, solids);
+            anim.update(delta);
+            return;
+        }
+
+        PlayerLogic.handleGroundMovement(this, delta, walls, solids);
+        PlayerLogic.handleJump(this);
+        PlayerLogic.handleAttack(this, delta);
+
+        if (Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
+            dashing = true;
+            dashTimer = config.dashTime;
+            anim.play("dash", facingLeft);
+            canJump = true;
+            velocityY = 0f;
+            updateWallSensor();
+            return;
+        }
+
+        PlayerCollision.resolveWallCollision(getHitboxRect(), walls);
+        if (solids != null) {
+            PlayerCollision.resolveSolidCollision(getHitboxRect(), solids);
+        }
+        PlayerLogic.updateWallState(this, walls);
+        PlayerLogic.handleWallJump(this);
+
+        if (airAttacking) {
+            anim.update(delta);
+            updateWallSensor();
+            return;
+        }
+
+        PlayerLogic.handleVerticalMovement(this, delta, walls, solids);
+        PlayerLogic.handleGroundCheck(this, groundY);
+
+        if (onGround || onWall || wallSliding) dashUsed = false;
+
         anim.update(delta);
-        return;
+        PlayerLogic.handleAnimationState(this);
     }
 
-    PlayerLogic.handleGroundMovement(this, delta, walls);
-    PlayerLogic.handleJump(this);
-    PlayerLogic.handleAttack(this, delta);
 
-    if (Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
-        dashing = true;
-        dashTimer = config.dashTime;
-        anim.play("dash", facingLeft);
-        canJump = true;
-        velocityY = 0f;
-        updateWallSensor();
-        return;
-    }
-
-    PlayerCollision.resolveWallCollision(getHitboxRect(), walls);
-    PlayerLogic.updateWallState(this, walls);
-    PlayerLogic.handleWallJump(this);
-
-    if (airAttacking) { 
-        anim.update(delta); 
-        updateWallSensor(); 
-        return; 
-    }
-
-    PlayerLogic.handleVerticalMovement(this, delta, walls);
-    PlayerLogic.handlePlatformLanding(this, walls);
-    PlayerLogic.handleGroundCheck(this, groundY);
-
-    if (onGround || onWall || wallSliding) dashUsed = false;
-
-    anim.update(delta);
-    PlayerLogic.handleAnimationState(this);
-}
-    public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables) {
+    public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables, float x) {
         Array<Wall> walls = new Array<>();
         for (Solid s : solids) {
             if (!s.isBlocking()) continue;
             if (s instanceof Wall w) walls.add(w);
         }
         groundedBySolid = false;
-        
-        // Handle solid collisions first
-        Rectangle beforeMove = getHitboxRect();
-        PlayerCollision.resolveSolidCollision(getHitboxRect(), solids);
-        Rectangle afterMove = getHitboxRect();
-        // Update position based on solid collision resolution
-        x += afterMove.x - beforeMove.x;
-        y += afterMove.y - beforeMove.y;
-        
-        update(delta, groundY, walls);
-        
+
+        update(delta, groundY, walls, solids);
+
         if (onGround || onWall || wallSliding) dashUsed = false;
-        
+
         // Handle interactables
         Rectangle playerHitbox = getHitboxRect();
         for (Interactable i : interactables) {
@@ -169,8 +185,84 @@ public class Player {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
             for (Interactable i : interactables) {
-                if (i instanceof Button && i.canInteract()) {
-                    ((Button)i).interact();
+                // Activate any interactable that reports it can be interacted with.
+                // Buttons (pressure plates) should return false for canInteract()
+                // so they won't be triggered by F; levers and similar will.
+                if (i.canInteract()) {
+                    i.interact();
+                }
+            }
+        }
+                // Pickup/throw with G key
+        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+            if (heldObject != null) {
+                // Get mouse position in world coordinates
+                com.badlogic.gdx.math.Vector3 mousePos = new com.badlogic.gdx.math.Vector3(
+                    Gdx.input.getX(), Gdx.input.getY(), 0);
+                if (gameCamera != null) {
+                    gameCamera.unproject(mousePos);
+                }
+                float mouseX = mousePos.x;
+                float mouseY = mousePos.y;
+                
+                // Get player center position for throw origin
+                float playerCenterX = getHitboxX() + getHitboxWidth() / 2f;
+                float playerCenterY = getHitboxY() + getHitboxHeight() / 2f;
+                
+                // Calculate throw direction and velocity
+                float dirX = mouseX - playerCenterX;
+                float dirY = mouseY - playerCenterY;
+                float len = (float)Math.sqrt(dirX * dirX + dirY * dirY);
+                
+                if (len > 0.001f) {
+                    // Normalize and scale to desired throw speed
+                    float throwSpeed = 400f;
+                    float vx = (dirX / len) * throwSpeed;
+                    float vy = (dirY / len) * throwSpeed;
+                    throwHeldWithVelocity(vx, vy);
+                } else {
+                    // If no direction, just drop it
+                    heldObject.drop();
+                    heldObject = null;
+                }
+            } else {
+                // Try to pick up nearby object
+                for (Interactable i : interactables) {
+                    if (i instanceof Pickable p && i.canInteract()) {
+                        p.pickUp(this);
+                        heldObject = p;
+                        break;
+                    }
+                }
+            }
+        }
+        // pickup/throw handled by screen (needs camera/mouse); Player exposes held-object API
+    }
+
+    public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables, boolean dummy) {
+        Array<Wall> walls = new Array<>();
+        for (Solid s : solids) {
+            if (!s.isBlocking()) continue;
+            if (s instanceof Wall w) walls.add(w);
+        }
+        groundedBySolid = false;
+
+        update(delta, groundY, walls, solids);
+
+        if (onGround || onWall || wallSliding) dashUsed = false;
+
+        // Handle interactables
+        Rectangle playerHitbox = getHitboxRect();
+        for (Interactable i : interactables) {
+            i.checkInteraction(playerHitbox);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+            for (Interactable i : interactables) {
+                // Activate any interactable that reports it can be interacted with.
+                // Buttons (pressure plates) should return false for canInteract()
+                // so they won't be triggered by F; levers and similar will.
+                if (i.canInteract()) {
+                    i.interact();
                 }
             }
         }
@@ -244,5 +336,23 @@ public class Player {
         shape.setColor(onGround ? Color.GREEN : Color.YELLOW);
         shape.circle(centerX, getHitboxY(), 3f);
         if (groundedBySolid) { shape.setColor(Color.WHITE); shape.circle(centerX, getHitboxY() - 4f, 2f); }
+    }
+
+    // Held object API used by screens
+    public com.jjmc.chromashift.environment.interactable.Pickable getHeldObject() { return heldObject; }
+    public void setHeldObject(com.jjmc.chromashift.environment.interactable.Pickable obj) { this.heldObject = obj; }
+    public void clearHeldObject() { this.heldObject = null; }
+    public void throwHeldWithVelocity(float vx, float vy) {
+        if (heldObject == null) return;
+        // Cap throw velocity to prevent objects from moving too fast
+        float maxThrowSpeed = 600f;
+        float speed = (float)Math.sqrt(vx * vx + vy * vy);
+        if (speed > maxThrowSpeed) {
+            float scale = maxThrowSpeed / speed;
+            vx *= scale;
+            vy *= scale;
+        }
+        heldObject.throwWithVelocity(vx, vy);
+        heldObject = null;
     }
 }

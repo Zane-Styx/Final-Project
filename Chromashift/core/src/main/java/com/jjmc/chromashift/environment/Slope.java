@@ -13,8 +13,11 @@ public class Slope implements Solid {
     private final Rectangle bounds;
     private final boolean rightUp; // true = rising to the right
 
-    public Slope(float x, float y, float w, float h, boolean rightUp) {
-        bounds = new Rectangle(x, y, w, h);
+    public Slope(float x, float y, int cols, int rows, boolean rightUp) {
+        // Convert columns and rows to actual width and height (32 pixels per cell)
+        float width = cols * 32f;
+        float height = rows * 32f;
+        bounds = new Rectangle(x, y, width, height);
         this.rightUp = rightUp;
     }
 

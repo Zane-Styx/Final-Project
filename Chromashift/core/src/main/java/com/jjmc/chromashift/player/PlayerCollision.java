@@ -60,30 +60,25 @@ public class PlayerCollision {
 			if (b == null) continue;
 			if (!hitbox.overlaps(b)) continue;
 
-			// Find the overlap on each axis
-			float overlapX, overlapY;
-			
 			// Calculate overlaps
-			if (hitbox.x < b.x) {
-				overlapX = hitbox.x + hitbox.width - b.x;
-			} else {
-				overlapX = b.x + b.width - hitbox.x;
-			}
-			
-			if (hitbox.y < b.y) {
-				overlapY = hitbox.y + hitbox.height - b.y;
-			} else {
-				overlapY = b.y + b.height - hitbox.y;
-			}
-			
-			// Resolve collision by moving in direction of least overlap
+			float overlapX = hitbox.x < b.x ? 
+				hitbox.x + hitbox.width - b.x :
+				b.x + b.width - hitbox.x;
+
+			float overlapY = hitbox.y < b.y ?
+				hitbox.y + hitbox.height - b.y :
+				b.y + b.height - hitbox.y;
+
+			// Resolve based on penetration amounts (smaller overlap -> move on that axis)
 			if (overlapX < overlapY) {
+				// Horizontal collision
 				if (hitbox.x < b.x) {
 					hitbox.x = b.x - hitbox.width;
 				} else {
 					hitbox.x = b.x + b.width;
 				}
 			} else {
+				// Vertical collision
 				if (hitbox.y < b.y) {
 					hitbox.y = b.y - hitbox.height;
 				} else {

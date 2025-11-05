@@ -139,6 +139,26 @@ public class SpriteAnimator {
         currentFrame = currentAnimation.frames[frameIndex];
     }
 
+    /**
+     * Set the current frame index of the currently selected animation.
+     * This updates the internal stateTime so subsequent calls to update()
+     * will continue from the chosen frame.
+     *
+     * @param index frame index (0-based)
+     * @throws IllegalStateException if no animation is currently selected
+     * @throws IllegalArgumentException if index is out of bounds
+     */
+    public void setFrame(int index) {
+        if (currentAnimation == null) throw new IllegalStateException("No current animation selected");
+        if (currentAnimation.frames == null || currentAnimation.frames.length == 0) return;
+        if (index < 0 || index >= currentAnimation.frames.length)
+            throw new IllegalArgumentException("Frame index out of range: " + index);
+
+        // Align stateTime to the requested frame so update() behavior remains consistent
+        stateTime = index * currentAnimation.frameDuration;
+        currentFrame = currentAnimation.frames[index];
+    }
+
     // ---------------- Rendering ----------------
 
     public void render(SpriteBatch batch, float x, float y) {

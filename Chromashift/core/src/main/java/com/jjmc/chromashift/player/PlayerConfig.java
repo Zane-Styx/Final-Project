@@ -1,12 +1,14 @@
 package com.jjmc.chromashift.player;
 
 public class PlayerConfig {
-	public float speed = 150f;         // Reduced from default
-	public float jumpForce = 300f;     // Initial jump velocity
-	public float gravity = -800f;      // Negative because it pulls down
-	public float dashSpeed = 300f;     // Reduced from 500f
+	public float speed = 120f;         // Reduced from 150f for better control
+	public float jumpForce = 400f;     // Reduced from 300f for better control
+	public float gravity = -800f;      // Reduced from -800f for smoother falling
+	public float dashSpeed = 250f;     // Reduced from 300f for better control
+	// Maximum (most negative) fall speed. Make positive magnitude larger for faster falls.
+	public float maxFallSpeed = -1200f;
 	public float dashTime = 0.2f;
-	public float dashCooldown = 1f;
+	public float dashCooldown = .75f;
 	public float attackCooldown = 0.75f;
 	public float airAttackDuration = 0.3f;
 	public float airAttackLungeSpeed = 100f;
