@@ -142,4 +142,20 @@ public class Wall implements Solid {
             solidTexture = null;
         }
     }
+
+    public float getX() {
+        return bounds.x;
+    }
+
+    public float getY() {
+        return bounds.y;
+    }
+
+    public float getWidth() {
+        return bounds.width;
+    }
+    
+    public float getHeight() {
+        return bounds.height;
+    }
 }

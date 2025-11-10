@@ -10,6 +10,8 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.jjmc.chromashift.environment.interactable.Box;
 import com.jjmc.chromashift.environment.interactable.Orb;
+import com.jjmc.chromashift.healthsystem.HealthListener;
+import com.jjmc.chromashift.healthsystem.HealthSystem;
 import com.chromashift.helper.SpriteAnimator;
 import com.jjmc.chromashift.environment.Wall;
 import com.jjmc.chromashift.environment.interactable.Interactable;
@@ -108,16 +110,101 @@ public class Player {
         anim.addAnimationFromTexture("attack", type.getAttackSpritePath(), attackFrameW, attackFrameH, attackFrames, 0.08f, false);
 
         wallSensor = new Circle(x, y, 5f);
+
+        // Respawn defaults to initial spawn
+        this.respawnX = startX;
+        this.respawnY = startY;
+
+        // Initialize health system (sane defaults)
+        this.health = new HealthSystem(200f);
+        // small auto-regen after 1.5s
+        this.health.setRegenPerSecond(1f);
+        this.health.setRegenDelayAfterDamage(1.5f);
+        // Listen for death to respawn the player
+        this.health.addListener(new HealthListener() {
+            @Override
+            public void onHealthChanged(HealthSystem hs, float delta, float current, float max) {
+                // Optional: could hook damage flash, sound, UI here
+            }
+
+            @Override
+            public void onDeath(HealthSystem hs, Object source) {
+                // On death, respawn at the last respawn point
+                respawn();
+            }
+        });
     }
 
     // Currently held pickable
     private com.jjmc.chromashift.environment.interactable.Pickable heldObject = null;
 
+    // Health system and respawn
+    private final HealthSystem health;
+    private float respawnX, respawnY;
+    // temporary invulnerability and stun after respawn (seconds)
+    private float respawnInvulDuration = 1.0f;
+    private float respawnInvulRemaining = 0f;
+    private float respawnStunDuration = 0.5f; // How long player can't move after respawn
+    private float respawnStunRemaining = 0f;
+    private boolean isStunned = false;
+
     public void update(float delta, float groundY, Array<Wall> walls) {
-        update(delta, groundY, walls, null);
+        // update health first (regen, timers)
+        if (health != null) health.update(delta);
+        
+        // handle respawn timers
+        if (respawnInvulRemaining > 0f) {
+            respawnInvulRemaining -= delta;
+            if (respawnInvulRemaining <= 0f) {
+                health.setInvulnerable(false);
+                respawnInvulRemaining = 0f;
+            }
+        }
+        if (respawnStunRemaining > 0f) {
+            respawnStunRemaining -= delta;
+            if (respawnStunRemaining <= 0f) {
+                isStunned = false;
+                respawnStunRemaining = 0f;
+            }
+        }
+
+        // Don't update movement if stunned
+        if (!isStunned) {
+            update(delta, groundY, walls, null);
+        } else {
+            // Still update animation while stunned
+            anim.update(delta);
+            anim.play("idle", facingLeft);
+        }
     }
 
     public void update(float delta, float groundY, Array<Wall> walls, Array<Solid> solids) {
+        // update health (regen, timers)
+        if (health != null) health.update(delta);
+        
+        // handle respawn timers
+        if (respawnInvulRemaining > 0f) {
+            respawnInvulRemaining -= delta;
+            if (respawnInvulRemaining <= 0f) {
+                health.setInvulnerable(false);
+                respawnInvulRemaining = 0f;
+            }
+        }
+        if (respawnStunRemaining > 0f) {
+            respawnStunRemaining -= delta;
+            if (respawnStunRemaining <= 0f) {
+                isStunned = false;
+                respawnStunRemaining = 0f;
+            }
+        }
+
+        // If stunned, only update animation
+        if (isStunned) {
+            anim.update(delta);
+            anim.play("idle", facingLeft);
+            return;
+        }
+
         moving = false;
         groundedBySolid = false;
 
@@ -174,6 +261,7 @@ public class Player {
         }
         groundedBySolid = false;
 
+        // health handled in the chained update
         update(delta, groundY, walls, solids);
 
         if (onGround || onWall || wallSliding) dashUsed = false;
@@ -247,6 +335,7 @@ public class Player {
         }
         groundedBySolid = false;
 
+        // health handled in the chained update
         update(delta, groundY, walls, solids);
 
         if (onGround || onWall || wallSliding) dashUsed = false;
@@ -326,6 +415,44 @@ public class Player {
     public void setMoving(boolean moving) { this.moving = moving; }
 
     public void dispose() { anim.dispose(); }
+
+    // --- Health / Respawn API ---
+    public HealthSystem getHealthSystem() { return health; }
+
+    /**
+     * Set the respawn point for this player. When the player dies they'll be moved here.
+     */
+    public void setRespawnPoint(float rx, float ry) {
+        this.respawnX = rx;
+        this.respawnY = ry;
+    }
+
+    /**
+     * Respawn the player at the last set respawn point. Restores HP to full, clears velocities and
+     * gives a short invulnerability window.
+     */
+    public void respawn() {
+        // move player
+        setX(respawnX);
+        setY(respawnY);
+        // reset movement state
+        this.velocityY = 0f;
+        this.dashing = false;
+        this.dashTimer = 0f;
+        this.dashCooldownTimer = 0f;
+        this.dashUsed = false;
+        this.attacking = false;
+        this.airAttacking = false;
+
+        // restore health to full (even if dead)
+        health.reset();
+
+        // give brief invulnerability and movement stun
+        health.setInvulnerable(true);
+        respawnInvulRemaining = respawnInvulDuration;
+        isStunned = true;
+        respawnStunRemaining = respawnStunDuration;
+    }
 
     public void debugDrawHitbox(ShapeRenderer shape) {
         shape.setColor(new Color(1f, 0f, 0f, 0.4f));

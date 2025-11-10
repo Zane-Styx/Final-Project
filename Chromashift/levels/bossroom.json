@@ -1,0 +1,42 @@
+{
+meta: {
+	name: BossRoom
+	version: 1
+}
+spawn: {
+	x: 400
+	y: 100
+}
+walls: [
+	{
+		x: -200
+		y: 40
+		width: 50
+		height: 1
+	}
+	{
+		x: 200
+		y: 40
+		width: 50
+		height: 1
+	}
+	{
+		x: -32
+		y: 128
+		width: 16
+		height: 1
+	}
+	{
+		x: -32
+		y: 96
+		width: 16
+		height: 1
+	}
+]
+interactables: []
+boxes: []
+orbs: []
+boss: {
+	y: 200
+}
+}

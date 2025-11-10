@@ -1,0 +1,56 @@
+{
+meta: {
+	name: Level2
+	version: 1
+}
+spawn: {
+	x: 120
+	y: 40
+}
+walls: []
+interactables: [
+	{
+		type: door
+		id: door_1
+		x: 480
+		openDirection: UP
+		cols: 1
+		rows: 1
+	}
+	{
+		type: door
+		id: door_2
+		x: 480
+		openDirection: UP
+		cols: 1
+		rows: 1
+	}
+	{
+		type: door
+		id: door_3
+		x: 480
+		openDirection: UP
+		cols: 1
+		rows: 1
+	}
+	{
+		type: door
+		id: door_4
+		x: 480
+		openDirection: UP
+		cols: 1
+		rows: 1
+	}
+	{
+		type: door
+		id: door_5
+		x: 480
+		openDirection: UP
+		cols: 1
+		rows: 1
+	}
+]
+boxes: []
+orbs: []
+boss: {}
+}

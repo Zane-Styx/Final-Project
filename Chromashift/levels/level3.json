@@ -1,0 +1,18 @@
+{
+meta: {
+	name: Level3
+	version: 1
+}
+spawn: {
+	x: 120
+	y: 40
+}
+walls: []
+interactables: []
+boxes: []
+orbs: []
+boss: {
+	x: 768
+	y: 224
+}
+}
