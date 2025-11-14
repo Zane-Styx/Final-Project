@@ -1,0 +1,1541 @@
+﻿   1: depth=0 | package com.jjmc.chromashift.screens;
+   2: depth=0 | 
+   3: depth=0 | import com.badlogic.gdx.Gdx;
+   4: depth=0 | import com.badlogic.gdx.Input;
+   5: depth=0 | import com.badlogic.gdx.Screen;
+   6: depth=0 | import com.badlogic.gdx.graphics.Color;
+   7: depth=0 | import com.badlogic.gdx.graphics.GL20;
+   8: depth=0 | import com.badlogic.gdx.graphics.OrthographicCamera;
+   9: depth=0 | import com.badlogic.gdx.graphics.g2d.BitmapFont;
+  10: depth=0 | import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+  11: depth=0 | import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+  12: depth=0 | import com.badlogic.gdx.math.Vector2;
+  13: depth=0 | import com.badlogic.gdx.math.Rectangle;
+  14: depth=0 | import com.badlogic.gdx.utils.Array;
+  15: depth=0 | import com.badlogic.gdx.files.FileHandle;
+  16: depth=0 | import com.jjmc.chromashift.environment.Wall;
+  17: depth=0 | import com.jjmc.chromashift.environment.Solid;
+  18: depth=0 | import com.jjmc.chromashift.environment.interactable.Button;
+  19: depth=0 | import com.jjmc.chromashift.environment.interactable.Door;
+  20: depth=0 | import com.jjmc.chromashift.environment.interactable.Lever;
+  21: depth=0 | import com.jjmc.chromashift.environment.interactable.Interactable;
+  22: depth=0 | import com.jjmc.chromashift.environment.interactable.Box;
+  23: depth=0 | import com.jjmc.chromashift.environment.interactable.Orb;
+  24: depth=0 | import com.jjmc.chromashift.entity.boss.BossInstance;
+  25: depth=0 | import com.jjmc.chromashift.screens.levels.LevelLoader;
+  26: depth=0 | 
+  27: depth=0 | import java.util.Locale;
+  28: depth=0 | 
+  29: depth=0 | /**
+  30: depth=0 |  * Lightweight level maker/editor.
+  31: depth=0 |  * Flow:
+  32: depth=0 |  * 1) Choose level to edit by pressing 1,2,3,B (bossroom) or T (tutorial)
+  33: depth=0 |  * 2) No player is created. Camera is free and controlled by WASD keys.
+  34: depth=0 |  * 3) Choose object type (1..8). Move mouse to position; it snaps to 32x32 grid.
+  35: depth=0 |  * - For variable-size objects (Wall/Door) adjust width/height with Arrow keys
+  36: depth=0 |  * - Left click to confirm placement, right click to cancel
+  37: depth=0 |  * 4) Press Ctrl+S to save level (writes to local levels/<name>.json via
+  38: depth=0 |  * LevelIO.save and to project assets/levels)
+  39: depth=0 |  */
+  40: depth=1 | public class LevelMakerScreen implements Screen {
+  41: depth=1 | 	private Initialize.Context ctx;
+  42: depth=1 | 	private OrthographicCamera camera;
+  43: depth=1 | 	private SpriteBatch batch;
+  44: depth=1 | 	private ShapeRenderer shape;
+  45: depth=1 | 	private BitmapFont font;
+  46: depth=1 | 
+  47: depth=1 | 	// UI camera for screen-fixed UI
+  48: depth=1 | 	private OrthographicCamera uiCamera;
+  49: depth=1 | 
+  50: depth=1 | 	// level list UI
+  51: depth=1 | 	private Array<String> levelFiles = new Array<>();
+  52: depth=1 | 	private Array<Rectangle> levelRects = new Array<>();
+  53: depth=1 | 	private int hoveredLevelIndex = -1;
+  54: depth=1 | 
+  55: depth=1 | 	private LevelIO.LevelState state;
+  56: depth=1 | 	private String currentLevelPath = "levels/level1.json";
+  57: depth=1 | 	private boolean levelSelected = false;
+  58: depth=1 | 
+  59: depth=2 | 	private enum ObjectType {
+  60: depth=2 | 		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, NONE
+  61: depth=1 | 	}
+  62: depth=1 | 
+  63: depth=1 | 	private ObjectType selectedType = ObjectType.NONE;
+  64: depth=1 | 
+  65: depth=1 | 	// preview placement
+  66: depth=1 | 	private int previewCols = 1, previewRows = 1;
+  67: depth=1 | 
+  68: depth=1 | 	// collections to render interactables immediately (from LevelLoader)
+  69: depth=1 | 	private Array<Wall> walls = new Array<>();
+  70: depth=1 | 	private Array<Solid> solids = new Array<>();
+  71: depth=1 | 	private Array<Interactable> interactableInstances = new Array<>();
+  72: depth=1 | 	private BossInstance bossInstance;
+  73: depth=1 | 
+  74: depth=1 | 	// keep simple placement history for undo/erase
+  75: depth=2 | 	private static class Placement {
+  76: depth=2 | 		ObjectType type;
+  77: depth=2 | 		int x, y, cols, rows;
+  78: depth=2 | 		String id; // for doors
+  79: depth=2 | 
+  80: depth=3 | 		Placement(ObjectType t, int x, int y, int c, int r, String id) {
+  81: depth=3 | 			this.type = t;
+  82: depth=3 | 			this.x = x;
+  83: depth=3 | 			this.y = y;
+  84: depth=3 | 			this.cols = c;
+  85: depth=3 | 			this.rows = r;
+  86: depth=3 | 			this.id = id;
+  87: depth=2 | 		}
+  88: depth=1 | 	}
+  89: depth=1 | 
+  90: depth=1 | 	private Array<Placement> placements = new Array<>();
+  91: depth=1 | 
+  92: depth=1 | 	// door quick lookup
+  93: depth=2 | 	private static class DoorRecord {
+  94: depth=2 | 		String id;
+  95: depth=2 | 		float x, y;
+  96: depth=2 | 		int cols, rows;
+  97: depth=2 | 
+  98: depth=3 | 		DoorRecord(String id, float x, float y, int c, int r) {
+  99: depth=3 | 			this.id = id;
+ 100: depth=3 | 			this.x = x;
+ 101: depth=3 | 			this.y = y;
+ 102: depth=3 | 			this.cols = c;
+ 103: depth=3 | 			this.rows = r;
+ 104: depth=2 | 		}
+ 105: depth=1 | 	}
+ 106: depth=1 | 
+ 107: depth=1 | 	private Array<DoorRecord> doorRecords = new Array<>();
+ 108: depth=1 | 	// preview collision state
+ 109: depth=1 | 	private boolean previewBlocked = false;
+ 110: depth=1 | 
+ 111: depth=1 | 	// Button color selection for preview/placement
+ 112: depth=1 | 	private Button.ButtonColor selectedButtonColor = Button.ButtonColor.GREEN;
+ 113: depth=1 | 	private Array<Rectangle> buttonColorRects = new Array<>();
+ 114: depth=1 | 	private com.chromashift.helper.SpriteAnimator previewButtonAnim;
+ 115: depth=1 | 
+ 116: depth=1 | 	// lever orientation UI and preview
+ 117: depth=1 | 	private boolean selectedLeverHorizontal = false;
+ 118: depth=1 | 	private Rectangle leverOrientRect;
+ 119: depth=1 | 	private Rectangle linkToggleRect;
+ 120: depth=1 | 	private boolean linkingMode = false;
+ 121: depth=1 | 	private com.chromashift.helper.SpriteAnimator previewLeverAnim;
+ 122: depth=1 | 
+ 123: depth=1 | 	// camera pan speed
+ 124: depth=1 | 	private float camSpeed = 400f;
+ 125: depth=1 | 
+ 126: depth=1 | 	// UI buttons
+ 127: depth=2 | 	private static class UIButton {
+ 128: depth=2 | 		Rectangle rect;
+ 129: depth=2 | 		ObjectType type;
+ 130: depth=2 | 		String label;
+ 131: depth=2 | 
+ 132: depth=3 | 		UIButton(Rectangle r, ObjectType t, String l) {
+ 133: depth=3 | 			rect = r;
+ 134: depth=3 | 			type = t;
+ 135: depth=3 | 			label = l;
+ 136: depth=2 | 		}
+ 137: depth=1 | 	}
+ 138: depth=1 | 
+ 139: depth=1 | 	private Array<UIButton> uiButtons = new Array<>();
+ 140: depth=1 | 	private Array<Rectangle> doorDirButtons = new Array<>();
+ 141: depth=1 | 	private final String[] doorDirections = new String[] { "UP", "DOWN", "LEFT", "RIGHT" };
+ 142: depth=1 | 	private int selectedDoorDirIndex = 0;
+ 143: depth=1 | 
+ 144: depth=1 | 	@Override
+ 145: depth=2 | 	public void show() {
+ 146: depth=2 | 		ctx = Initialize.createCommon(800, 480, null);
+ 147: depth=2 | 		camera = ctx.camera;
+ 148: depth=2 | 		batch = ctx.batch;
+ 149: depth=2 | 		shape = ctx.shape;
+ 150: depth=2 | 		font = ctx.font;
+ 151: depth=2 | 
+ 152: depth=2 | 		// set up UI camera (screen-fixed) and build level list UI
+ 153: depth=2 | 		uiCamera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+ 154: depth=2 | 		uiCamera.setToOrtho(false);
+ 155: depth=2 | 		uiCamera.position.set(uiCamera.viewportWidth / 2f, uiCamera.viewportHeight / 2f, 0f);
+ 156: depth=2 | 		uiCamera.update();
+ 157: depth=2 | 
+ 158: depth=2 | 		loadLevel(currentLevelPath);
+ 159: depth=2 | 
+ 160: depth=2 | 		// build UI buttons at BOTTOM center (Minecraft inventory style)
+ 161: depth=2 | 		float bw = 60f, bh = 28f, gap = 8f;
+ 162: depth=2 | 		float totalWidth = 8 * bw + 7 * gap;
+ 163: depth=2 | 		float bx = (uiCamera.viewportWidth - totalWidth) / 2f;
+ 164: depth=2 | 		float by = 20f; // 20px from bottom
+ 165: depth=2 | 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.WALL, "Wall"));
+ 166: depth=2 | 		bx += bw + gap;
+ 167: depth=2 | 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.DOOR, "Door"));
+ 168: depth=2 | 		bx += bw + gap;
+ 169: depth=2 | 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.BUTTON, "Button"));
+ 170: depth=2 | 		bx += bw + gap;
+ 171: depth=2 | 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.LEVER, "Lever"));
+ 172: depth=2 | 		bx += bw + gap;
+ 173: depth=2 | 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.BOX, "Box"));
+ 174: depth=2 | 		bx += bw + gap;
+ 175: depth=2 | 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.ORB, "Orb"));
+ 176: depth=2 | 		bx += bw + gap;
+ 177: depth=2 | 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.BOSS, "Boss"));
+ 178: depth=2 | 		bx += bw + gap;
+ 179: depth=2 | 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.SPAWN, "Spawn"));
+ 180: depth=2 | 
+ 181: depth=2 | 		// Contextual option buttons - positioned above main buttons but only shown when
+ 182: depth=2 | 		// relevant type selected
+ 183: depth=2 | 		// Door direction buttons (shown only when Door selected)
+ 184: depth=2 | 		float optionY = by + bh + 8f; // 8px above main buttons
+ 185: depth=2 | 		float optionX = (uiCamera.viewportWidth - (4 * bw + 3 * gap)) / 2f;
+ 186: depth=3 | 		for (int i = 0; i < doorDirections.length; i++) {
+ 187: depth=3 | 			doorDirButtons.add(new Rectangle(optionX + i * (bw + gap), optionY, bw, bh));
+ 188: depth=2 | 		}
+ 189: depth=2 | 
+ 190: depth=2 | 		// Button color swatches (shown only when Button selected)
+ 191: depth=2 | 		float sw = 40f, sh = 24f, sg = 6f;
+ 192: depth=2 | 		Button.ButtonColor[] cols = Button.ButtonColor.values();
+ 193: depth=2 | 		float colorsWidth = cols.length * sw + (cols.length - 1) * sg;
+ 194: depth=2 | 		float cx = (uiCamera.viewportWidth - colorsWidth) / 2f;
+ 195: depth=3 | 		for (int i = 0; i < cols.length; i++) {
+ 196: depth=3 | 			buttonColorRects.add(new Rectangle(cx + i * (sw + sg), optionY, sw, sh));
+ 197: depth=2 | 		}
+ 198: depth=2 | 
+ 199: depth=2 | 		// Lever orientation toggle (shown only when Lever selected)
+ 200: depth=2 | 		leverOrientRect = new Rectangle((uiCamera.viewportWidth - 80f) / 2f, optionY, 80f, sh);
+ 201: depth=2 | 		// Link toggle (shown when Button or Lever selected)
+ 202: depth=2 | 		linkToggleRect = new Rectangle((uiCamera.viewportWidth - 80f) / 2f + 100f, optionY, 80f, sh);
+ 203: depth=2 | 
+ 204: depth=2 | 		// preview animator for buttons (reuse SpriteAnimator to draw actual image in UI
+ 205: depth=2 | 		// preview)
+ 206: depth=3 | 		try {
+ 207: depth=3 | 			previewButtonAnim = new com.chromashift.helper.SpriteAnimator("environment/button/buttons.png", 5, 2);
+ 208: depth=3 | 			// add one animation per color row so we can switch quickly
+ 209: depth=4 | 			for (Button.ButtonColor bc : Button.ButtonColor.values()) {
+ 210: depth=4 | 				previewButtonAnim.addAnimation(bc.name(), bc.getRowIndex(), 0, 2, 0.1f, false);
+ 211: depth=3 | 			}
+ 212: depth=3 | 			previewButtonAnim.play(selectedButtonColor.name(), false);
+ 213: depth=3 | 			previewButtonAnim.setFrame(0);
+ 214: depth=3 | 		} catch (Exception ignored) {
+ 215: depth=2 | 		}
+ 216: depth=2 | 
+ 217: depth=2 | 		// preview animator for lever (2 rows: vertical, horizontal; 2 cols)
+ 218: depth=3 | 		try {
+ 219: depth=3 | 			previewLeverAnim = new com.chromashift.helper.SpriteAnimator("environment/lever/lever.png", 2, 2);
+ 220: depth=3 | 			previewLeverAnim.addAnimation("VERTICAL", 0, 0, 2, 0.1f, false);
+ 221: depth=3 | 			previewLeverAnim.addAnimation("HORIZONTAL", 1, 0, 2, 0.1f, false);
+ 222: depth=3 | 			previewLeverAnim.play(selectedLeverHorizontal ? "HORIZONTAL" : "VERTICAL", false);
+ 223: depth=3 | 			previewLeverAnim.setFrame(0);
+ 224: depth=3 | 		} catch (Exception ignored) {
+ 225: depth=2 | 		}
+ 226: depth=2 | 
+ 227: depth=2 | 		// list available level files from internal assets/levels
+ 228: depth=2 | 		levelFiles.clear();
+ 229: depth=2 | 		levelRects.clear();
+ 230: depth=2 | 		FileHandle dir = Gdx.files.internal("levels");
+ 231: depth=3 | 		if (dir != null && dir.exists()) {
+ 232: depth=3 | 			FileHandle[] files = dir.list();
+ 233: depth=3 | 			float lx = uiCamera.position.x + uiCamera.viewportWidth / 2f - 180f;
+ 234: depth=3 | 			float ly = uiCamera.position.y + uiCamera.viewportHeight / 2f - 32f;
+ 235: depth=3 | 			float lh = 20f, lgap = 4f;
+ 236: depth=4 | 			for (int i = 0; i < files.length; i++) {
+ 237: depth=4 | 				levelFiles.add(files[i].name());
+ 238: depth=4 | 				levelRects.add(new Rectangle(lx, ly - i * (lh + lgap), 170f, lh));
+ 239: depth=3 | 			}
+ 240: depth=2 | 		}
+ 241: depth=1 | 	}
+ 242: depth=1 | 
+ 243: depth=2 | 	private int snap32(float v) {
+ 244: depth=2 | 		return (int) Math.floor(v / 32f) * 32;
+ 245: depth=1 | 	}
+ 246: depth=1 | 
+ 247: depth=1 | 	/**
+ 248: depth=1 | 	 * Get preview bottom-left in UI (screen) coordinates by snapping the mouse
+ 249: depth=1 | 	 * world position
+ 250: depth=1 | 	 * to the world 32px grid, then projecting that world cell back to screen pixels
+ 251: depth=1 | 	 * and into
+ 252: depth=1 | 	 * UI coordinates. This makes the preview snap to the world grid while remaining
+ 253: depth=1 | 	 * drawn in UI space.
+ 254: depth=1 | 	 */
+ 255: depth=2 | 	private Vector2 getSnappedPreviewScreenBL() {
+ 256: depth=2 | 		// unproject mouse to world
+ 257: depth=2 | 		com.badlogic.gdx.math.Vector3 mv = new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+ 258: depth=2 | 		camera.unproject(mv);
+ 259: depth=2 | 		float wx = (float) Math.floor(mv.x / 32f) * 32f;
+ 260: depth=2 | 		float wy = (float) Math.floor(mv.y / 32f) * 32f;
+ 261: depth=2 | 		// project the snapped world cell to screen pixels
+ 262: depth=2 | 		com.badlogic.gdx.math.Vector3 pv = new com.badlogic.gdx.math.Vector3(wx, wy, 0);
+ 263: depth=2 | 		camera.project(pv);
+ 264: depth=2 | 		// camera.project returns screen pixels with a Y origin opposite to the Input Y.
+ 265: depth=2 | 		// Flip Y to convert to the UI/input coordinate space before unprojecting with
+ 266: depth=2 | 		// uiCamera.
+ 267: depth=2 | 		pv.y = Gdx.graphics.getHeight() - pv.y;
+ 268: depth=2 | 		// convert screen pixels to uiCamera space for drawing
+ 269: depth=2 | 		com.badlogic.gdx.math.Vector3 uv = new com.badlogic.gdx.math.Vector3(pv.x, pv.y, 0);
+ 270: depth=2 | 		uiCamera.unproject(uv);
+ 271: depth=2 | 		return new Vector2(uv.x, uv.y);
+ 272: depth=1 | 	}
+ 273: depth=1 | 
+ 274: depth=1 | 	/**
+ 275: depth=1 | 	 * Return true if the provided world-space rectangle does not overlap any
+ 276: depth=1 | 	 * existing placed object.
+ 277: depth=1 | 	 */
+ 278: depth=2 | 	private boolean isAreaFree(Rectangle worldArea) {
+ 279: depth=2 | 		// check walls
+ 280: depth=3 | 		for (Wall w : walls) {
+ 281: depth=3 | 			if (w.getBounds().overlaps(worldArea))
+ 282: depth=3 | 				return false;
+ 283: depth=2 | 		}
+ 284: depth=2 | 		// check interactables
+ 285: depth=3 | 		for (Interactable it : interactableInstances) {
+ 286: depth=3 | 			if (it.getBounds().overlaps(worldArea))
+ 287: depth=3 | 				return false;
+ 288: depth=2 | 		}
+ 289: depth=2 | 		// boss (use saved boss coords if present)
+ 290: depth=3 | 		if (state != null && state.boss != null) {
+ 291: depth=3 | 			Rectangle b = new Rectangle(state.boss.x - 48f, state.boss.y, 96f, 96f);
+ 292: depth=3 | 			if (b.overlaps(worldArea))
+ 293: depth=3 | 				return false;
+ 294: depth=2 | 		}
+ 295: depth=2 | 		// spawn
+ 296: depth=3 | 		if (state != null && state.spawn != null) {
+ 297: depth=3 | 			Rectangle sp = new Rectangle(state.spawn.x, state.spawn.y, 16f, 32f);
+ 298: depth=3 | 			if (sp.overlaps(worldArea))
+ 299: depth=3 | 				return false;
+ 300: depth=2 | 		}
+ 301: depth=2 | 		return true;
+ 302: depth=1 | 	}
+ 303: depth=1 | 
+ 304: depth=1 | 	/**
+ 305: depth=1 | 	 * Backwards-compatible alias used by render(); returns the preview bottom-left
+ 306: depth=1 | 	 * position in UI (screen) coordinates.
+ 307: depth=1 | 	 * This delegates to getSnappedPreviewScreenBL() so existing code using
+ 308: depth=1 | 	 * getPreviewScreenBL() works as expected.
+ 309: depth=1 | 	 */
+ 310: depth=2 | 	private Vector2 getPreviewScreenBL() {
+ 311: depth=2 | 		return getSnappedPreviewScreenBL();
+ 312: depth=1 | 	}
+ 313: depth=1 | 
+ 314: depth=1 | 	/**
+ 315: depth=1 | 	 * Convert the mouse screen position to the bottom-left world-grid cell (floored
+ 316: depth=1 | 	 * to 32px).
+ 317: depth=1 | 	 * This ensures placement/erase use the same world grid the preview snaps to.
+ 318: depth=1 | 	 */
+ 319: depth=2 | 	private Vector2 screenCellBottomLeftToWorldGrid() {
+ 320: depth=2 | 		com.badlogic.gdx.math.Vector3 mv = new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+ 321: depth=2 | 		camera.unproject(mv);
+ 322: depth=2 | 		int gx = (int) Math.floor(mv.x / 32f) * 32;
+ 323: depth=2 | 		int gy = (int) Math.floor(mv.y / 32f) * 32;
+ 324: depth=2 | 		return new Vector2(gx, gy);
+ 325: depth=1 | 	}
+ 326: depth=1 | 
+ 327: depth=1 | 	@Override
+ 328: depth=2 | 	public void render(float delta) {
+ 329: depth=2 | 		handleInput(delta);
+ 330: depth=2 | 		Gdx.gl.glClearColor(0.08f, 0.09f, 0.12f, 1f);
+ 331: depth=2 | 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+ 332: depth=2 | 
+ 333: depth=2 | 		// ensure world rendering uses the main camera
+ 334: depth=2 | 		shape.setProjectionMatrix(camera.combined);
+ 335: depth=2 | 		batch.setProjectionMatrix(camera.combined);
+ 336: depth=2 | 
+ 337: depth=2 | 		// draw placement grid lightly
+ 338: depth=2 | 		shape.begin(ShapeRenderer.ShapeType.Line);
+ 339: depth=2 | 		shape.setColor(0.12f, 0.12f, 0.12f, 1f);
+ 340: depth=2 | 		float left = camera.position.x - camera.viewportWidth / 2f;
+ 341: depth=2 | 		float right = camera.position.x + camera.viewportWidth / 2f;
+ 342: depth=2 | 		float bottom = camera.position.y - camera.viewportHeight / 2f;
+ 343: depth=2 | 		float top = camera.position.y + camera.viewportHeight / 2f;
+ 344: depth=2 | 		for (int x = snap32(left); x <= right + 32; x += 32)
+ 345: depth=2 | 			shape.line(x, bottom - 10000, x, top + 10000);
+ 346: depth=2 | 		for (int y = snap32(bottom); y <= top + 32; y += 32)
+ 347: depth=2 | 			shape.line(left - 10000, y, right + 10000, y);
+ 348: depth=2 | 		shape.end();
+ 349: depth=2 | 
+ 350: depth=2 | 		// draw existing walls and interactables
+ 351: depth=2 | 		batch.begin();
+ 352: depth=2 | 		for (Wall w : walls)
+ 353: depth=2 | 			w.render(batch);
+ 354: depth=3 | 		for (Interactable i : interactableInstances) {
+ 355: depth=3 | 			i.render(batch);
+ 356: depth=2 | 		}
+ 357: depth=2 | 		if (bossInstance != null)
+ 358: depth=2 | 			bossInstance.render(batch);
+ 359: depth=2 | 		batch.end(); // preview of the current object under mouse (drawn in UI space so it stays
+ 360: depth=2 | 						// under cursor)
+ 361: depth=2 | 		Vector2 screenPreview = getPreviewScreenBL();
+ 362: depth=2 | 		float screenGx = screenPreview.x;
+ 363: depth=2 | 		float screenGy = screenPreview.y;
+ 364: depth=2 | 		// also compute preview in world coords to detect overlaps
+ 365: depth=2 | 		Vector2 worldPreview = screenCellBottomLeftToWorldGrid();
+ 366: depth=2 | 		float previewW = 32f * previewCols;
+ 367: depth=2 | 		float previewH = 32f * previewRows;
+ 368: depth=2 | 		// adjust sizes for non-grid objects
+ 369: depth=3 | 		switch (selectedType) {
+ 370: depth=4 | 			case BUTTON -> {
+ 371: depth=4 | 				previewW = 64f;
+ 372: depth=4 | 				previewH = 32f;
+ 373: depth=3 | 			}
+ 374: depth=4 | 			case LEVER -> {
+ 375: depth=4 | 				previewW = 16f;
+ 376: depth=4 | 				previewH = 36f;
+ 377: depth=3 | 			}
+ 378: depth=4 | 			case BOX -> {
+ 379: depth=4 | 				previewW = 32f;
+ 380: depth=4 | 				previewH = 32f;
+ 381: depth=3 | 			}
+ 382: depth=4 | 			case ORB -> {
+ 383: depth=4 | 				previewW = 24f;
+ 384: depth=4 | 				previewH = 24f;
+ 385: depth=3 | 			}
+ 386: depth=4 | 			case BOSS -> {
+ 387: depth=4 | 				previewW = 96f;
+ 388: depth=4 | 				previewH = 96f;
+ 389: depth=3 | 			}
+ 390: depth=4 | 			case SPAWN -> {
+ 391: depth=4 | 				previewW = 16f;
+ 392: depth=4 | 				previewH = 32f;
+ 393: depth=3 | 			}
+ 394: depth=4 | 			default -> {
+ 395: depth=3 | 			}
+ 396: depth=2 | 		}
+ 397: depth=2 | 		Rectangle previewWorldRect = new Rectangle(worldPreview.x, worldPreview.y, previewW, previewH);
+ 398: depth=2 | 		previewBlocked = !isAreaFree(previewWorldRect);
+ 399: depth=2 | 
+ 400: depth=2 | 		// draw UI (screen-fixed) using uiCamera
+ 401: depth=2 | 		shape.setProjectionMatrix(uiCamera.combined);
+ 402: depth=2 | 		batch.setProjectionMatrix(uiCamera.combined);
+ 403: depth=2 | 		shape.begin(ShapeRenderer.ShapeType.Filled);
+ 404: depth=2 | 		// Main object type buttons (always visible)
+ 405: depth=3 | 		for (UIButton b : uiButtons) {
+ 406: depth=3 | 			Color c = (selectedType == b.type) ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f);
+ 407: depth=3 | 			shape.setColor(c);
+ 408: depth=3 | 			shape.rect(b.rect.x, b.rect.y, b.rect.width, b.rect.height);
+ 409: depth=3 | 			// Border for clarity
+ 410: depth=3 | 			shape.end();
+ 411: depth=3 | 			shape.begin(ShapeRenderer.ShapeType.Line);
+ 412: depth=3 | 			shape.setColor(Color.WHITE);
+ 413: depth=3 | 			shape.rect(b.rect.x, b.rect.y, b.rect.width, b.rect.height);
+ 414: depth=3 | 			shape.end();
+ 415: depth=3 | 			shape.begin(ShapeRenderer.ShapeType.Filled);
+ 416: depth=2 | 		}
+ 417: depth=2 | 
+ 418: depth=2 | 		// Contextual options - only show for selected type
+ 419: depth=3 | 		if (selectedType == ObjectType.DOOR) {
+ 420: depth=3 | 			// door direction buttons
+ 421: depth=4 | 			for (int i = 0; i < doorDirButtons.size; i++) {
+ 422: depth=4 | 				Rectangle r = doorDirButtons.get(i);
+ 423: depth=4 | 				shape.setColor((i == selectedDoorDirIndex) ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f));
+ 424: depth=4 | 				shape.rect(r.x, r.y, r.width, r.height);
+ 425: depth=4 | 				shape.end();
+ 426: depth=4 | 				shape.begin(ShapeRenderer.ShapeType.Line);
+ 427: depth=4 | 				shape.setColor(Color.WHITE);
+ 428: depth=4 | 				shape.rect(r.x, r.y, r.width, r.height);
+ 429: depth=4 | 				shape.end();
+ 430: depth=4 | 				shape.begin(ShapeRenderer.ShapeType.Filled);
+ 431: depth=3 | 			}
+ 432: depth=3 | 		} else if (selectedType == ObjectType.BUTTON) {
+ 433: depth=3 | 			// button color swatches
+ 434: depth=4 | 			for (int i = 0; i < buttonColorRects.size; i++) {
+ 435: depth=4 | 				Rectangle r = buttonColorRects.get(i);
+ 436: depth=4 | 				Button.ButtonColor bc = Button.ButtonColor.values()[i];
+ 437: depth=4 | 				Color c = Color.WHITE;
+ 438: depth=5 | 				switch (bc) {
+ 439: depth=5 | 					case RED -> c = Color.RED;
+ 440: depth=5 | 					case BLUE -> c = Color.BLUE;
+ 441: depth=5 | 					case GREEN -> c = Color.GREEN;
+ 442: depth=5 | 					case YELLOW -> c = Color.YELLOW;
+ 443: depth=5 | 					case PURPLE -> c = Color.PURPLE;
+ 444: depth=4 | 				}
+ 445: depth=4 | 				shape.setColor(c);
+ 446: depth=4 | 				shape.rect(r.x, r.y, r.width, r.height);
+ 447: depth=4 | 				// highlight selected with border
+ 448: depth=5 | 				if (bc == selectedButtonColor) {
+ 449: depth=5 | 					shape.end();
+ 450: depth=5 | 					shape.begin(ShapeRenderer.ShapeType.Line);
+ 451: depth=5 | 					Gdx.gl.glLineWidth(3f);
+ 452: depth=5 | 					shape.setColor(Color.WHITE);
+ 453: depth=5 | 					shape.rect(r.x - 2, r.y - 2, r.width + 4, r.height + 4);
+ 454: depth=5 | 					Gdx.gl.glLineWidth(1f);
+ 455: depth=5 | 					shape.end();
+ 456: depth=5 | 					shape.begin(ShapeRenderer.ShapeType.Filled);
+ 457: depth=4 | 				}
+ 458: depth=3 | 			}
+ 459: depth=3 | 		} else if (selectedType == ObjectType.LEVER) {
+ 460: depth=3 | 			// lever orientation toggle
+ 461: depth=4 | 			if (leverOrientRect != null) {
+ 462: depth=4 | 				shape.setColor(selectedLeverHorizontal ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f));
+ 463: depth=4 | 				shape.rect(leverOrientRect.x, leverOrientRect.y, leverOrientRect.width, leverOrientRect.height);
+ 464: depth=4 | 				shape.end();
+ 465: depth=4 | 				shape.begin(ShapeRenderer.ShapeType.Line);
+ 466: depth=4 | 				shape.setColor(Color.WHITE);
+ 467: depth=4 | 				shape.rect(leverOrientRect.x, leverOrientRect.y, leverOrientRect.width, leverOrientRect.height);
+ 468: depth=4 | 				shape.end();
+ 469: depth=4 | 				shape.begin(ShapeRenderer.ShapeType.Filled);
+ 470: depth=3 | 			}
+ 471: depth=3 | 			// link toggle for setting target door
+ 472: depth=4 | 			if (linkToggleRect != null) {
+ 473: depth=4 | 				shape.setColor(linkingMode ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f));
+ 474: depth=4 | 				shape.rect(linkToggleRect.x, linkToggleRect.y, linkToggleRect.width, linkToggleRect.height);
+ 475: depth=4 | 				shape.end();
+ 476: depth=4 | 				shape.begin(ShapeRenderer.ShapeType.Line);
+ 477: depth=4 | 				shape.setColor(Color.WHITE);
+ 478: depth=4 | 				shape.rect(linkToggleRect.x, linkToggleRect.y, linkToggleRect.width, linkToggleRect.height);
+ 479: depth=4 | 				shape.end();
+ 480: depth=4 | 				shape.begin(ShapeRenderer.ShapeType.Filled);
+ 481: depth=3 | 			}
+ 482: depth=2 | 		}
+ 483: depth=2 | 		// level list background
+ 484: depth=3 | 		for (Rectangle lr : levelRects) {
+ 485: depth=3 | 			shape.setColor(0f, 0f, 0f, 0.5f);
+ 486: depth=3 | 			shape.rect(lr.x - 4, lr.y - 2, lr.width + 8, lr.height + 4);
+ 487: depth=2 | 		}
+ 488: depth=2 | 		shape.end();
+ 489: depth=2 | 
+ 490: depth=2 | 		batch.begin();
+ 491: depth=2 | 		// Main button labels (always visible)
+ 492: depth=3 | 		for (UIButton b : uiButtons) {
+ 493: depth=3 | 			font.setColor(Color.WHITE);
+ 494: depth=3 | 			font.draw(batch, b.label, b.rect.x + 6, b.rect.y + b.rect.height - 8);
+ 495: depth=2 | 		}
+ 496: depth=2 | 
+ 497: depth=2 | 		// Contextual option labels - only show for selected type
+ 498: depth=3 | 		if (selectedType == ObjectType.DOOR) {
+ 499: depth=3 | 			// door direction labels
+ 500: depth=4 | 			for (int i = 0; i < doorDirButtons.size; i++) {
+ 501: depth=4 | 				Rectangle r = doorDirButtons.get(i);
+ 502: depth=4 | 				font.setColor(Color.WHITE);
+ 503: depth=4 | 				font.draw(batch, doorDirections[i], r.x + 8, r.y + r.height - 8);
+ 504: depth=3 | 			}
+ 505: depth=3 | 		} else if (selectedType == ObjectType.BUTTON) {
+ 506: depth=3 | 			// button color labels
+ 507: depth=4 | 			for (int i = 0; i < buttonColorRects.size; i++) {
+ 508: depth=4 | 				Rectangle r = buttonColorRects.get(i);
+ 509: depth=4 | 				font.setColor(Color.BLACK);
+ 510: depth=4 | 				font.draw(batch, Button.ButtonColor.values()[i].name().substring(0, 1), r.x + 16, r.y + r.height - 6);
+ 511: depth=3 | 			}
+ 512: depth=3 | 		} else if (selectedType == ObjectType.LEVER) {
+ 513: depth=3 | 			// lever orientation label
+ 514: depth=4 | 			if (leverOrientRect != null) {
+ 515: depth=4 | 				font.setColor(Color.WHITE);
+ 516: depth=4 | 				font.draw(batch, selectedLeverHorizontal ? "Horizontal" : "Vertical", leverOrientRect.x + 8,
+ 517: depth=4 | 						leverOrientRect.y + leverOrientRect.height - 6);
+ 518: depth=3 | 			}
+ 519: depth=2 | 		}
+ 520: depth=2 | 		// draw level list labels
+ 521: depth=3 | 		for (int i = 0; i < levelFiles.size; i++) {
+ 522: depth=3 | 			font.setColor(i == hoveredLevelIndex ? Color.YELLOW : Color.WHITE);
+ 523: depth=3 | 			Rectangle r = levelRects.get(i);
+ 524: depth=3 | 			font.draw(batch, levelFiles.get(i), r.x + 4, r.y + r.height - 4);
+ 525: depth=2 | 		}
+ 526: depth=2 | 		batch.end();
+ 527: depth=2 | 
+ 528: depth=2 | 		shape.begin(ShapeRenderer.ShapeType.Filled);
+ 529: depth=2 | 		boolean shapeActive = true;
+ 530: depth=2 | 		shape.setColor(0f, 0f, 0f, 0.35f);
+ 531: depth=3 | 		if (selectedType == ObjectType.WALL) {
+ 532: depth=3 | 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.CYAN);
+ 533: depth=3 | 			shape.rect(screenGx, screenGy, previewCols * 32, previewRows * 32);
+ 534: depth=3 | 		} else if (selectedType == ObjectType.DOOR) {
+ 535: depth=3 | 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.ORANGE);
+ 536: depth=3 | 			shape.rect(screenGx, screenGy, previewCols * 32, previewRows * 32);
+ 537: depth=3 | 		} else if (selectedType == ObjectType.BUTTON) {
+ 538: depth=3 | 			// draw actual button image using preview animator if available
+ 539: depth=4 | 			if (previewButtonAnim != null) {
+ 540: depth=4 | 				// Sprite rendering requires SpriteBatch.begin(); end the ShapeRenderer first.
+ 541: depth=4 | 				shape.end();
+ 542: depth=4 | 				shapeActive = false;
+ 543: depth=4 | 				batch.setProjectionMatrix(uiCamera.combined);
+ 544: depth=4 | 				batch.begin();
+ 545: depth=4 | 				previewButtonAnim.play(selectedButtonColor.name(), false);
+ 546: depth=4 | 				previewButtonAnim.setFrame(0);
+ 547: depth=4 | 				previewButtonAnim.render(batch, screenGx, screenGy, 64, 32);
+ 548: depth=4 | 				batch.end();
+ 549: depth=4 | 				// overlay blocked indicator if needed
+ 550: depth=5 | 				if (previewBlocked) {
+ 551: depth=5 | 					shape.begin(ShapeRenderer.ShapeType.Filled);
+ 552: depth=5 | 					shape.setColor(new Color(1f, 0f, 0f, 0.45f));
+ 553: depth=5 | 					shape.rect(screenGx, screenGy, 64, 32);
+ 554: depth=5 | 					shape.end();
+ 555: depth=5 | 					shapeActive = true; // keep shape state consistent
+ 556: depth=4 | 				}
+ 557: depth=4 | 			} else {
+ 558: depth=4 | 				shape.setColor(previewBlocked ? Color.FIREBRICK : Color.GREEN);
+ 559: depth=4 | 				shape.rect(screenGx, screenGy, 28, 12);
+ 560: depth=3 | 			}
+ 561: depth=3 | 		} else if (selectedType == ObjectType.LEVER) {
+ 562: depth=4 | 			if (previewLeverAnim != null) {
+ 563: depth=4 | 				// Sprite rendering requires SpriteBatch.begin(); end the ShapeRenderer first.
+ 564: depth=4 | 				shape.end();
+ 565: depth=4 | 				shapeActive = false;
+ 566: depth=4 | 				batch.setProjectionMatrix(uiCamera.combined);
+ 567: depth=4 | 				batch.begin();
+ 568: depth=4 | 				previewLeverAnim.play(selectedLeverHorizontal ? "HORIZONTAL" : "VERTICAL", false);
+ 569: depth=4 | 				previewLeverAnim.setFrame(0);
+ 570: depth=4 | 				previewLeverAnim.render(batch, screenGx, screenGy, 16, 36);
+ 571: depth=4 | 				batch.end();
+ 572: depth=5 | 				if (previewBlocked) {
+ 573: depth=5 | 					shape.begin(ShapeRenderer.ShapeType.Filled);
+ 574: depth=5 | 					shape.setColor(new Color(1f, 0f, 0f, 0.45f));
+ 575: depth=5 | 					shape.rect(screenGx, screenGy, 16, 36);
+ 576: depth=5 | 					shape.end();
+ 577: depth=5 | 					shapeActive = true;
+ 578: depth=4 | 				}
+ 579: depth=4 | 			} else {
+ 580: depth=4 | 				shape.setColor(previewBlocked ? Color.FIREBRICK : Color.BROWN);
+ 581: depth=4 | 				shape.rect(screenGx, screenGy, 16, 36);
+ 582: depth=3 | 			}
+ 583: depth=3 | 		} else if (selectedType == ObjectType.BOX) {
+ 584: depth=3 | 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.LIGHT_GRAY);
+ 585: depth=3 | 			shape.rect(screenGx, screenGy, 32, 32);
+ 586: depth=3 | 		} else if (selectedType == ObjectType.ORB) {
+ 587: depth=3 | 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.ORANGE);
+ 588: depth=3 | 			shape.circle(screenGx + 16, screenGy + 16, 12);
+ 589: depth=3 | 		} else if (selectedType == ObjectType.BOSS) {
+ 590: depth=3 | 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.PURPLE);
+ 591: depth=3 | 			shape.rect(screenGx - 48, screenGy, 96, 96);
+ 592: depth=3 | 		} else if (selectedType == ObjectType.SPAWN) {
+ 593: depth=3 | 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.YELLOW);
+ 594: depth=3 | 			shape.rect(screenGx, screenGy, 16, 32);
+ 595: depth=2 | 		}
+ 596: depth=2 | 		if (shapeActive)
+ 597: depth=2 | 			shape.end();
+ 598: depth=2 | 
+ 599: depth=2 | 		// UI overlay (screen-fixed)
+ 600: depth=2 | 		batch.setProjectionMatrix(uiCamera.combined);
+ 601: depth=2 | 		batch.begin();
+ 602: depth=2 | 		font.setColor(Color.WHITE);
+ 603: depth=2 | 		font.draw(batch, "Level Maker - Choose level (or pick from the list)", uiCamera.position.x - 380,
+ 604: depth=2 | 				uiCamera.position.y + 220);
+ 605: depth=2 | 		font.draw(batch, String.format(Locale.ROOT, "Editing: %s    Selected: %s", currentLevelPath, selectedType),
+ 606: depth=2 | 				uiCamera.position.x - 380, uiCamera.position.y + 200);
+ 607: depth=2 | 		font.draw(batch, "Keys: 1=Wall 2=Door 3=Button 4=Lever 5=Box 6=Orb 7=Boss 8=Spawn 0=None",
+ 608: depth=2 | 				uiCamera.position.x - 380, uiCamera.position.y + 180);
+ 609: depth=2 | 		font.draw(batch, "Arrow Keys: adjust size (Wall/Door). Left click=place, Right click=cancel. Ctrl+S=Save",
+ 610: depth=2 | 				uiCamera.position.x - 380, uiCamera.position.y + 160);
+ 611: depth=2 | 		font.draw(batch, "WASD to pan camera. Esc to exit LevelMaker.", uiCamera.position.x - 380,
+ 612: depth=2 | 				uiCamera.position.y + 140);
+ 613: depth=2 | 		batch.end();
+ 614: depth=1 | 	}
+ 615: depth=1 | 
+ 616: depth=2 | 	private void handleInput(float delta) {
+ 617: depth=2 | 		// camera movement (WASD)
+ 618: depth=2 | 		if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.translate(0, camSpeed * delta);
+ 619: depth=2 | 		if (Gdx.input.isKeyPressed(Input.Keys.S)) camera.translate(0, -camSpeed * delta);
+ 620: depth=2 | 		if (Gdx.input.isKeyPressed(Input.Keys.A)) camera.translate(-camSpeed * delta, 0);
+ 621: depth=2 | 		if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.translate(camSpeed * delta, 0);
+ 622: depth=2 | 		camera.update();
+ 623: depth=2 | 
+ 624: depth=2 | 		// level selection
+ 625: depth=2 | 	if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) { currentLevelPath = "levels/level1.json"; state = LevelIO.loadFromWorkspaceThenCopyToBuild(currentLevelPath); }
+ 626: depth=2 | 	if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) { currentLevelPath = "levels/level2.json"; state = LevelIO.loadFromWorkspaceThenCopyToBuild(currentLevelPath); }
+ 627: depth=2 | 	if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) { currentLevelPath = "levels/level3.json"; state = LevelIO.loadFromWorkspaceThenCopyToBuild(currentLevelPath); }
+ 628: depth=2 | 	if (Gdx.input.isKeyJustPressed(Input.Keys.B)) { currentLevelPath = "levels/bossroom.json"; state = LevelIO.loadFromWorkspaceThenCopyToBuild(currentLevelPath); }
+ 629: depth=2 | 	if (Gdx.input.isKeyJustPressed(Input.Keys.T)) { currentLevelPath = "levels/tutorial.json"; state = LevelIO.loadFromWorkspaceThenCopyToBuild(currentLevelPath); }
+ 630: depth=2 | 
+ 631: depth=2 | 		// object selection
+ 632: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) selectedType = ObjectType.WALL;
+ 633: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) selectedType = ObjectType.DOOR;
+ 634: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) selectedType = ObjectType.BUTTON;
+ 635: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) selectedType = ObjectType.LEVER;
+ 636: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) selectedType = ObjectType.BOX;
+ 637: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) selectedType = ObjectType.ORB;
+ 638: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_7)) selectedType = ObjectType.BOSS;
+ 639: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) selectedType = ObjectType.SPAWN;
+ 640: depth=2 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_0)) selectedType = ObjectType.NONE;
+ 641: depth=2 | 
+ 642: depth=2 | 		// size adjustments for wall/door
+ 643: depth=3 | 		if (selectedType == ObjectType.WALL || selectedType == ObjectType.DOOR) {
+ 644: depth=3 | 			if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) { if (previewCols > 1) previewCols--; }
+ 645: depth=3 | 			if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) { previewCols++; }
+ 646: depth=3 | 			if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) { if (previewRows > 1) previewRows--; }
+ 647: depth=3 | 			if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) { previewRows++; }
+ 648: depth=3 | 		} else {
+ 649: depth=3 | 			previewCols = 1; previewRows = 1;
+ 650: depth=2 | 		}
+ 651: depth=2 | 
+ 652: depth=2 | 		// place/cancel
+ 653: depth=3 | 		if (Gdx.input.justTouched() && Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+ 654: depth=3 | 			// left click - first check UI buttons (screen-fixed)
+ 655: depth=3 | 			com.badlogic.gdx.math.Vector3 uiVec = new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+ 656: depth=3 | 			uiCamera.unproject(uiVec);
+ 657: depth=3 | 			float ux = uiVec.x, uy = uiVec.y;
+ 658: depth=3 | 			// check UI
+ 659: depth=3 | 			boolean clickedUI = false;
+ 660: depth=4 | 			for (UIButton b : uiButtons) {
+ 661: depth=5 | 				if (b.rect.contains(ux, uy)) {
+ 662: depth=5 | 					selectedType = b.type;
+ 663: depth=5 | 					clickedUI = true; break;
+ 664: depth=4 | 				}
+ 665: depth=3 | 			}
+ 666: depth=3 | 			// check contextual options only if appropriate type is selected
+ 667: depth=4 | 			if (!clickedUI && selectedType == ObjectType.DOOR) {
+ 668: depth=4 | 				// check door dir buttons
+ 669: depth=5 | 				for (int i=0;i<doorDirButtons.size;i++) {
+ 670: depth=5 | 					if (doorDirButtons.get(i).contains(ux, uy)) { selectedDoorDirIndex = i; clickedUI = true; break; }
+ 671: depth=4 | 				}
+ 672: depth=4 | 			} else if (!clickedUI && selectedType == ObjectType.BUTTON) {
+ 673: depth=4 | 				// check button color swatches
+ 674: depth=5 | 				for (int i=0;i<buttonColorRects.size;i++) {
+ 675: depth=5 | 					if (buttonColorRects.get(i).contains(ux, uy)) { selectedButtonColor = Button.ButtonColor.values()[i]; clickedUI = true; break; }
+ 676: depth=4 | 				}
+ 677: depth=4 | 			} else if (!clickedUI && selectedType == ObjectType.LEVER) {
+ 678: depth=4 | 				// check lever orientation toggle
+ 679: depth=5 | 				if (leverOrientRect != null && leverOrientRect.contains(ux, uy)) {
+ 680: depth=5 | 					selectedLeverHorizontal = !selectedLeverHorizontal;
+ 681: depth=5 | 					clickedUI = true;
+ 682: depth=4 | 				}
+ 683: depth=4 | 				// check link toggle
+ 684: depth=5 | 				if (!clickedUI && linkToggleRect != null && linkToggleRect.contains(ux, uy)) {
+ 685: depth=5 | 					linkingMode = !linkingMode;
+ 686: depth=5 | 					clickedUI = true;
+ 687: depth=4 | 				}
+ 688: depth=3 | 			}
+ 689: depth=4 | 			if (!clickedUI) {
+ 690: depth=4 | 						// not UI - if linking mode and we're setting links for Button/Lever, handle linking
+ 691: depth=4 | 						Vector2 worldPlace = screenCellBottomLeftToWorldGrid();
+ 692: depth=4 | 						int wx = (int)worldPlace.x; int wy = (int)worldPlace.y;
+ 693: depth=5 | 						if (linkingMode && (selectedType == ObjectType.BUTTON || selectedType == ObjectType.LEVER)) {
+ 694: depth=5 | 							// find a door at clicked position
+ 695: depth=5 | 							String did = findDoorIdAt(wx, wy);
+ 696: depth=6 | 							if (did == null) {
+ 697: depth=6 | 								Gdx.app.log("LevelMaker", "Linking failed: no door at clicked position");
+ 698: depth=6 | 								linkingMode = false;
+ 699: depth=6 | 								return;
+ 700: depth=5 | 							}
+ 701: depth=5 | 							// persist in state: find corresponding interactable entry for this Button/Lever at the clicked cell
+ 702: depth=5 | 							boolean updated = false;
+ 703: depth=6 | 							for (LevelIO.LevelState.InteractableData idd : state.interactables) {
+ 704: depth=7 | 								if (selectedType == ObjectType.BUTTON && "button".equalsIgnoreCase(idd.type) && (int)idd.x == wx && (int)idd.y == wy) {
+ 705: depth=7 | 									idd.targetId = did; updated = true; break;
+ 706: depth=6 | 								}
+ 707: depth=7 | 								if (selectedType == ObjectType.LEVER && "lever".equalsIgnoreCase(idd.type) && (int)idd.x == wx && (int)idd.y == wy) {
+ 708: depth=7 | 									idd.targetId = did; updated = true; break;
+ 709: depth=6 | 								}
+ 710: depth=5 | 							}
+ 711: depth=5 | 							// If not found in state, try matching a recent placement and update its state entry
+ 712: depth=6 | 							if (!updated) {
+ 713: depth=7 | 								for (int i = placements.size - 1; i >= 0; --i) {
+ 714: depth=7 | 									Placement p = placements.get(i);
+ 715: depth=8 | 									if (p.type == selectedType && (int)p.x == wx && (int)p.y == wy) {
+ 716: depth=8 | 										// find state entry
+ 717: depth=9 | 										for (LevelIO.LevelState.InteractableData idd : state.interactables) {
+ 718: depth=9 | 											if ((selectedType == ObjectType.BUTTON && "button".equalsIgnoreCase(idd.type) || selectedType == ObjectType.LEVER && "lever".equalsIgnoreCase(idd.type))
+ 719: depth=10 | 												&& (int)idd.x == p.x && (int)idd.y == p.y) {
+ 720: depth=10 | 												idd.targetId = did; updated = true; break;
+ 721: depth=9 | 										}
+ 722: depth=9 | 										if (updated) break;
+ 723: depth=8 | 									}
+ 724: depth=8 | 									if (updated) break;
+ 725: depth=7 | 								}
+ 726: depth=6 | 							}
+ 727: depth=6 | 							// update runtime instance(s)
+ 728: depth=6 | 							Door doorInst = findDoorById(did);
+ 729: depth=7 | 							if (selectedType == ObjectType.BUTTON) {
+ 730: depth=8 | 								for (int i = 0; i < interactableInstances.size; ++i) {
+ 731: depth=8 | 									Interactable it = interactableInstances.get(i);
+ 732: depth=9 | 									if (it instanceof Button) {
+ 733: depth=9 | 										Button bb = (Button)it;
+ 734: depth=10 | 										if ((int)bb.getBounds().x == wx && (int)bb.getBounds().y == wy) {
+ 735: depth=10 | 											// recreate Button with linked door, using existing color if available
+ 736: depth=10 | 											Button.ButtonColor color = selectedButtonColor;
+ 737: depth=10 | 											// try to find state color
+ 738: depth=11 | 											for (LevelIO.LevelState.InteractableData idd : state.interactables) {
+ 739: depth=12 | 												if ((int)idd.x == wx && (int)idd.y == wy && "button".equalsIgnoreCase(idd.type) && idd.color != null) {
+ 740: depth=12 | 													try { color = Button.ButtonColor.valueOf(idd.color); } catch (Exception ignored) {}
+ 741: depth=11 | 												}
+ 742: depth=10 | 											}
+ 743: depth=10 | 											// find base solid for proper y placement
+ 744: depth=10 | 											Array<Solid> allSolids = new Array<>(); for (Wall w : walls) allSolids.add(w); for (Interactable in : interactableInstances) if (in instanceof Solid) allSolids.add((Solid)in);
+ 745: depth=10 | 											Solid base = findBaseSolidFor(wx, wy, allSolids);
+ 746: depth=10 | 											if (base == null) base = new Wall(wx, wy - 32, 4, 1);
+ 747: depth=10 | 											Button newB = new Button(wx, base, doorInst, color);
+ 748: depth=10 | 											interactableInstances.set(i, newB);
+ 749: depth=10 | 											break;
+ 750: depth=9 | 										}
+ 751: depth=8 | 									}
+ 752: depth=7 | 								}
+ 753: depth=7 | 							} else if (selectedType == ObjectType.LEVER) {
+ 754: depth=8 | 								for (int i = 0; i < interactableInstances.size; ++i) {
+ 755: depth=8 | 									Interactable it = interactableInstances.get(i);
+ 756: depth=9 | 									if (it instanceof Lever) {
+ 757: depth=9 | 										Lever ll = (Lever)it;
+ 758: depth=10 | 										if ((int)ll.getBounds().x == wx && (int)ll.getBounds().y == wy) {
+ 759: depth=10 | 											ll.setTarget(doorInst);
+ 760: depth=10 | 											String tid = did;
+ 761: depth=11 | 											ll.setOnToggle(() -> {
+ 762: depth=11 | 												Door dd = findDoorById(tid);
+ 763: depth=11 | 												if (dd != null) { dd.setOpen(!dd.isOpen()); dd.interact(); }
+ 764: depth=10 | 											});
+ 765: depth=10 | 											break;
+ 766: depth=9 | 										}
+ 767: depth=8 | 									}
+ 768: depth=7 | 								}
+ 769: depth=6 | 							}
+ 770: depth=6 | 							linkingMode = false; // exit linking mode after one link
+ 771: depth=6 | 							clickedUI = true;
+ 772: depth=6 | 						} else {
+ 773: depth=6 | 							// normal placement
+ 774: depth=6 | 							placeAt((int)worldPlace.x, (int)worldPlace.y);
+ 775: depth=5 | 						}
+ 776: depth=4 | 				}
+ 777: depth=3 | 		}
+ 778: depth=4 | 	if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
+ 779: depth=4 | 		// erase object under cursor (right click)
+ 780: depth=4 | 		Vector2 worldXY = screenCellBottomLeftToWorldGrid();
+ 781: depth=4 | 		int gx = (int)worldXY.x;
+ 782: depth=4 | 		int gy = (int)worldXY.y;
+ 783: depth=4 | 		
+ 784: depth=4 | 		boolean deleted = false;
+ 785: depth=4 | 		
+ 786: depth=4 | 		// Check walls first
+ 787: depth=5 | 		for (int i = walls.size - 1; i >= 0 && !deleted; --i) {
+ 788: depth=5 | 			Wall w = walls.get(i);
+ 789: depth=6 | 			if (w.bounds.contains(gx, gy)) {
+ 790: depth=6 | 				// Remove from state
+ 791: depth=7 | 				for (int j = 0; j < state.walls.size; ++j) {
+ 792: depth=7 | 					LevelIO.LevelState.WallData wd = state.walls.get(j);
+ 793: depth=8 | 					if ((int)wd.x == (int)w.bounds.x && (int)wd.y == (int)w.bounds.y) {
+ 794: depth=8 | 						state.walls.removeIndex(j);
+ 795: depth=8 | 						break;
+ 796: depth=7 | 					}
+ 797: depth=6 | 				}
+ 798: depth=6 | 				// Remove from walls and solids
+ 799: depth=6 | 				walls.removeIndex(i);
+ 800: depth=6 | 				solids.removeValue(w, true);
+ 801: depth=6 | 				// Remove from placements history if present
+ 802: depth=7 | 				for (int j = placements.size - 1; j >= 0; --j) {
+ 803: depth=7 | 					Placement p = placements.get(j);
+ 804: depth=8 | 					if (p.type == ObjectType.WALL && (int)p.x == (int)w.bounds.x && (int)p.y == (int)w.bounds.y) {
+ 805: depth=8 | 						placements.removeIndex(j);
+ 806: depth=8 | 						break;
+ 807: depth=7 | 					}
+ 808: depth=6 | 				}
+ 809: depth=6 | 				deleted = true;
+ 810: depth=5 | 			}
+ 811: depth=4 | 		}
+ 812: depth=4 | 		
+ 813: depth=4 | 		// Check interactables (doors, buttons, levers, boxes, orbs)
+ 814: depth=5 | 		for (int i = interactableInstances.size - 1; i >= 0 && !deleted; --i) {
+ 815: depth=5 | 			Interactable obj = interactableInstances.get(i);
+ 816: depth=6 | 			if (obj.getBounds().contains(gx, gy)) {
+ 817: depth=6 | 				// Determine type and remove from state
+ 818: depth=7 | 				if (obj instanceof Door) {
+ 819: depth=7 | 					// Remove door from state.interactables by position match
+ 820: depth=8 | 					for (int j = 0; j < state.interactables.size; ++j) {
+ 821: depth=8 | 						LevelIO.LevelState.InteractableData idd = state.interactables.get(j);
+ 822: depth=9 | 						if ("door".equalsIgnoreCase(idd.type) && Math.abs(idd.x - obj.getBounds().x) < 5f) {
+ 823: depth=9 | 							state.interactables.removeIndex(j);
+ 824: depth=9 | 							// Also remove from doorRecords
+ 825: depth=10 | 							for (int k = doorRecords.size - 1; k >= 0; --k) {
+ 826: depth=11 | 								if (doorRecords.get(k).id != null && doorRecords.get(k).id.equals(idd.id)) {
+ 827: depth=11 | 									doorRecords.removeIndex(k);
+ 828: depth=11 | 									break;
+ 829: depth=10 | 								}
+ 830: depth=9 | 							}
+ 831: depth=9 | 							break;
+ 832: depth=8 | 						}
+ 833: depth=7 | 					}
+ 834: depth=7 | 				} else if (obj instanceof Button) {
+ 835: depth=8 | 					for (int j = 0; j < state.interactables.size; ++j) {
+ 836: depth=8 | 						LevelIO.LevelState.InteractableData idd = state.interactables.get(j);
+ 837: depth=9 | 						if ("button".equalsIgnoreCase(idd.type) && (int)idd.x == (int)obj.getBounds().x && (int)idd.y == (int)obj.getBounds().y) {
+ 838: depth=9 | 							state.interactables.removeIndex(j);
+ 839: depth=9 | 							break;
+ 840: depth=8 | 						}
+ 841: depth=7 | 					}
+ 842: depth=7 | 				} else if (obj instanceof Lever) {
+ 843: depth=8 | 					for (int j = 0; j < state.interactables.size; ++j) {
+ 844: depth=8 | 						LevelIO.LevelState.InteractableData idd = state.interactables.get(j);
+ 845: depth=9 | 						if ("lever".equalsIgnoreCase(idd.type) && (int)idd.x == (int)obj.getBounds().x && (int)idd.y == (int)obj.getBounds().y) {
+ 846: depth=9 | 							state.interactables.removeIndex(j);
+ 847: depth=9 | 							break;
+ 848: depth=8 | 						}
+ 849: depth=7 | 					}
+ 850: depth=7 | 				} else if (obj instanceof Box) {
+ 851: depth=8 | 					for (int j = 0; j < state.boxes.size; ++j) {
+ 852: depth=8 | 						LevelIO.LevelState.BoxData bd = state.boxes.get(j);
+ 853: depth=9 | 						if ((int)bd.x == (int)obj.getBounds().x && (int)bd.y == (int)obj.getBounds().y) {
+ 854: depth=9 | 							state.boxes.removeIndex(j);
+ 855: depth=9 | 							break;
+ 856: depth=8 | 						}
+ 857: depth=7 | 					}
+ 858: depth=7 | 				} else if (obj instanceof Orb) {
+ 859: depth=8 | 					for (int j = 0; j < state.orbs.size; ++j) {
+ 860: depth=8 | 						LevelIO.LevelState.OrbData od = state.orbs.get(j);
+ 861: depth=9 | 						if ((int)od.x == (int)obj.getBounds().x && (int)od.y == (int)obj.getBounds().y) {
+ 862: depth=9 | 							state.orbs.removeIndex(j);
+ 863: depth=9 | 							break;
+ 864: depth=8 | 						}
+ 865: depth=7 | 					}
+ 866: depth=6 | 				}
+ 867: depth=6 | 				// Remove from runtime instances
+ 868: depth=6 | 				interactableInstances.removeIndex(i);
+ 869: depth=7 | 				if (obj instanceof Solid) {
+ 870: depth=7 | 					solids.removeValue((Solid)obj, true);
+ 871: depth=6 | 				}
+ 872: depth=6 | 				// Remove from placements history if present
+ 873: depth=7 | 				for (int j = placements.size - 1; j >= 0; --j) {
+ 874: depth=7 | 					Placement p = placements.get(j);
+ 875: depth=8 | 					if ((int)p.x == (int)obj.getBounds().x && (int)p.y == (int)obj.getBounds().y) {
+ 876: depth=8 | 						placements.removeIndex(j);
+ 877: depth=8 | 						break;
+ 878: depth=7 | 					}
+ 879: depth=6 | 				}
+ 880: depth=6 | 				deleted = true;
+ 881: depth=5 | 			}
+ 882: depth=4 | 		}
+ 883: depth=4 | 		
+ 884: depth=4 | 		// Check boss (roughly within bounds)
+ 885: depth=5 | 		if (!deleted && bossInstance != null && state.boss != null) {
+ 886: depth=5 | 			float bx = state.boss.x;
+ 887: depth=5 | 			float by = state.boss.y;
+ 888: depth=5 | 			// Boss is roughly 128x128, check if cursor is near
+ 889: depth=6 | 			if (gx >= bx - 64 && gx <= bx + 64 && gy >= by - 64 && gy <= by + 64) {
+ 890: depth=6 | 				state.boss = null;
+ 891: depth=6 | 				bossInstance = null;
+ 892: depth=6 | 				// Remove from placements
+ 893: depth=7 | 				for (int j = placements.size - 1; j >= 0; --j) {
+ 894: depth=8 | 					if (placements.get(j).type == ObjectType.BOSS) {
+ 895: depth=8 | 						placements.removeIndex(j);
+ 896: depth=8 | 						break;
+ 897: depth=7 | 					}
+ 898: depth=6 | 				}
+ 899: depth=6 | 				deleted = true;
+ 900: depth=5 | 			}
+ 901: depth=4 | 		}
+ 902: depth=4 | 			// save (Ctrl+S to avoid conflict with S key used for camera panning)
+ 903: depth=4 | 		if ((Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT))
+ 904: depth=5 | 				&& Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+ 905: depth=5 | 			LevelIO.save(currentLevelPath, state);
+ 906: depth=4 | 		}
+ 907: depth=4 | 		// quick Export As (timestamped file) - E
+ 908: depth=5 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+ 909: depth=5 | 			String ts = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+ 910: depth=5 | 			String export = String.format("levels/export_%s.json", ts);
+ 911: depth=5 | 			LevelIO.save(export, state);
+ 912: depth=4 | 		}
+ 913: depth=4 | 
+ 914: depth=4 | 		// update hovered level index for UI hover highlight
+ 915: depth=5 | 		{
+ 916: depth=5 | 			com.badlogic.gdx.math.Vector3 uiHoverVec = new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+ 917: depth=5 | 			uiCamera.unproject(uiHoverVec);
+ 918: depth=5 | 			hoveredLevelIndex = -1;
+ 919: depth=6 | 			for (int i=0;i<levelRects.size;i++) {
+ 920: depth=6 | 				if (levelRects.get(i).contains(uiHoverVec.x, uiHoverVec.y)) { hoveredLevelIndex = i; break; }
+ 921: depth=5 | 			}
+ 922: depth=4 | 		}
+ 923: depth=4 | 
+ 924: depth=4 | 		// undo last placement (Z)
+ 925: depth=5 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+ 926: depth=6 | 			if (placements.size > 0) {
+ 927: depth=6 | 				Placement last = placements.pop();
+ 928: depth=6 | 				removePlacement(last);
+ 929: depth=5 | 			}
+ 930: depth=4 | 		}
+ 931: depth=4 | 
+ 932: depth=4 | 		// exit
+ 933: depth=5 | 		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+ 934: depth=6 | 			Gdx.app.postRunnable(() -> {
+ 935: depth=6 | 				// attempt to dispose and return to default behaviour
+ 936: depth=6 | 				dispose();
+ 937: depth=5 | 			});
+ 938: depth=4 | 		}
+ 939: depth=3 | 	}
+ 940: depth=3 | 
+ 941: depth=4 | 	private void placeAt(int gx, int gy) {
+ 942: depth=4 | 		// compute preview area for this placement and cancel if overlapping existing
+ 943: depth=4 | 		// objects
+ 944: depth=4 | 		float areaW = 32f * previewCols;
+ 945: depth=4 | 		float areaH = 32f * previewRows;
+ 946: depth=5 | 		switch (selectedType) {
+ 947: depth=6 | 			case BUTTON -> {
+ 948: depth=6 | 				areaW = 64f;
+ 949: depth=6 | 				areaH = 32f;
+ 950: depth=5 | 			}
+ 951: depth=6 | 			case LEVER -> {
+ 952: depth=6 | 				areaW = 16f;
+ 953: depth=6 | 				areaH = 36f;
+ 954: depth=5 | 			}
+ 955: depth=6 | 			case BOX -> {
+ 956: depth=6 | 				areaW = 32f;
+ 957: depth=6 | 				areaH = 32f;
+ 958: depth=5 | 			}
+ 959: depth=6 | 			case ORB -> {
+ 960: depth=6 | 				areaW = 24f;
+ 961: depth=6 | 				areaH = 24f;
+ 962: depth=5 | 			}
+ 963: depth=6 | 			case BOSS -> {
+ 964: depth=6 | 				areaW = 96f;
+ 965: depth=6 | 				areaH = 96f;
+ 966: depth=5 | 			}
+ 967: depth=6 | 			case SPAWN -> {
+ 968: depth=6 | 				areaW = 16f;
+ 969: depth=6 | 				areaH = 32f;
+ 970: depth=5 | 			}
+ 971: depth=6 | 			default -> {
+ 972: depth=5 | 			}
+ 973: depth=4 | 		}
+ 974: depth=4 | 		Rectangle intended = new Rectangle(gx, gy, areaW, areaH);
+ 975: depth=5 | 		if (!isAreaFree(intended)) {
+ 976: depth=5 | 			Gdx.app.log("LevelMaker", "Placement blocked: area occupied at " + gx + "," + gy);
+ 977: depth=5 | 			return;
+ 978: depth=4 | 		}
+ 979: depth=5 | 		switch (selectedType) {
+ 980: depth=6 | 			case WALL -> {
+ 981: depth=6 | 				// create wall data and instance
+ 982: depth=6 | 				LevelIO.LevelState.WallData wd = new LevelIO.LevelState.WallData();
+ 983: depth=6 | 				wd.x = gx;
+ 984: depth=6 | 				wd.y = gy;
+ 985: depth=6 | 				wd.width = previewCols;
+ 986: depth=6 | 				wd.height = previewRows;
+ 987: depth=6 | 				state.walls.add(wd);
+ 988: depth=6 | 				walls.add(new Wall(wd.x, wd.y, previewCols, previewRows));
+ 989: depth=5 | 			}
+ 990: depth=6 | 			case DOOR -> {
+ 991: depth=6 | 				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
+ 992: depth=6 | 				idd.type = "door";
+ 993: depth=6 | 				idd.x = gx;
+ 994: depth=6 | 				idd.cols = previewCols;
+ 995: depth=6 | 				idd.rows = previewRows;
+ 996: depth=6 | 				idd.openDirection = doorDirections[selectedDoorDirIndex];
+ 997: depth=6 | 				idd.id = "door_" + (state.interactables.size + 1);
+ 998: depth=6 | 				state.interactables.add(idd);
+ 999: depth=6 | 				// Choose best anchor wall and side (TOP, LEFT, RIGHT) considering overlapping
+1000: depth=6 | 				// walls
+1001: depth=6 | 				AnchorChoice ac = findBestAnchorForDoor(gx, gy);
+1002: depth=6 | 				Wall anchor = (ac != null && ac.anchor != null) ? ac.anchor : new Wall(gx, gy - 32, 4, 1);
+1003: depth=6 | 				Door.OpenDirection dir = Door.OpenDirection.valueOf(idd.openDirection);
+1004: depth=6 | 				int cols = Math.max(1, idd.cols);
+1005: depth=6 | 				int rows = Math.max(1, idd.rows);
+1006: depth=6 | 				int anchorCol;
+1007: depth=6 | 				int anchorRow = 0;
+1008: depth=7 | 				if (ac == null || ac.side == AnchorChoice.Side.TOP) {
+1009: depth=7 | 					// attach to top
+1010: depth=7 | 					anchorCol = computeAnchorCol(anchor, gx);
+1011: depth=7 | 					anchorRow = 0;
+1012: depth=7 | 				} else {
+1013: depth=7 | 					int anchorCols = Math.max(1, (int) (anchor.bounds.width / 32f));
+1014: depth=7 | 					if (ac.side == AnchorChoice.Side.LEFT)
+1015: depth=7 | 						anchorCol = 0;
+1016: depth=7 | 					else
+1017: depth=7 | 						anchorCol = anchorCols + 1;
+1018: depth=7 | 					anchorRow = computeAnchorRow(anchor, gy);
+1019: depth=6 | 				}
+1020: depth=6 | 				Door d = new Door(anchor, anchorCol, anchorRow, cols, rows, dir, 3f, 3f);
+1021: depth=6 | 				interactableInstances.add(d);
+1022: depth=6 | 				doorRecords.add(new DoorRecord(idd.id, gx, gy, idd.cols, idd.rows));
+1023: depth=6 | 				placements.add(new Placement(ObjectType.DOOR, gx, gy, idd.cols, idd.rows, idd.id));
+1024: depth=5 | 			}
+1025: depth=6 | 			case BUTTON -> {
+1026: depth=6 | 				// Persist position (use grid cell) and color
+1027: depth=6 | 				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
+1028: depth=6 | 				idd.type = "button";
+1029: depth=6 | 				idd.x = gx;
+1030: depth=6 | 				idd.y = gy;
+1031: depth=6 | 				idd.color = selectedButtonColor.name();
+1032: depth=6 | 				idd.targetId = null;
+1033: depth=6 | 				state.interactables.add(idd);
+1034: depth=6 | 				// Find actual base solid underneath button position
+1035: depth=6 | 				Array<Solid> allSolids = new Array<>();
+1036: depth=6 | 				for (Wall w : walls)
+1037: depth=6 | 					allSolids.add(w);
+1038: depth=7 | 				for (Interactable inter : interactableInstances) {
+1039: depth=7 | 					if (inter instanceof Solid)
+1040: depth=7 | 						allSolids.add((Solid) inter);
+1041: depth=6 | 				}
+1042: depth=6 | 				Solid baseSolid = findBaseSolidFor(gx, gy, allSolids);
+1043: depth=6 | 				if (baseSolid == null)
+1044: depth=6 | 					baseSolid = new Wall(gx, gy - 32, 4, 1);
+1045: depth=6 | 				// try to auto-link to a door under cursor
+1046: depth=6 | 				String foundDoor = null;
+1047: depth=7 | 				for (DoorRecord dr : doorRecords) {
+1048: depth=8 | 					if (Math.abs((int) dr.x - gx) <= 32 && Math.abs((int) dr.y - gy) <= 32) {
+1049: depth=8 | 						foundDoor = dr.id;
+1050: depth=8 | 						break;
+1051: depth=7 | 					}
+1052: depth=6 | 				}
+1053: depth=6 | 				idd.targetId = foundDoor;
+1054: depth=6 | 				// create the Button instance with proper base solid
+1055: depth=6 | 				Button b = new Button(gx, baseSolid, foundDoor != null ? findDoorById(foundDoor) : null,
+1056: depth=6 | 						selectedButtonColor);
+1057: depth=6 | 				interactableInstances.add(b);
+1058: depth=6 | 				placements.add(new Placement(ObjectType.BUTTON, gx, gy, 1, 1, null));
+1059: depth=5 | 			}
+1060: depth=6 | 			case LEVER -> {
+1061: depth=6 | 				// Persist lever position and orientation
+1062: depth=6 | 				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
+1063: depth=6 | 				idd.type = "lever";
+1064: depth=6 | 				idd.x = gx;
+1065: depth=6 | 				idd.y = gy;
+1066: depth=6 | 				idd.targetId = null;
+1067: depth=6 | 				idd.orientation = selectedLeverHorizontal ? "HORIZONTAL" : "VERTICAL";
+1068: depth=6 | 				state.interactables.add(idd);
+1069: depth=6 | 				String foundDoor = null;
+1070: depth=7 | 				for (DoorRecord dr : doorRecords) {
+1071: depth=8 | 					if (Math.abs((int) dr.x - gx) <= 32 && Math.abs((int) dr.y - gy) <= 32) {
+1072: depth=8 | 						foundDoor = dr.id;
+1073: depth=8 | 						break;
+1074: depth=7 | 					}
+1075: depth=6 | 				}
+1076: depth=6 | 				idd.targetId = foundDoor;
+1077: depth=6 | 				// Create lever instance positioned at the grid cell (gx,gy). Lever constructor
+1078: depth=6 | 				// will set collision size based on orientation.
+1079: depth=6 | 				Lever l = new Lever(gx, gy, 16, 36, selectedLeverHorizontal,
+1080: depth=6 | 						foundDoor != null ? findDoorById(foundDoor) : null);
+1081: depth=7 | 				if (foundDoor != null) {
+1082: depth=7 | 					String tid = foundDoor;
+1083: depth=8 | 					l.setOnToggle(() -> {
+1084: depth=8 | 						Door dd = findDoorById(tid);
+1085: depth=9 | 						if (dd != null) {
+1086: depth=9 | 							dd.setOpen(!dd.isOpen());
+1087: depth=9 | 							dd.interact();
+1088: depth=8 | 						}
+1089: depth=7 | 					});
+1090: depth=6 | 				}
+1091: depth=6 | 				interactableInstances.add(l);
+1092: depth=6 | 				placements.add(new Placement(ObjectType.LEVER, gx, gy, 1, 1, null));
+1093: depth=5 | 			}
+1094: depth=6 | 			case BOX -> {
+1095: depth=6 | 				LevelIO.LevelState.BoxData bd = new LevelIO.LevelState.BoxData();
+1096: depth=6 | 				bd.x = gx;
+1097: depth=6 | 				bd.y = gy;
+1098: depth=6 | 				state.boxes.add(bd);
+1099: depth=6 | 				Box box = new Box(bd.x, bd.y, new Array<>());
+1100: depth=6 | 				interactableInstances.add(box);
+1101: depth=6 | 				placements.add(new Placement(ObjectType.BOX, gx, gy, 1, 1, null));
+1102: depth=5 | 			}
+1103: depth=6 | 			case ORB -> {
+1104: depth=6 | 				LevelIO.LevelState.OrbData od = new LevelIO.LevelState.OrbData();
+1105: depth=6 | 				od.x = gx;
+1106: depth=6 | 				od.y = gy;
+1107: depth=6 | 				state.orbs.add(od);
+1108: depth=6 | 				Orb orb = new Orb(od.x, od.y, new Array<>());
+1109: depth=6 | 				interactableInstances.add(orb);
+1110: depth=6 | 				placements.add(new Placement(ObjectType.ORB, gx, gy, 1, 1, null));
+1111: depth=5 | 			}
+1112: depth=6 | 			case BOSS -> {
+1113: depth=6 | 				LevelIO.LevelState.BossData bd = new LevelIO.LevelState.BossData();
+1114: depth=6 | 				bd.x = gx;
+1115: depth=6 | 				bd.y = gy;
+1116: depth=6 | 				state.boss = bd;
+1117: depth=6 | 				if (bossInstance == null)
+1118: depth=6 | 					bossInstance = new BossInstance();
+1119: depth=6 | 				bossInstance.setPosition(bd.x, bd.y);
+1120: depth=6 | 				placements.add(new Placement(ObjectType.BOSS, gx, gy, 1, 1, null));
+1121: depth=5 | 			}
+1122: depth=6 | 			case SPAWN -> {
+1123: depth=6 | 				LevelIO.LevelState.SpawnData sd = new LevelIO.LevelState.SpawnData();
+1124: depth=6 | 				sd.x = gx;
+1125: depth=6 | 				sd.y = gy;
+1126: depth=6 | 				state.spawn = sd;
+1127: depth=6 | 				placements.add(new Placement(ObjectType.SPAWN, gx, gy, 1, 1, null));
+1128: depth=5 | 			}
+1129: depth=6 | 			default -> {
+1130: depth=5 | 			}
+1131: depth=4 | 		}
+1132: depth=3 | 	}
+1133: depth=3 | 
+1134: depth=3 | 	/**
+1135: depth=3 | 	 * Load a level JSON and populate editor preview state using LevelLoader.
+1136: depth=3 | 	 */
+1137: depth=4 | 	private void loadLevel(String path) {
+1138: depth=4 | 		// clear current preview
+1139: depth=4 | 		walls.clear();
+1140: depth=4 | 		solids.clear();
+1141: depth=4 | 		interactableInstances.clear();
+1142: depth=4 | 		doorRecords.clear();
+1143: depth=4 | 		placements.clear();
+1144: depth=4 | 		bossInstance = null;
+1145: depth=4 | 
+1146: depth=4 | 		// Load via LevelLoader to guarantee editor and runtime see identical objects
+1147: depth=4 | 		LevelLoader.Result loaded;
+1148: depth=5 | 		try {
+1149: depth=5 | 			loaded = LevelLoader.loadFromWorkspace(path);
+1150: depth=5 | 			// Also keep the LevelState for editing/saving
+1151: depth=5 | 			state = LevelIO.loadFromWorkspaceThenCopyToBuild(path);
+1152: depth=5 | 		} catch (Exception ex) {
+1153: depth=5 | 			Gdx.app.error("LevelMaker", "Failed to load level: " + path + " - " + ex.getMessage());
+1154: depth=5 | 			loaded = new LevelLoader.Result();
+1155: depth=5 | 			state = new LevelIO.LevelState();
+1156: depth=4 | 		}
+1157: depth=4 | 
+1158: depth=4 | 		// Defensive init for missing arrays in state (for editing/saving)
+1159: depth=4 | 		if (state.walls == null)
+1160: depth=4 | 			state.walls = new Array<>();
+1161: depth=4 | 		if (state.boxes == null)
+1162: depth=4 | 			state.boxes = new Array<>();
+1163: depth=4 | 		if (state.orbs == null)
+1164: depth=4 | 			state.orbs = new Array<>();
+1165: depth=4 | 		if (state.interactables == null)
+1166: depth=4 | 			state.interactables = new Array<>();
+1167: depth=4 | 		if (state.spawn == null)
+1168: depth=4 | 			state.spawn = new LevelIO.LevelState.SpawnData();
+1169: depth=4 | 
+1170: depth=4 | 		// Adopt loaded runtime objects for preview rendering
+1171: depth=4 | 		this.walls = loaded.walls;
+1172: depth=4 | 		this.solids = loaded.solids;
+1173: depth=4 | 		this.interactableInstances = loaded.interactables;
+1174: depth=4 | 		this.bossInstance = loaded.boss;
+1175: depth=4 | 
+1176: depth=4 | 		// Rebuild door lookup for editor linking
+1177: depth=5 | 		for (Interactable i : loaded.interactables) {
+1178: depth=6 | 			if (i instanceof Door d) {
+1179: depth=6 | 				// Find corresponding data to get the id
+1180: depth=7 | 				for (LevelIO.LevelState.InteractableData idd : state.interactables) {
+1181: depth=8 | 					if (idd != null && "door".equalsIgnoreCase(idd.type)) {
+1182: depth=8 | 						// Match by approximate position
+1183: depth=9 | 						if (Math.abs(d.getBounds().x - idd.x) < 5f) {
+1184: depth=9 | 							doorRecords.add(new DoorRecord(idd.id, idd.x, idd.y, idd.cols, idd.rows));
+1185: depth=9 | 							break;
+1186: depth=8 | 						}
+1187: depth=7 | 					}
+1188: depth=6 | 				}
+1189: depth=5 | 			}
+1190: depth=4 | 		}
+1191: depth=3 | 	}
+1192: depth=3 | 
+1193: depth=4 | 	private void rebuildUIPositions() {
+1194: depth=4 | 		// reposition uiButtons at bottom center
+1195: depth=4 | 		float bw = 60f, bh = 28f, gap = 8f;
+1196: depth=4 | 		float totalWidth = uiButtons.size * bw + (uiButtons.size - 1) * gap;
+1197: depth=4 | 		float bx = (uiCamera.viewportWidth - totalWidth) / 2f;
+1198: depth=4 | 		float by = 20f;
+1199: depth=5 | 		for (int i = 0; i < uiButtons.size; i++) {
+1200: depth=5 | 			UIButton b = uiButtons.get(i);
+1201: depth=5 | 			b.rect = new Rectangle(bx, by, bw, bh);
+1202: depth=5 | 			bx += bw + gap;
+1203: depth=4 | 		}
+1204: depth=4 | 		// door dir buttons (above main buttons)
+1205: depth=4 | 		doorDirButtons.clear();
+1206: depth=4 | 		float optionY = by + bh + 8f;
+1207: depth=4 | 		float optionX = (uiCamera.viewportWidth - (4 * bw + 3 * gap)) / 2f;
+1208: depth=5 | 		for (int i = 0; i < doorDirections.length; i++) {
+1209: depth=5 | 			doorDirButtons.add(new Rectangle(optionX + i * (bw + gap), optionY, bw, bh));
+1210: depth=4 | 		}
+1211: depth=4 | 		// recompute level rects
+1212: depth=4 | 		levelRects.clear();
+1213: depth=4 | 		float lx = uiCamera.position.x + uiCamera.viewportWidth / 2f - 180f;
+1214: depth=4 | 		float ly = uiCamera.position.y + uiCamera.viewportHeight / 2f - 32f;
+1215: depth=4 | 		float lh = 20f, lgap = 4f;
+1216: depth=5 | 		for (int i = 0; i < levelFiles.size; i++) {
+1217: depth=5 | 			levelRects.add(new Rectangle(lx, ly - i * (lh + lgap), 170f, lh));
+1218: depth=4 | 		}
+1219: depth=3 | 	}
+1220: depth=3 | 
+1221: depth=4 | 	private Door findDoorById(String id) {
+1222: depth=4 | 		if (id == null)
+1223: depth=4 | 			return null;
+1224: depth=4 | 		// Try to locate a DoorRecord for this id and then find the runtime Door whose
+1225: depth=4 | 		// bounds match the record position.
+1226: depth=4 | 		DoorRecord foundRec = null;
+1227: depth=5 | 		for (DoorRecord dr : doorRecords) {
+1228: depth=6 | 			if (dr != null && dr.id != null && dr.id.equals(id)) {
+1229: depth=6 | 				foundRec = dr;
+1230: depth=6 | 				break;
+1231: depth=5 | 			}
+1232: depth=4 | 		}
+1233: depth=5 | 		if (foundRec != null) {
+1234: depth=6 | 			for (Interactable it : interactableInstances) {
+1235: depth=7 | 				if (it instanceof Door) {
+1236: depth=7 | 					Door d = (Door) it;
+1237: depth=7 | 					if (Math.abs(d.getBounds().x - foundRec.x) < 8f && Math.abs(d.getBounds().y - foundRec.y) < 8f)
+1238: depth=7 | 						return d;
+1239: depth=6 | 				}
+1240: depth=5 | 			}
+1241: depth=4 | 		}
+1242: depth=4 | 		// Fallback: try to match using the saved LevelState entry (position stored
+1243: depth=4 | 		// there)
+1244: depth=5 | 		if (state != null && state.interactables != null) {
+1245: depth=6 | 			for (LevelIO.LevelState.InteractableData idd : state.interactables) {
+1246: depth=7 | 				if (idd != null && idd.id != null && idd.id.equals(id)) {
+1247: depth=8 | 					for (Interactable it : interactableInstances) {
+1248: depth=9 | 						if (it instanceof Door) {
+1249: depth=9 | 							Door d = (Door) it;
+1250: depth=9 | 							if (Math.abs(d.getBounds().x - idd.x) < 8f && Math.abs(d.getBounds().y - idd.y) < 8f)
+1251: depth=9 | 								return d;
+1252: depth=8 | 						}
+1253: depth=7 | 					}
+1254: depth=6 | 				}
+1255: depth=5 | 			}
+1256: depth=4 | 		}
+1257: depth=4 | 		// Last resort: return any Door instance if present
+1258: depth=4 | 		for (Interactable it : interactableInstances)
+1259: depth=4 | 			if (it instanceof Door)
+1260: depth=4 | 				return (Door) it;
+1261: depth=4 | 		return null;
+1262: depth=3 | 	}
+1263: depth=3 | 
+1264: depth=3 | 	/**
+1265: depth=3 | 	 * Find a door record id at the provided world-grid cell (approx). Returns null
+1266: depth=3 | 	 * if none found.
+1267: depth=3 | 	 */
+1268: depth=4 | 	private String findDoorIdAt(int wx, int wy) {
+1269: depth=5 | 		for (DoorRecord dr : doorRecords) {
+1270: depth=5 | 			if (Math.abs((int) dr.x - wx) <= 32 && Math.abs((int) dr.y - wy) <= 32)
+1271: depth=5 | 				return dr.id;
+1272: depth=4 | 		}
+1273: depth=4 | 		return null;
+1274: depth=3 | 	}
+1275: depth=3 | 
+1276: depth=4 | 	private void removePlacement(Placement p) {
+1277: depth=5 | 		switch (p.type) {
+1278: depth=5 | 			case WALL:
+1279: depth=6 | 				for (int i = 0; i < state.walls.size; ++i) {
+1280: depth=6 | 					LevelIO.LevelState.WallData wd = state.walls.get(i);
+1281: depth=7 | 					if (wd.x == p.x && wd.y == p.y && wd.width == p.cols && wd.height == p.rows) {
+1282: depth=7 | 						state.walls.removeIndex(i);
+1283: depth=7 | 						break;
+1284: depth=6 | 					}
+1285: depth=5 | 				}
+1286: depth=6 | 				for (int i = 0; i < walls.size; ++i) {
+1287: depth=6 | 					Wall w = walls.get(i);
+1288: depth=7 | 					if ((int) w.bounds.x == p.x && (int) w.bounds.y == p.y) {
+1289: depth=7 | 						walls.removeIndex(i);
+1290: depth=7 | 						break;
+1291: depth=6 | 					}
+1292: depth=5 | 				}
+1293: depth=5 | 				break;
+1294: depth=5 | 			case DOOR:
+1295: depth=5 | 				// remove interactable with matching id
+1296: depth=6 | 				for (int i = 0; i < state.interactables.size; ++i) {
+1297: depth=6 | 					LevelIO.LevelState.InteractableData idd = state.interactables.get(i);
+1298: depth=7 | 					if (idd.id != null && idd.id.equals(p.id)) {
+1299: depth=7 | 						state.interactables.removeIndex(i);
+1300: depth=7 | 						break;
+1301: depth=6 | 					}
+1302: depth=5 | 				}
+1303: depth=5 | 				// remove record
+1304: depth=6 | 				for (int i = 0; i < doorRecords.size; ++i) {
+1305: depth=7 | 					if (doorRecords.get(i).id.equals(p.id)) {
+1306: depth=7 | 						doorRecords.removeIndex(i);
+1307: depth=7 | 						break;
+1308: depth=6 | 					}
+1309: depth=5 | 				}
+1310: depth=5 | 				// remove door instance
+1311: depth=6 | 				for (int i = interactableInstances.size - 1; i >= 0; --i) {
+1312: depth=7 | 					if (interactableInstances.get(i) instanceof Door) {
+1313: depth=7 | 						interactableInstances.removeIndex(i);
+1314: depth=7 | 						break;
+1315: depth=6 | 					}
+1316: depth=5 | 				}
+1317: depth=5 | 				break;
+1318: depth=5 | 			case BUTTON:
+1319: depth=5 | 			case LEVER:
+1320: depth=5 | 				// remove one interactable of that type at the placement position
+1321: depth=6 | 				for (int i = 0; i < state.interactables.size; ++i) {
+1322: depth=6 | 					LevelIO.LevelState.InteractableData idd = state.interactables.get(i);
+1323: depth=6 | 					if (idd.type != null && idd.type.equalsIgnoreCase(p.type.name()) && (int) idd.x == p.x
+1324: depth=7 | 							&& (int) idd.y == p.y) {
+1325: depth=7 | 						state.interactables.removeIndex(i);
+1326: depth=7 | 						break;
+1327: depth=6 | 					}
+1328: depth=5 | 				}
+1329: depth=5 | 				// remove matching instance by bounds position
+1330: depth=6 | 				for (int i = interactableInstances.size - 1; i >= 0; --i) {
+1331: depth=6 | 					Object o = interactableInstances.get(i);
+1332: depth=7 | 					if (p.type == ObjectType.BUTTON && o instanceof Button) {
+1333: depth=7 | 						Button bb = (Button) o;
+1334: depth=8 | 						if ((int) bb.getBounds().x == p.x && (int) bb.getBounds().y == p.y) {
+1335: depth=8 | 							interactableInstances.removeIndex(i);
+1336: depth=8 | 							break;
+1337: depth=7 | 						}
+1338: depth=7 | 					} else if (p.type == ObjectType.LEVER && o instanceof Lever) {
+1339: depth=7 | 						Lever ll = (Lever) o;
+1340: depth=8 | 						if ((int) ll.getBounds().x == p.x && (int) ll.getBounds().y == p.y) {
+1341: depth=8 | 							interactableInstances.removeIndex(i);
+1342: depth=8 | 							break;
+1343: depth=7 | 						}
+1344: depth=6 | 					}
+1345: depth=5 | 				}
+1346: depth=5 | 				break;
+1347: depth=5 | 			case BOX:
+1348: depth=6 | 				for (int i = 0; i < state.boxes.size; ++i) {
+1349: depth=6 | 					LevelIO.LevelState.BoxData bd = state.boxes.get(i);
+1350: depth=7 | 					if (bd.x == p.x && bd.y == p.y) {
+1351: depth=7 | 						state.boxes.removeIndex(i);
+1352: depth=7 | 						break;
+1353: depth=6 | 					}
+1354: depth=5 | 				}
+1355: depth=5 | 				for (int i = interactableInstances.size - 1; i >= 0; --i)
+1356: depth=5 | 					if (interactableInstances.get(i) instanceof Box)
+1357: depth=5 | 						interactableInstances.removeIndex(i);
+1358: depth=5 | 				break;
+1359: depth=5 | 			case ORB:
+1360: depth=6 | 				for (int i = 0; i < state.orbs.size; ++i) {
+1361: depth=6 | 					LevelIO.LevelState.OrbData od = state.orbs.get(i);
+1362: depth=7 | 					if (od.x == p.x && od.y == p.y) {
+1363: depth=7 | 						state.orbs.removeIndex(i);
+1364: depth=7 | 						break;
+1365: depth=6 | 					}
+1366: depth=5 | 				}
+1367: depth=5 | 				for (int i = interactableInstances.size - 1; i >= 0; --i)
+1368: depth=5 | 					if (interactableInstances.get(i) instanceof Orb)
+1369: depth=5 | 						interactableInstances.removeIndex(i);
+1370: depth=5 | 				break;
+1371: depth=5 | 			case BOSS:
+1372: depth=5 | 				state.boss = null;
+1373: depth=5 | 				bossInstance = null;
+1374: depth=5 | 				break;
+1375: depth=5 | 			case SPAWN:
+1376: depth=5 | 				state.spawn = new LevelIO.LevelState.SpawnData();
+1377: depth=5 | 				state.spawn.x = 0;
+1378: depth=5 | 				state.spawn.y = 0;
+1379: depth=5 | 				break;
+1380: depth=5 | 			case NONE:
+1381: depth=5 | 				break;
+1382: depth=5 | 			default:
+1383: depth=5 | 				break;
+1384: depth=4 | 		}
+1385: depth=3 | 	}
+1386: depth=3 | 
+1387: depth=3 | 	@Override
+1388: depth=4 | 	public void resize(int width, int height) {
+1389: depth=4 | 		camera.viewportWidth = width;
+1390: depth=4 | 		camera.viewportHeight = height;
+1391: depth=4 | 		camera.update();
+1392: depth=5 | 		if (uiCamera != null) {
+1393: depth=5 | 			uiCamera.viewportWidth = width;
+1394: depth=5 | 			uiCamera.viewportHeight = height;
+1395: depth=5 | 			uiCamera.position.set(uiCamera.viewportWidth / 2f, uiCamera.viewportHeight / 2f, 0f);
+1396: depth=5 | 			uiCamera.update();
+1397: depth=5 | 			rebuildUIPositions();
+1398: depth=4 | 		}
+1399: depth=3 | 	}
+1400: depth=3 | 
+1401: depth=3 | 	// Helper methods for proper door/button placement (matching LevelLoader logic)
+1402: depth=4 | 	private int computeAnchorCol(Wall anchor, float worldX) {
+1403: depth=4 | 		if (anchor == null)
+1404: depth=4 | 			return 1;
+1405: depth=4 | 		final float cell = 32f;
+1406: depth=4 | 		float rel = worldX - anchor.bounds.x;
+1407: depth=4 | 		int col = (int) Math.floor(rel / cell) + 1; // 1-based
+1408: depth=4 | 		int maxCols = Math.max(1, (int) (anchor.bounds.width / cell));
+1409: depth=4 | 		if (col < 1)
+1410: depth=4 | 			col = 1;
+1411: depth=4 | 		if (col > maxCols)
+1412: depth=4 | 			col = maxCols + 1; // allow placing to the right side
+1413: depth=4 | 		return col;
+1414: depth=3 | 	}
+1415: depth=3 | 
+1416: depth=4 | 	private int computeAnchorRow(Wall anchor, float worldY) {
+1417: depth=4 | 		if (anchor == null)
+1418: depth=4 | 			return 1;
+1419: depth=4 | 		final float cell = 32f;
+1420: depth=4 | 		float rel = worldY - anchor.bounds.y;
+1421: depth=4 | 		int row = (int) Math.floor(rel / cell) + 1; // 1-based
+1422: depth=4 | 		int maxRows = Math.max(1, (int) (anchor.bounds.height / cell));
+1423: depth=4 | 		if (row < 1)
+1424: depth=4 | 			row = 1;
+1425: depth=4 | 		if (row > maxRows)
+1426: depth=4 | 			row = maxRows + 1; // allow placing below
+1427: depth=4 | 		return row;
+1428: depth=3 | 	}
+1429: depth=3 | 
+1430: depth=4 | 	private Wall findAnchorWallForX(Array<Wall> walls, float worldX) {
+1431: depth=4 | 		if (walls == null || walls.size == 0)
+1432: depth=4 | 			return null;
+1433: depth=4 | 		Wall best = null;
+1434: depth=4 | 		float bestDist = Float.MAX_VALUE;
+1435: depth=5 | 		for (Wall w : walls) {
+1436: depth=5 | 			float left = w.bounds.x;
+1437: depth=5 | 			float right = w.bounds.x + w.bounds.width;
+1438: depth=5 | 			float dist = 0f;
+1439: depth=5 | 			if (worldX < left)
+1440: depth=5 | 				dist = left - worldX;
+1441: depth=5 | 			else if (worldX > right)
+1442: depth=5 | 				dist = worldX - right;
+1443: depth=5 | 			else
+1444: depth=5 | 				dist = 0f;
+1445: depth=6 | 			if (dist < bestDist) {
+1446: depth=6 | 				bestDist = dist;
+1447: depth=6 | 				best = w;
+1448: depth=5 | 			}
+1449: depth=4 | 		}
+1450: depth=4 | 		return best;
+1451: depth=3 | 	}
+1452: depth=3 | 
+1453: depth=3 | 	// Helper to choose best anchor wall and side (TOP, LEFT or RIGHT) for door
+1454: depth=3 | 	// placement
+1455: depth=4 | 	private static class AnchorChoice {
+1456: depth=5 | 		public enum Side {
+1457: depth=5 | 			TOP, LEFT, RIGHT
+1458: depth=4 | 		}
+1459: depth=4 | 
+1460: depth=4 | 		public Wall anchor;
+1461: depth=4 | 		public Side side;
+1462: depth=4 | 		public float distance;
+1463: depth=4 | 
+1464: depth=5 | 		public AnchorChoice(Wall a, Side s, float d) {
+1465: depth=5 | 			this.anchor = a;
+1466: depth=5 | 			this.side = s;
+1467: depth=5 | 			this.distance = d;
+1468: depth=4 | 		}
+1469: depth=3 | 	}
+1470: depth=3 | 
+1471: depth=4 | 	private AnchorChoice findBestAnchorForDoor(int gx, int gy) {
+1472: depth=4 | 		if (walls == null || walls.size == 0)
+1473: depth=4 | 			return null;
+1474: depth=4 | 		AnchorChoice best = null;
+1475: depth=5 | 		for (Wall w : walls) {
+1476: depth=5 | 			float left = w.bounds.x;
+1477: depth=5 | 			float right = w.bounds.x + w.bounds.width;
+1478: depth=5 | 			float top = w.bounds.y + w.bounds.height;
+1479: depth=5 | 			// distances to candidate sides
+1480: depth=5 | 			float dTop = Math.abs(gy - top);
+1481: depth=5 | 			float dLeft = Math.abs(gx - left);
+1482: depth=5 | 			float dRight = Math.abs(gx - right);
+1483: depth=5 | 			// choose the nearest of top/left/right for this wall
+1484: depth=5 | 			AnchorChoice.Side side;
+1485: depth=5 | 			float dist;
+1486: depth=6 | 			if (dTop <= dLeft && dTop <= dRight) {
+1487: depth=6 | 				side = AnchorChoice.Side.TOP;
+1488: depth=6 | 				dist = dTop;
+1489: depth=6 | 			} else if (dLeft <= dRight) {
+1490: depth=6 | 				side = AnchorChoice.Side.LEFT;
+1491: depth=6 | 				dist = dLeft;
+1492: depth=6 | 			} else {
+1493: depth=6 | 				side = AnchorChoice.Side.RIGHT;
+1494: depth=6 | 				dist = dRight;
+1495: depth=5 | 			}
+1496: depth=6 | 			if (best == null || dist < best.distance) {
+1497: depth=6 | 				best = new AnchorChoice(w, side, dist);
+1498: depth=5 | 			}
+1499: depth=4 | 		}
+1500: depth=4 | 		return best;
+1501: depth=3 | 	}
+1502: depth=3 | 
+1503: depth=4 | 	private Solid findBaseSolidFor(float x, float y, Array<Solid> solids) {
+1504: depth=4 | 		if (solids == null || solids.size == 0)
+1505: depth=4 | 			return null;
+1506: depth=4 | 		Solid best = null;
+1507: depth=4 | 		float bestTopY = -Float.MAX_VALUE;
+1508: depth=5 | 		for (Solid s : solids) {
+1509: depth=5 | 			Rectangle r = s.getBounds();
+1510: depth=5 | 			float topY = r.y + r.height;
+1511: depth=6 | 			if (topY <= y && x >= r.x && x <= r.x + r.width) {
+1512: depth=7 | 				if (topY > bestTopY) {
+1513: depth=7 | 					bestTopY = topY;
+1514: depth=7 | 					best = s;
+1515: depth=6 | 				}
+1516: depth=5 | 			}
+1517: depth=4 | 		}
+1518: depth=4 | 		return best;
+1519: depth=3 | 	}
+1520: depth=3 | 
+1521: depth=3 | 	@Override
+1522: depth=4 | 	public void pause() {
+1523: depth=4 | 		// no-op: keep editor state in memory while paused
+1524: depth=3 | 	}
+1525: depth=3 | 
+1526: depth=3 | 	@Override
+1527: depth=4 | 	public void resume() {
+1528: depth=4 | 		// no-op
+1529: depth=3 | 	}
+1530: depth=3 | 
+1531: depth=3 | 	@Override
+1532: depth=4 | 	public void hide() {
+1533: depth=4 | 		// no-op
+1534: depth=3 | 	}
+1535: depth=3 | 
+1536: depth=3 | 	@Override
+1537: depth=4 | 	public void dispose() {
+1538: depth=4 | 		// Intentionally left blank: resources are managed by Initialize/context.
+1539: depth=4 | 		// If ownership changes, dispose batch/shape/font here.
+1540: depth=3 | 	}
+1541: depth=2 | }

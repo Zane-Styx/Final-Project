@@ -89,14 +89,17 @@ public class PlayerLogic {
         Rectangle beforeMove = player.getHitboxRect();
         float oldX = player.getX();
 
-        if (Gdx.input.isKeyPressed(player.getKeyLeft())) {
+        boolean inputLeft = Gdx.input.isKeyPressed(player.getKeyLeft());
+        boolean inputRight = Gdx.input.isKeyPressed(player.getKeyRight());
+
+        if (inputLeft) {
             // Prevent moving left if wall sliding on the left wall
             if (!player.isWallSliding() || !player.isFacingLeft()) {
                 player.setX(player.getX() - player.getConfig().speed * delta);
                 player.setFacingLeft(true);
                 player.setMoving(true);
             }
-        } else if (Gdx.input.isKeyPressed(player.getKeyRight())) {
+        } else if (inputRight) {
             // Prevent moving right if wall sliding on the right wall
             if (!player.isWallSliding() || player.isFacingLeft()) {
                 player.setX(player.getX() + player.getConfig().speed * delta);
@@ -105,14 +108,29 @@ public class PlayerLogic {
             }
         }
 
+        // If on ground and walking opposite current horizontal momentum, gently reduce it
+        if (player.isOnGround()) {
+            float vx = player.getVelocityX();
+            float decel = player.getConfig().speed * 1.5f; // gentle decel toward 0 when pushing opposite
+            if (inputLeft && vx > 0f) {
+                vx -= decel * delta;
+                if (vx < 0f) vx = 0f;
+                player.setVelocityX(vx);
+            } else if (inputRight && vx < 0f) {
+                vx += decel * delta;
+                if (vx > 0f) vx = 0f;
+                player.setVelocityX(vx);
+            }
+        }
+
         // After movement, check and resolve collisions
         Rectangle afterMove = player.getHitboxRect();
-            PlayerCollision.resolveWallCollision(afterMove, walls);
-            if (solids != null) {
-                PlayerCollision.resolveSolidCollision(afterMove, solids);
-            }
-            // Update player position based on resolved hitbox
-            player.setX(player.getX() + (afterMove.x - beforeMove.x));
+        PlayerCollision.resolveWallCollision(afterMove, walls);
+        if (solids != null) {
+            PlayerCollision.resolveSolidCollision(afterMove, solids);
+        }
+        // Update player position based on resolved hitbox
+        player.setX(player.getX() + (afterMove.x - beforeMove.x));
     }
 
     public static void handleJump(Player player) {
@@ -290,20 +308,8 @@ public class PlayerLogic {
             player.canJump = true;
             player.setWallSliding(false);
             player.setOnWall(false);
-                
-                // Only adjust position if very close to edges
-                float leftEdgeDist = Math.abs(player.getHitboxX() - landingWall.bounds.x);
-                float rightEdgeDist = Math.abs((player.getHitboxX() + player.getHitboxWidth()) - 
-                                             (landingWall.bounds.x + landingWall.bounds.width));
-                
-                if (leftEdgeDist < 2f) {
-                    player.setX(landingWall.bounds.x + 2f - player.hitboxOffsetX);
-                } else if (rightEdgeDist < 2f) {
-                    player.setX(landingWall.bounds.x + landingWall.bounds.width - 
-                              (player.hitboxWidth + player.hitboxOffsetX) - 2f);
-                }
-                return true;
-            }
+            return true;
+        }
         
         return false;
     }

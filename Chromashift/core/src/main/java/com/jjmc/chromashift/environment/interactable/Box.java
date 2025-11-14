@@ -277,6 +277,9 @@ public class Box implements Interactable, Pickable {
     @Override
     public boolean isHeld() { return held; }
 
+    // Expose current holder for systems (e.g., launchpads) that need to affect both
+    public Player getHolder() { return holder; }
+
     @Override
     public void drop() {
         held = false;

@@ -1,8 +1,8 @@
 package com.jjmc.chromashift;
 
 import com.badlogic.gdx.Game;
-import com.jjmc.chromashift.screens.LevelMakerScreen;
 import com.jjmc.chromashift.screens.TestSceneScreen;
+import com.jjmc.chromashift.screens.levels.LevelMakerScreen;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class ChromashiftGame extends Game {
@@ -16,3 +16,4 @@ public class ChromashiftGame extends Game {
         setScreen(new TestSceneScreen());
     }
 }
+

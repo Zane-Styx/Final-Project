@@ -30,6 +30,7 @@ public class Player {
 
     // Position and physics
     private float x, y;
+    private float velocityX = 0f;
     private float velocityY = 0f;
     private boolean onGround = true;
     private boolean facingLeft = false;
@@ -62,6 +63,7 @@ public class Player {
     private boolean onWall = false;
     private boolean wallSliding = false;
     private Circle wallSensor;
+    private Circle backSensor;
 
     // Config
     private final PlayerConfig config;
@@ -110,6 +112,7 @@ public class Player {
         anim.addAnimationFromTexture("attack", type.getAttackSpritePath(), attackFrameW, attackFrameH, attackFrames, 0.08f, false);
 
         wallSensor = new Circle(x, y, 5f);
+        backSensor = new Circle(x, y, 3f);
 
         // Respawn defaults to initial spawn
         this.respawnX = startX;
@@ -216,6 +219,17 @@ public class Player {
             return;
         }
 
+        // Apply velocityX from external sources (e.g., launchpads) - applies in air or on ground
+        if (velocityX != 0f) {
+            x += velocityX * delta;
+            // No air friction: preserve horizontal momentum while airborne for clean parabolic arcs
+            float friction = onGround ? 0.75f : 1.0f;
+            velocityX *= friction;
+            if (Math.abs(velocityX) < 1f) {
+                velocityX = 0f;
+            }
+        }
+
         PlayerLogic.handleGroundMovement(this, delta, walls, solids);
         PlayerLogic.handleJump(this);
         PlayerLogic.handleAttack(this, delta);
@@ -226,13 +240,24 @@ public class Player {
             anim.play("dash", facingLeft);
             canJump = true;
             velocityY = 0f;
+            // Cancel horizontal launch momentum if dashing in the opposite direction
+            int dashDir = facingLeft ? -1 : 1;
+            if ((dashDir < 0 && velocityX > 0f) || (dashDir > 0 && velocityX < 0f)) {
+                velocityX = 0f;
+            }
             updateWallSensor();
             return;
         }
 
-        PlayerCollision.resolveWallCollision(getHitboxRect(), walls);
+        boolean hitSideWall = PlayerCollision.resolveWallCollision(getHitboxRect(), walls);
         if (solids != null) {
-            PlayerCollision.resolveSolidCollision(getHitboxRect(), solids);
+            hitSideWall = PlayerCollision.resolveSolidCollision(getHitboxRect(), solids) || hitSideWall;
+        }
+        // Check if back/side hits a wall and cancel horizontal velocity
+        // Do not cancel when holding an object to preserve launch momentum while carrying
+        boolean backOrSideHit = PlayerCollision.checkWallCollision(backSensor, walls) || hitSideWall;
+        if (backOrSideHit) {
+            velocityX = 0f;
         }
         PlayerLogic.updateWallState(this, walls);
         PlayerLogic.handleWallJump(this);
@@ -245,6 +270,11 @@ public class Player {
 
         PlayerLogic.handleVerticalMovement(this, delta, walls, solids);
         PlayerLogic.handleGroundCheck(this, groundY);
+
+        // Zero horizontal velocity during wallsliding
+        if (wallSliding) {
+            velocityX = 0f;
+        }
 
         if (onGround || onWall || wallSliding) dashUsed = false;
 
@@ -363,6 +393,11 @@ public class Player {
         float offsetX = facingLeft ? -6f : 6f;
         wallSensor.setPosition(centerX + offsetX, centerY);
         wallSensor.setRadius(3f);
+        
+        // Update back sensor (opposite side from wall sensor)
+        float backOffsetX = facingLeft ? 6f : -6f;
+        backSensor.setPosition(centerX + backOffsetX, centerY);
+        backSensor.setRadius(3f);
     }
 
     public void render(SpriteBatch batch) {
@@ -385,6 +420,7 @@ public class Player {
     // Getters
     public float getX() { return x; }
     public float getY() { return y; }
+    public float getVelocityX() { return velocityX; }
     public float getVelocityY() { return velocityY; }
     public boolean isFacingLeft() { return facingLeft; }
     public boolean isWallSliding() { return wallSliding; }
@@ -395,6 +431,7 @@ public class Player {
     public boolean isOnWall() { return onWall; }
     public boolean isMoving() { return moving; }
     public Circle getWallSensor() { return wallSensor; }
+    public Circle getBackSensor() { return backSensor; }
     public PlayerConfig getConfig() { return config; }
     public SpriteAnimator getAnim() { return anim; }
     public int getKeyLeft() { return keyLeft; }
@@ -405,6 +442,7 @@ public class Player {
     // Setters
     public void setX(float x) { this.x = x; }
     public void setY(float y) { this.y = y; }
+    public void setVelocityX(float velocityX) { this.velocityX = velocityX; }
     public void setVelocityY(float velocityY) { this.velocityY = velocityY; }
     public void setFacingLeft(boolean facingLeft) { this.facingLeft = facingLeft; }
     public void setWallSliding(boolean wallSliding) { this.wallSliding = wallSliding; }
@@ -459,6 +497,9 @@ public class Player {
         shape.rect(getHitboxX(), getHitboxY(), getHitboxWidth(), getHitboxHeight());
         shape.setColor(onWall ? Color.RED : Color.CYAN);
         shape.circle(wallSensor.x, wallSensor.y, wallSensor.radius);
+        // Draw back sensor in magenta
+        shape.setColor(Color.MAGENTA);
+        shape.circle(backSensor.x, backSensor.y, backSensor.radius);
         float centerX = getHitboxX() + getHitboxWidth()/2;
         shape.setColor(onGround ? Color.GREEN : Color.YELLOW);
         shape.circle(centerX, getHitboxY(), 3f);

@@ -9,16 +9,39 @@ public class Lever implements Interactable {
     private final Rectangle bounds;
     private boolean on;
     private Runnable onToggle;
-    private Interactable target; // optional linked interactable (e.g., a Door)
+    private java.util.List<Interactable> targets = new java.util.ArrayList<>(); // support multiple targets
     private boolean playerNearby = false;
+    private boolean horizontal = false;
+    private com.chromashift.helper.SpriteAnimator anim;
 
     public Lever(float x, float y, float w, float h) {
-        bounds = new Rectangle(x, y, w, h);
+        this(x, y, w, h, false, null);
     }
 
     public Lever(float x, float y, float w, float h, Interactable target) {
-        bounds = new Rectangle(x, y, w, h);
-        this.target = target;
+        this(x, y, w, h, false, target);
+    }
+
+    /**
+     * Create a lever with explicit orientation (horizontal=true) and optional target.
+     */
+    public Lever(float x, float y, float w, float h, boolean horizontal, Interactable target) {
+        // Collision bounds depend on orientation: vertical uses 26x32, horizontal uses 32x26.
+        // Sprite is 64x64 and will be drawn centered around the collision rectangle so visual and collision align.
+        final float COLLISION_W = horizontal ? 32f : 26f;
+        final float COLLISION_H = horizontal ? 26f : 32f;
+        bounds = new Rectangle(x, y, COLLISION_W, COLLISION_H);
+        if (target != null) this.targets.add(target);
+        this.horizontal = horizontal;
+        try {
+            anim = new com.chromashift.helper.SpriteAnimator("environment/lever/lever.png", 2, 2);
+            // Row 0 = vertical, Row 1 = horizontal; each row has 2 frames
+            anim.addAnimation("VERTICAL", 0, 0, 2, 0.1f, false);
+            anim.addAnimation("HORIZONTAL", 1, 0, 2, 0.1f, false);
+            // Select the correct row for orientation and initialize to current 'on' state
+            anim.play(horizontal ? "HORIZONTAL" : "VERTICAL", false);
+            anim.setFrame(on ? 1 : 0);
+        } catch (Exception ignored) {}
     }
 
     public void setOnToggle(Runnable action) {
@@ -26,7 +49,8 @@ public class Lever implements Interactable {
     }
 
     public void setTarget(Interactable target) {
-        this.target = target;
+        if (target == null) return;
+        if (!this.targets.contains(target)) this.targets.add(target);
     }
 
     @Override
@@ -49,7 +73,23 @@ public class Lever implements Interactable {
     }
 
     @Override
-    public void render(SpriteBatch batch) {}
+    public void render(SpriteBatch batch) {
+        if (anim != null) {
+            // Sprite is 64x64. Draw it so the collision rect (bounds) sits centered inside the sprite.
+            final float SPRITE_W = 64f;
+            final float SPRITE_H = 64f;
+            float drawX = bounds.x - (SPRITE_W - bounds.width) * 0.5f;
+            float drawY = bounds.y - (SPRITE_H - bounds.height) * 0.5f;
+            // Ensure the correct animation row is selected (orientation may have been set earlier)
+            anim.play(horizontal ? "HORIZONTAL" : "VERTICAL", false);
+            // Use column/frame 0 or 1 depending on whether the lever is on
+            anim.setFrame(on ? 1 : 0);
+            anim.render(batch, drawX, drawY, SPRITE_W, SPRITE_H);
+            return;
+        }
+        // fallback: draw simple rect
+        // (we don't have batch.draw of plain color here; keep as no-op)
+    }
 
     @Override
     public void debugDraw(ShapeRenderer shape) {
@@ -76,10 +116,10 @@ public class Lever implements Interactable {
         if (!canInteract()) return;
 
         on = !on;
+        // Update visual frame to reflect new state (toggle between column 0 and 1)
+        try { if (anim != null) anim.setFrame(on ? 1 : 0); } catch (Exception ignored) {}
         if (onToggle != null) onToggle.run();
-        if (target != null) {
-            target.interact();
-        }
+        for (Interactable t : targets) if (t != null) t.interact();
     }
 
     public boolean isOn() {

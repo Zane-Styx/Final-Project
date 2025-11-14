@@ -24,19 +24,24 @@ public class Orb implements Interactable, Pickable {
     private boolean inRange = false;
     
     // Bounciness factor (1.0 = perfectly elastic, 0.0 = no bounce)
-    private float bounciness = 0.6f;
+    private float bounciness = 1f;
+    // Toggle for bounce behavior against solids
+    private boolean bounceEnabled = true;
     
     // Velocity getters/setters for collision handling
     public float getVelocityX() { return vx; }
     public float getVelocityY() { return vy; }
     public void setVelocity(float vx, float vy) { 
-        this.vx = vx * bounciness; 
-        this.vy = vy * bounciness;
+        // Set raw velocity; bounciness is applied only on collisions when bouncing
+        this.vx = vx; 
+        this.vy = vy;
     }
     
     public void setBounciness(float bounciness) {
         this.bounciness = Math.max(0f, Math.min(1f, bounciness));
     }
+    public boolean isBounceEnabled() { return bounceEnabled; }
+    public void setBounceEnabled(boolean enabled) { this.bounceEnabled = enabled; }
     
     private boolean isCollidingWithSelf(Interactable other) {
         return other == this || (other instanceof Orb && ((Orb)other).holder == this.holder);
@@ -111,8 +116,23 @@ public class Orb implements Interactable, Pickable {
             float appliedX = resolved.x - before.x;
             float appliedY = resolved.y - before.y;
 
-            if (Math.abs(appliedX - (x - before.x)) > 0.001f) vx = 0f;
-            if (Math.abs(appliedY - (y - before.y)) > 0.001f) vy = 0f;
+            boolean blockedX = Math.abs(appliedX - (x - before.x)) > 0.001f;
+            boolean blockedY = Math.abs(appliedY - (y - before.y)) > 0.001f;
+
+            if (blockedX) {
+                if (bounceEnabled) {
+                    vx = -vx * bounciness;
+                } else {
+                    vx = 0f;
+                }
+            }
+            if (blockedY) {
+                if (bounceEnabled) {
+                    vy = -vy * bounciness;
+                } else {
+                    vy = 0f;
+                }
+            }
 
             x = resolved.x;
             y = resolved.y;
@@ -294,4 +314,7 @@ public class Orb implements Interactable, Pickable {
 
     @Override
     public void drop() { held = false; holder = null; }
+
+    // Expose current holder for systems (e.g., launchpads) that need to affect both
+    public Player getHolder() { return holder; }
 }

@@ -28,7 +28,8 @@ public class Button implements Interactable, Solid {
     }
 
     private final Rectangle bounds;
-    private final Door linkedDoor;
+    private final Door linkedDoor; // legacy single target (keep for compatibility)
+    private final Array<Door> linkedDoors = new Array<>();
     private boolean pressed;
     private final SpriteAnimator anim;
     private final ButtonColor color;
@@ -48,6 +49,7 @@ public class Button implements Interactable, Solid {
         // Use fixed size; x,y are the bottom-left of the button
         this.bounds = new Rectangle(x, y, BUTTON_WIDTH, BUTTON_HEIGHT);
         this.linkedDoor = linkedDoor;
+        if (linkedDoor != null) linkedDoors.add(linkedDoor);
         this.color = color;
 
         // Initialize sprite animation (5 rows (colors), 2 columns (unpressed/pressed))
@@ -81,6 +83,15 @@ public class Button implements Interactable, Solid {
     this.activationBounds = new Rectangle(actX, actY, actW, actH);
     }
 
+    // New: multi-target constructor
+    public Button(float x, Solid baseSolid, Array<Door> doors, ButtonColor color) {
+        this(x, baseSolid, (doors != null && doors.size > 0) ? doors.first() : null, color);
+        if (doors != null) {
+            linkedDoors.clear();
+            for (Door d : doors) if (d != null) linkedDoors.add(d);
+        }
+    }
+
     public void update(float delta, Rectangle playerHitbox, Array<Rectangle> objectBounds) {
         boolean wasPressed = pressed;
         pressed = false; // Reset state each frame
@@ -100,8 +111,12 @@ public class Button implements Interactable, Solid {
 
         // Update animation frame based on pressed state
         anim.setFrame(pressed ? 1 : 0);
-            if (pressed != wasPressed && linkedDoor != null) {
-                linkedDoor.setOpen(pressed);
+            if (pressed != wasPressed) {
+                if (linkedDoors != null && linkedDoors.size > 0) {
+                    for (Door d : linkedDoors) if (d != null) d.setOpen(pressed);
+                } else if (linkedDoor != null) {
+                    linkedDoor.setOpen(pressed);
+                }
             }
 
             anim.update(delta);

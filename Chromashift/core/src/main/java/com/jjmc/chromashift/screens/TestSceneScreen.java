@@ -15,20 +15,14 @@ import com.badlogic.gdx.utils.Array;
 import com.jjmc.chromashift.environment.Solid;
 import com.jjmc.chromashift.environment.Wall;
 import com.jjmc.chromashift.environment.interactable.Button;
-import com.jjmc.chromashift.environment.interactable.Door;
 import com.jjmc.chromashift.environment.interactable.Interactable;
-import com.jjmc.chromashift.environment.interactable.Lever;
 import com.jjmc.chromashift.environment.interactable.Box;
 import com.jjmc.chromashift.environment.interactable.Orb;
+import com.jjmc.chromashift.environment.Spawn;
 import com.jjmc.chromashift.player.Player;
 import com.jjmc.chromashift.player.PlayerConfig;
-import com.jjmc.chromashift.player.PlayerType;
 import com.jjmc.chromashift.entity.boss.BossInstance;
 import com.chromashift.helper.CameraController;
-import com.jjmc.chromashift.screens.Initialize;
-import com.jjmc.chromashift.screens.LevelIO;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Test scene specifically designed to exercise Doors, Buttons and Levers.
@@ -54,13 +48,14 @@ public class TestSceneScreen implements Screen {
     // Player spawn for respawn key
     private float playerSpawnX;
     private float playerSpawnY;
+    private Spawn spawnMarker;
 
     // Base area walls so render can reference their bounds
     private Wall baseLeft;
     private Wall baseCenter;
     private Wall baseRight;
 
-    private float groundY = 40f;
+    private float groundY = -64f;
 
     @Override
     public void show() {
@@ -72,116 +67,37 @@ public class TestSceneScreen implements Screen {
         shape = ctx.shape;
         font = ctx.font;
 
-        // init containers
-        walls = new Array<>();
-        interactables = new Array<>();
-        solids = new Array<>();
+        // Load everything via the unified LevelLoader
+        String levelPath = "levels/level1.json";
+        com.jjmc.chromashift.screens.levels.LevelLoader.Result loaded =
+                com.jjmc.chromashift.screens.levels.LevelLoader.load(levelPath);
 
-        // Load level JSON (fall back to level1 by default)
-        LevelIO.LevelState state = LevelIO.load("levels/level1.json");
+        // Adopt loaded collections so updates/render iterate the same instances
+        this.walls = loaded.walls;
+        this.solids = loaded.solids;
+        this.interactables = loaded.interactables;
 
-        // create walls from JSON
-        for (LevelIO.LevelState.WallData wd : state.walls) {
-                Wall w = new Wall(wd.x, wd.y, (int)wd.width, (int)wd.height);
-            walls.add(w);
-            solids.add(w);
-        }
-
-        // If no walls loaded, create default bases (backwards compatible)
-        if (walls.size == 0) {
-            baseLeft = new Wall(-360, groundY, 13, 1);
-            baseCenter = new Wall(0, groundY, 25, 1);
-            baseRight = new Wall(720, groundY, 13, 1);
-            walls.add(baseLeft); walls.add(baseCenter); walls.add(baseRight);
-            solids.add(baseLeft); solids.add(baseCenter); solids.add(baseRight);
-        } else {
-            // derive baseLeft/center/right heuristically from first three walls
-            if (walls.size >= 3) {
-                baseLeft = walls.get(0);
-                baseCenter = walls.get(1);
-                baseRight = walls.get(2);
-            } else {
-                baseLeft = walls.get(0);
-                baseCenter = walls.get(0);
-                baseRight = walls.get(0);
-            }
-        }
-
-        // Instantiate interactables and keep a map of ids for linking (doors/buttons)
-        Map<String, Door> doorMap = new HashMap<>();
-        for (LevelIO.LevelState.InteractableData idd : state.interactables) {
-            if (idd.type == null) continue;
-            String t = idd.type.toLowerCase();
-            if (t.equals("door")) {
-                // choose anchor wall by proximity to given x
-                Wall anchor = baseCenter;
-                for (Wall w : walls) {
-                    if (Math.abs(w.bounds.x - idd.x) < 1e-2) { anchor = w; break; }
-                }
-                Door.OpenDirection dir = Door.OpenDirection.UP;
-                try { dir = Door.OpenDirection.valueOf(idd.openDirection); } catch (Exception ignored) {}
-                Door d = new Door(anchor, idd.cols, 0, idd.cols, idd.rows, dir, 2f, 0.5f);
-                interactables.add(d);
-                solids.add(d);
-                if (idd.id != null) doorMap.put(idd.id, d);
-            }
-        }
-
-        // Buttons/Levers that may reference doors
-        for (LevelIO.LevelState.InteractableData idd : state.interactables) {
-            if (idd.type == null) continue;
-            String t = idd.type.toLowerCase();
-            if (t.equals("button")) {
-                Wall anchor = baseLeft;
-                for (Wall w : walls) { if (Math.abs(w.bounds.x - idd.x) < 1e-2) { anchor = w; break; } }
-                Door target = idd.targetId != null ? doorMap.get(idd.targetId) : null;
-                Button.ButtonColor col = Button.ButtonColor.GREEN;
-                try { col = Button.ButtonColor.valueOf(idd.color); } catch (Exception ignored) {}
-                Button b = new Button(anchor.bounds.x , anchor, target, col);
-                interactables.add(b);
-                solids.add(b);
-            } else if (t.equals("lever")) {
-                Wall anchor = baseCenter;
-                for (Wall w : walls) { if (Math.abs(w.bounds.x - idd.x) < 1e-2) { anchor = w; break; } }
-                Door target = idd.targetId != null ? doorMap.get(idd.targetId) : null;
-                Lever l = new Lever(anchor.bounds.x + 200f, anchor.bounds.y + anchor.bounds.height, 16, 36, target);
-                if (target != null) {
-                    l.setOnToggle(() -> { target.setOpen(!target.isOpen()); target.interact(); });
-                }
-                interactables.add(l);
-            }
-        }
-
-        // Boxes
-        for (LevelIO.LevelState.BoxData bd : state.boxes) {
-            Box box = new Box(bd.x, bd.y, solids);
-            interactables.add(box);
-        }
-
-        // Orbs
-        for (LevelIO.LevelState.OrbData od : state.orbs) {
-            Orb orb = new Orb(od.x, od.y, solids);
-            orb.setBounciness(2f);
-            interactables.add(orb);
-        }
-
-        // Create boss if defined
-        if (state.boss != null) {
-            boss = new BossInstance();
-            boss.setPosition(state.boss.x, state.boss.y);
+        // Boss (only for BossRoom level)
+        if (loaded.boss != null) {
+            this.boss = loaded.boss;
+        } else if (levelPath.contains("bossroom")) {
+            this.boss = new BossInstance();
+            // place default boss above the first wall if available
+            Wall base = (walls.size > 0) ? walls.first() : new Wall(0, groundY, 10, 1);
+            boss.setPosition(base.bounds.x + base.bounds.width / 2f, base.bounds.y + base.bounds.height + 200f);
             boss.setEnvironment(solids, walls);
         } else {
-            boss = new BossInstance();
-            boss.setPosition(baseCenter.bounds.x + baseCenter.bounds.width/2, baseCenter.bounds.y + baseCenter.bounds.height + 200);
-            boss.setEnvironment(solids, walls);
+            this.boss = null;
         }
 
-        // Create player at spawn
+        // Player at spawn
         PlayerConfig cfg = new PlayerConfig();
-        player = ctx.createPlayer(state.spawn.x, state.spawn.y, cfg);
+        player = ctx.createPlayer(loaded.spawnX, loaded.spawnY, cfg);
         player.setRespawnPoint(player.getX(), player.getY());
         playerSpawnX = player.getX();
         playerSpawnY = player.getY();
+        // Visible spawn marker (static frame by default)
+        spawnMarker = new Spawn(playerSpawnX, playerSpawnY);
     }
 
     @Override
@@ -193,27 +109,45 @@ public class TestSceneScreen implements Screen {
 
         // Respawn player to initial spawn with R
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            player.setX(playerSpawnX);
-            player.setY(playerSpawnY);
+            player.respawn();
+            if (spawnMarker != null) {
+                spawnMarker.setPosition(playerSpawnX, playerSpawnY);
+                spawnMarker.playOnce();
+            }
         }
 
         // First update non-button interactables
         Array<Rectangle> objectBounds = new Array<>();
-        for (Interactable i : interactables) {
-            i.checkInteraction(player.getHitboxRect());
-            if (i instanceof Box box) {
+        for (int i = 0; i < interactables.size; i++) {
+            Interactable interactable = interactables.get(i);
+            interactable.checkInteraction(player.getHitboxRect());
+            if (interactable instanceof Box box) {
                 objectBounds.add(box.getActivationBounds());
-            } else if (i instanceof Orb orb) {
+            } else if (interactable instanceof Orb orb) {
                 objectBounds.add(orb.getActivationBounds());
             }
-            if (!(i instanceof Button)) {
-                i.update(delta);
+            // Check launchpad triggers
+            if (interactable instanceof com.jjmc.chromashift.environment.Launchpad launchpad) {
+                launchpad.checkAndLaunchPlayer(player, walls);
+                // Check for boxes and orbs on launchpad (use indexed loop to avoid nested iterator)
+                for (int j = 0; j < interactables.size; j++) {
+                    Interactable obj = interactables.get(j);
+                    if (obj instanceof Box box) {
+                        launchpad.checkAndLaunchBox(box);
+                    } else if (obj instanceof Orb orb) {
+                        launchpad.checkAndLaunchOrb(orb);
+                    }
+                }
+            }
+            if (!(interactable instanceof Button)) {
+                interactable.update(delta);
             }
         }
         
         // Then update buttons with collected bounds
-        for (Interactable i : interactables) {
-            if (i instanceof Button b) {
+        for (int i = 0; i < interactables.size; i++) {
+            Interactable interactable = interactables.get(i);
+            if (interactable instanceof Button b) {
                 b.update(delta, player.getHitboxRect(), objectBounds);
             }
         }
@@ -222,8 +156,10 @@ public class TestSceneScreen implements Screen {
         player.update(delta, groundY, solids, interactables, 1);
 
         // Boss update - set target to player position
-        boss.setTarget(player.getX() + player.getHitboxWidth()/2, player.getY() + player.getHitboxHeight()/2);
-        boss.update(delta);
+        if (boss != null) {
+            boss.setTarget(player.getX() + player.getHitboxWidth()/2, player.getY() + player.getHitboxHeight()/2);
+            boss.update(delta);
+        }
 
         // Camera update / follow
         Vector2 playerCenter = new Vector2(player.getX() + player.getHitboxWidth() / 2f,
@@ -239,10 +175,18 @@ public class TestSceneScreen implements Screen {
 
         batch.setProjectionMatrix(camController.getCamera().combined);
         batch.begin();
-        // Draw world: walls first, then interactables, boss, and player
+        // Draw world: walls first, then interactables, spawn marker, boss, and player
         for (Wall w : walls) w.render(batch);
         for (Interactable i : interactables) i.render(batch);
-        boss.render(batch);
+        if (spawnMarker != null) {
+            spawnMarker.update(delta);
+            if (spawnMarker.isVisible()) {
+                spawnMarker.render(batch);
+            }
+        }
+        if (boss != null) {
+            boss.render(batch);
+        }
         player.render(batch);
 
         // Draw debug UI with clean layout
@@ -277,7 +221,7 @@ public class TestSceneScreen implements Screen {
         String healthText = String.format("• Player Health: %.0f/%.0f", player.getHealthSystem().getCurrentHealth(), player.getHealthSystem().getMaxHealth());
         font.draw(batch, healthText, baseX + 10, baseY);
         baseY -= lineHeight;
-        String bossHealthText = String.format("• Boss Health: %.0f/%.0f", boss.getHealthSystem().getCurrentHealth(), boss.getHealthSystem().getMaxHealth());
+        String bossHealthText = boss != null ? String.format("• Boss Health: %.0f/%.0f", boss.getHealthSystem().getCurrentHealth(), boss.getHealthSystem().getMaxHealth()) : "• Boss: None";
         font.draw(batch, bossHealthText, baseX + 10, baseY);
         baseY -= lineHeight;
         font.draw(batch, "• O - Test damage (100)", baseX + 10, baseY);
@@ -331,10 +275,10 @@ public class TestSceneScreen implements Screen {
             player.getHealthSystem().damage(100f, null);        
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
+        if (boss != null && Gdx.input.isKeyJustPressed(Input.Keys.K)) {
             boss.getHealthSystem().damage(100f, null);        
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
+        if (boss != null && Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             boss.getHealthSystem().heal(100f);        
         }
     }
@@ -353,7 +297,7 @@ public class TestSceneScreen implements Screen {
     public void dispose() {
         if (ctx != null) ctx.dispose();
         player.dispose();
-        boss.disposeParts();
+        if (boss != null) boss.disposeParts();
         // dispose button sprites
         for (Interactable i : interactables) if (i instanceof Button b) b.dispose();
         // dispose wall/shared textures

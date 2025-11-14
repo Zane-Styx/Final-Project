@@ -122,13 +122,25 @@ public class SpriteAnimator {
         boolean loop = animLoop.getOrDefault(currentName, true);
         TextureRegion frame = a.getKeyFrame(stateTime, loop);
         if (frame == null) return;
-        if (flipX) {
-            boolean old = frame.isFlipX();
-            frame.flip(!old, frame.isFlipY());
-            batch.draw(frame, x, y, width, height);
-            frame.flip(!old, frame.isFlipY());
-        } else {
-            batch.draw(frame, x, y, width, height);
+        try {
+            // Ensure we draw only while the batch is active. If caller didn't begin the
+            // batch, begin/end locally so we don't throw IllegalStateException.
+            boolean didBegin = false;
+            if (!batch.isDrawing()) {
+                batch.begin();
+                didBegin = true;
+            }
+            if (flipX) {
+                boolean old = frame.isFlipX();
+                frame.flip(!old, frame.isFlipY());
+                batch.draw(frame, x, y, width, height);
+                frame.flip(!old, frame.isFlipY());
+            } else {
+                batch.draw(frame, x, y, width, height);
+            }
+            if (didBegin) batch.end();
+        } catch (Exception e) {
+            Gdx.app.error("SpriteAnimator", "Error rendering frame: " + e.getMessage(), e);
         }
     }
 
@@ -156,5 +168,12 @@ public class SpriteAnimator {
     @Override
     public String toString() {
         return "SpriteAnimator[animations=" + animations.keySet() + "]";
+    }
+
+    public int getCurrentFrameIndex() {
+        if (currentName == null) return 0;
+        Animation<TextureRegion> a = animations.get(currentName);
+        if (a == null) return 0;
+        return a.getKeyFrameIndex(stateTime);
     }
 }

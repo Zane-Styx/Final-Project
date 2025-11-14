@@ -1,5 +1,4 @@
 package com.jjmc.chromashift.screens.levels;
 
-public class Level2 {
-    
+public class LoadingScreen {
 }

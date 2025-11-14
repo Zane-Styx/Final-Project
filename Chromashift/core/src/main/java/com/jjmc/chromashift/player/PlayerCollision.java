@@ -16,7 +16,8 @@ public class PlayerCollision {
 		return false;
 	}
 
-	public static void resolveWallCollision(Rectangle playerBox, Array<Wall> walls) {
+	public static boolean resolveWallCollision(Rectangle playerBox, Array<Wall> walls) {
+		boolean hitSideWall = false;
 		for (Wall wall : walls) {
 			if (playerBox.overlaps(wall.bounds)) {
 				// Find the overlap on each axis
@@ -37,11 +38,13 @@ public class PlayerCollision {
 				
 				// Resolve collision by moving in direction of least overlap
 				if (overlapX < overlapY) {
+					// Horizontal collision - hit a side wall
 					if (playerBox.x < wall.bounds.x) {
 						playerBox.x = wall.bounds.x - playerBox.width;
 					} else {
 						playerBox.x = wall.bounds.x + wall.bounds.width;
 					}
+					hitSideWall = true;
 				} else {
 					if (playerBox.y < wall.bounds.y) {
 						playerBox.y = wall.bounds.y - playerBox.height;
@@ -51,9 +54,11 @@ public class PlayerCollision {
 				}
 			}
 		}
+		return hitSideWall;
 	}
 
-	public static void resolveSolidCollision(Rectangle hitbox, Array<Solid> solids) {
+	public static boolean resolveSolidCollision(Rectangle hitbox, Array<Solid> solids) {
+		boolean hitSideWall = false;
 		for (Solid s : solids) {
 			if (!s.isBlocking()) continue;
 			Rectangle b = s.getCollisionBounds();
@@ -71,12 +76,13 @@ public class PlayerCollision {
 
 			// Resolve based on penetration amounts (smaller overlap -> move on that axis)
 			if (overlapX < overlapY) {
-				// Horizontal collision
+				// Horizontal collision - hit a side wall
 				if (hitbox.x < b.x) {
 					hitbox.x = b.x - hitbox.width;
 				} else {
 					hitbox.x = b.x + b.width;
 				}
+				hitSideWall = true;
 			} else {
 				// Vertical collision
 				if (hitbox.y < b.y) {
@@ -86,5 +92,6 @@ public class PlayerCollision {
 				}
 			}
 		}
+		return hitSideWall;
 	}
 }
