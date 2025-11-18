@@ -31,6 +31,7 @@ public class SoundManager {
     private static final Map<String, Queue<Music>> shuffleQueues = new HashMap<>();
     private static final Map<String, Long> soundInstances = new HashMap<>();
     private static final Map<String, Music> currentTracks = new HashMap<>();
+    private static final Map<String, Music> loopingSfx = new HashMap<>();
 
     private static boolean cutoff = false;
     private static float masterVolume = 1f;
@@ -59,6 +60,14 @@ public class SoundManager {
         musicGroups.computeIfAbsent(group, k -> new ArrayList<>()).add(music);
     }
 
+    public static void addLoopingSfx(String name, String path) {
+        Music m = Gdx.audio.newMusic(Gdx.files.internal(path));
+        m.setLooping(true); // plays full file before looping
+        m.setVolume(masterVolume * sfxVolume);
+        loopingSfx.put(name, m);
+    }
+
+
     // ---------------- Playback ----------------
 
     public static void play(String name) {
@@ -71,6 +80,21 @@ public class SoundManager {
             playMusic(name, 0f, false);
         } else {
             Gdx.app.log("SoundManager", "No audio found: " + name);
+        }
+    }
+
+    public static void playLoopingSfx(String name) {
+        Music m = loopingSfx.get(name);
+        if (m != null) {
+            m.setVolume(masterVolume * sfxVolume);
+            m.play();
+        }
+    }
+
+    public static void stopLoopingSfx(String name) {
+        Music m = loopingSfx.get(name);
+        if (m != null) {
+            m.stop();
         }
     }
 
@@ -228,6 +252,9 @@ public class SoundManager {
         for (Music m : currentTracks.values()) {
             m.setVolume(masterVolume * musicVolume);
         }
+        for (Music m : loopingSfx.values()) {
+            m.setVolume(masterVolume * sfxVolume);
+        }
     }
 
     // ---------------- Stop / Cleanup ----------------
@@ -265,6 +292,8 @@ public class SoundManager {
         for (List<Music> group : musicGroups.values()) {
             for (Music m : group) m.stop();
         }
+        for (Music m : loopingSfx.values()) m.stop();
+
         soundInstances.clear();
         currentTracks.clear();
     }
@@ -275,6 +304,8 @@ public class SoundManager {
         for (List<Music> list : musicGroups.values()) {
             for (Music m : list) m.dispose();
         }
+        for (Music m : loopingSfx.values()) m.dispose();
+        loopingSfx.clear();
         sounds.clear();
         musicGroups.clear();
         shuffleQueues.clear();

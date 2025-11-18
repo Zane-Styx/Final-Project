@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.chromashift.helper.SpriteAnimator;
+import com.chromashift.helper.SoundManager;
 import com.jjmc.chromashift.environment.Solid;
 
 public class Button implements Interactable, Solid {
@@ -30,6 +31,7 @@ public class Button implements Interactable, Solid {
     private final Rectangle bounds;
     private final Door linkedDoor; // legacy single target (keep for compatibility)
     private final Array<Door> linkedDoors = new Array<>();
+    private final Array<Interactable> linkedInteractables = new Array<>();
     private boolean pressed;
     private final SpriteAnimator anim;
     private final ButtonColor color;
@@ -92,6 +94,13 @@ public class Button implements Interactable, Solid {
         }
     }
 
+    // Allow linking arbitrary interactables (e.g. LaserRay emitters). These will be
+    // invoked via interact() when the button state changes to pressed.
+    public void addLinkedInteractable(Interactable it) {
+        if (it == null) return;
+        if (!linkedInteractables.contains(it, true)) linkedInteractables.add(it);
+    }
+
     public void update(float delta, Rectangle playerHitbox, Array<Rectangle> objectBounds) {
         boolean wasPressed = pressed;
         pressed = false; // Reset state each frame
@@ -111,15 +120,20 @@ public class Button implements Interactable, Solid {
 
         // Update animation frame based on pressed state
         anim.setFrame(pressed ? 1 : 0);
-            if (pressed != wasPressed) {
-                if (linkedDoors != null && linkedDoors.size > 0) {
-                    for (Door d : linkedDoors) if (d != null) d.setOpen(pressed);
-                } else if (linkedDoor != null) {
-                    linkedDoor.setOpen(pressed);
-                }
+        if (pressed != wasPressed) {
+            if (linkedDoors != null && linkedDoors.size > 0) {
+                for (Door d : linkedDoors) if (d != null) d.setOpen(pressed);
+            } else if (linkedDoor != null) {
+                linkedDoor.setOpen(pressed);
             }
-
-            anim.update(delta);
+            // Notify any other linked interactables on press
+            if (pressed) {
+                for (Interactable it : linkedInteractables) if (it != null) it.interact();
+                // Play button sound
+                SoundManager.play("Button");
+            }
+        }
+        anim.update(delta);
     }
 
     @Override

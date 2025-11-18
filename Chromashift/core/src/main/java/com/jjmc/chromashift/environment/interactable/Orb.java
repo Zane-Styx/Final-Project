@@ -16,8 +16,10 @@ import com.jjmc.chromashift.player.Player;
  */
 public class Orb implements Interactable, Pickable {
     private float x, y;
-    private final float radius = 8f;
+    private final float radius = 12f;
     private float vx = 0f, vy = 0f;
+    // Maximum allowed speed (pixels/sec) to prevent velocity stacking from launchpads
+    private float maxSpeed = 1000f;
     private final Array<Solid> solids;
     private Array<Interactable> interactables;
     private final Circle circle;
@@ -58,6 +60,11 @@ public class Orb implements Interactable, Pickable {
         this.y = y;
         this.solids = solids;
         this.circle = new Circle(x + radius, y + radius, radius);
+        // Store original spawn for respawn logic
+        this.spawnX = x;
+        this.spawnY = y;
+        // Default respawn area: large rectangle centered around spawn
+        this.respawnArea = new Rectangle(x - 800f, y - 600f, 1600f, 1200f);
     }
 
     @Override
@@ -138,6 +145,14 @@ public class Orb implements Interactable, Pickable {
             y = resolved.y;
             circle.setPosition(x + radius, y + radius);
         }
+
+        // Clamp velocity to avoid runaway speeds (e.g., multiple launchpad impulses)
+        float speedSq = vx * vx + vy * vy;
+        if (speedSq > maxSpeed * maxSpeed) {
+            float scale = maxSpeed / (float)Math.sqrt(speedSq);
+            vx *= scale;
+            vy *= scale;
+        }
         
         // Handle collisions with other interactables
         if (!held && interactables != null) {
@@ -196,11 +211,70 @@ public class Orb implements Interactable, Pickable {
                 }
             }
         }
+
+        // Respawn check (skip during editor delete mode so orbs can be removed)
+        if (respawnArea != null && !EDITOR_DELETE_MODE) {
+            float cx = circle.x;
+            float cy = circle.y;
+            if (!respawnArea.contains(cx, cy)) {
+                respawn();
+            }
+        }
     }
 
     @Override
     public void render(SpriteBatch batch) {
-        // visual via debug draw only
+        // Draw orb as a circular sprite so it appears round rather than square
+        ensureOrbTexture();
+        com.badlogic.gdx.graphics.Color prev = batch.getColor();
+        float pr = prev.r, pg = prev.g, pb = prev.b, pa = prev.a;
+        try {
+            batch.flush();
+            com.badlogic.gdx.graphics.Color c = com.badlogic.gdx.graphics.Color.YELLOW;
+            batch.setColor(c.r, c.g, c.b, 1f);
+            // draw circular texture centered on orb
+            batch.draw(ORB_CIRCLE, circle.x - radius, circle.y - radius, radius * 2f, radius * 2f);
+            batch.flush();
+        } finally {
+            batch.setColor(pr, pg, pb, pa);
+        }
+    }
+
+    // PIXEL for batch drawing (lazy)
+    private static com.badlogic.gdx.graphics.Texture PIXEL;
+    private static void ensurePixel(SpriteBatch batch) {
+        if (PIXEL == null) {
+            com.badlogic.gdx.graphics.Pixmap pm = new com.badlogic.gdx.graphics.Pixmap(1,1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+            pm.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+            pm.fill();
+            PIXEL = new com.badlogic.gdx.graphics.Texture(pm);
+            pm.dispose();
+        }
+    }
+
+    // Circular texture for orb rendering
+    private static com.badlogic.gdx.graphics.Texture ORB_CIRCLE;
+    private static void ensureOrbTexture() {
+        if (ORB_CIRCLE == null) {
+            int size = 24; // orb is 24x24
+            com.badlogic.gdx.graphics.Pixmap pm = new com.badlogic.gdx.graphics.Pixmap(size, size, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+            pm.setColor(com.badlogic.gdx.graphics.Color.CLEAR);
+            pm.fill();
+            pm.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+            // draw filled circle centered in pixmap
+            int cx = size/2, cy = size/2, r = size/2;
+            for (int y = 0; y < size; y++) {
+                for (int x = 0; x < size; x++) {
+                    int dx = x - cx;
+                    int dy = y - cy;
+                    if (dx*dx + dy*dy <= r*r) {
+                        pm.drawPixel(x, y);
+                    }
+                }
+            }
+            ORB_CIRCLE = new com.badlogic.gdx.graphics.Texture(pm);
+            pm.dispose();
+        }
     }
 
     private com.badlogic.gdx.graphics.Camera gameCamera;
@@ -317,4 +391,18 @@ public class Orb implements Interactable, Pickable {
 
     // Expose current holder for systems (e.g., launchpads) that need to affect both
     public Player getHolder() { return holder; }
+
+    // --- Respawn area support ---
+    private float spawnX, spawnY;
+    private Rectangle respawnArea;
+    // When true (set by LevelMaker delete mode) suppress automatic respawn
+    public static boolean EDITOR_DELETE_MODE = false;
+    public void setRespawnArea(Rectangle area) { if (area != null) this.respawnArea = area; }
+    public Rectangle getRespawnArea() { return respawnArea; }
+    public void respawn() {
+        x = spawnX;
+        y = spawnY;
+        vx = 0f; vy = 0f;
+        circle.setPosition(x + radius, y + radius);
+    }
 }

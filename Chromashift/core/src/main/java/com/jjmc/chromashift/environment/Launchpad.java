@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.chromashift.helper.SoundManager;
 import com.chromashift.helper.SpriteAnimator;
 import com.jjmc.chromashift.environment.interactable.Interactable;
 import com.jjmc.chromashift.environment.interactable.Box;
@@ -293,7 +294,15 @@ public class Launchpad implements Interactable, Solid {
         if (launchVx != 0) {
             player.setVelocityX(player.getVelocityX() + launchVx);
         }
-        
+
+        // Ensure the player's dash is reset when launched so they can dash again
+        // mid-air after a launch (restores dash availability and timers).
+        try {
+            player.resetDash();
+        } catch (NoSuchMethodError e) {
+            // Older Player classes may not have resetDash; ignore gracefully.
+        }
+
         triggerAnimation();
     }
 
@@ -324,6 +333,7 @@ public class Launchpad implements Interactable, Solid {
             isLaunching = true;
             launchCooldown = COOLDOWN_TIME;
             anim.play("extend", false);
+            SoundManager.play("Launchpad");
         }
     }
 

@@ -73,6 +73,42 @@ public final class Assets {
         }
     }
 
+    /**
+     * Queue all assets for asynchronous loading. Call this once (e.g. in a LoadingScreen)
+     * and then poll {@link AssetManager#update()} each frame to progress loading.
+     */
+    public static void queueAll() {
+        Array<String> list = readAssetsList();
+        for (String path : list) {
+            boolean exists = Gdx.files.internal(path).exists();
+            if (!exists) {
+                Gdx.app.error("Assets", "Missing asset listed in assets.txt, skipping: " + path);
+                continue;
+            }
+
+            try {
+                if (path.endsWith(".png") || path.endsWith(".jpg")) {
+                    if (!manager.isLoaded(path, Texture.class))
+                        manager.load(path, Texture.class);
+                } else if (path.endsWith(".atlas")) {
+                    if (!manager.isLoaded(path, TextureAtlas.class))
+                        manager.load(path, TextureAtlas.class);
+                } else if (path.endsWith(".fnt")) {
+                    if (!manager.isLoaded(path, BitmapFont.class))
+                        manager.load(path, BitmapFont.class);
+                } else if (path.endsWith(".skin") || (path.endsWith(".json")
+                        && (path.toLowerCase().contains("uiskin") || path.toLowerCase().startsWith("ui/")))) {
+                    if (!manager.isLoaded(path, Skin.class))
+                        manager.load(path, Skin.class);
+                } else {
+                    // ignore other file types here; they are loaded on demand elsewhere
+                }
+            } catch (Exception e) {
+                Gdx.app.error("Assets", "Failed to queue asset for loading: " + path, e);
+            }
+        }
+    }
+
     private static Array<String> readAssetsList() {
         Array<String> out = new Array<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Gdx.files.internal("assets.txt").read()))) {

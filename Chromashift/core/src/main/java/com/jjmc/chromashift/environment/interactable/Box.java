@@ -13,9 +13,9 @@ import com.jjmc.chromashift.player.Player;
  * A simple 16x16 box with basic physics (gravity, velocity) that collides with solids
  * but does not block the player. The player can interact (press F) when close to apply an impulse.
  */
-public class Box implements Interactable, Pickable {
+public class Box implements Interactable, Pickable, com.jjmc.chromashift.environment.Solid {
     private float x, y;
-    private float width = 16f, height = 16f;
+    private float width = 24f, height = 24f;
     private float vx = 0f, vy = 0f;
     private final Array<Solid> solids;
     private Array<Interactable> interactables;
@@ -45,6 +45,19 @@ public class Box implements Interactable, Pickable {
         this.y = y;
         this.solids = solids;
         this.bounds = new Rectangle(x, y, width, height);
+        // Store original spawn for respawn logic
+        this.spawnX = x;
+        this.spawnY = y;
+        // Default respawn area: large rectangle centered around spawn
+        this.respawnArea = new Rectangle(x - 800f, y - 600f, 1600f, 1200f);
+    }
+
+    /**
+     * Provide the array of other interactables (including other boxes/orbs)
+     * so this box can check and resolve collisions against them.
+     */
+    public void setInteractables(Array<Interactable> interactables) {
+        this.interactables = interactables;
     }
 
     @Override
@@ -178,11 +191,31 @@ public class Box implements Interactable, Pickable {
                 }
             }
         }
+
+        // Respawn check (skip during editor delete mode so boxes can be removed)
+        if (respawnArea != null && !EDITOR_DELETE_MODE) {
+            float cx = bounds.x + bounds.width / 2f;
+            float cy = bounds.y + bounds.height / 2f;
+            if (!respawnArea.contains(cx, cy)) {
+                respawn();
+            }
+        }
     }
 
     @Override
     public void render(SpriteBatch batch) {
-        // visual rendering handled in debug draw for now
+        ensurePixel();
+        com.badlogic.gdx.graphics.Color prev = batch.getColor();
+        float pr = prev.r, pg = prev.g, pb = prev.b, pa = prev.a;
+        try {
+            batch.flush();
+            com.badlogic.gdx.graphics.Color c = (boxColor == null) ? com.badlogic.gdx.graphics.Color.CYAN : boxColor;
+            batch.setColor(c.r, c.g, c.b, 1f);
+            batch.draw(PIXEL, bounds.x, bounds.y, bounds.width, bounds.height);
+            batch.flush();
+        } finally {
+            batch.setColor(pr, pg, pb, pa);
+        }
     }
 
     private com.badlogic.gdx.graphics.Camera gameCamera;
@@ -194,7 +227,8 @@ public class Box implements Interactable, Pickable {
     @Override
     public void debugDraw(ShapeRenderer shape) {
         // Draw box
-        shape.setColor(inRange ? 0.2f : 0.6f, 0.2f, 0.8f, 1f);
+        if (boxColor != null) shape.setColor(boxColor.r, boxColor.g, boxColor.b, 1f);
+        else shape.setColor(inRange ? 0.2f : 0.6f, 0.2f, 0.8f, 1f);
         shape.rect(bounds.x, bounds.y, bounds.width, bounds.height);
         
         // Draw throw guide when held
@@ -284,6 +318,50 @@ public class Box implements Interactable, Pickable {
     public void drop() {
         held = false;
         holder = null;
+    }
+
+    // --- Solid implementation ---
+    @Override
+    public Rectangle getCollisionBounds() { return getBounds(); }
+
+    @Override
+    public boolean isSolid() { return true; }
+
+    @Override
+    public boolean isBlocking() { return true; }
+
+    // render() and debugDraw() implemented above
+
+    // Box color (can be chosen similar to glass)
+    private com.badlogic.gdx.graphics.Color boxColor = null;
+    public void setColor(com.badlogic.gdx.graphics.Color c) { this.boxColor = c; }
+    /** Returns the box color or null if not set. */
+    public com.badlogic.gdx.graphics.Color getColor() { return this.boxColor; }
+
+    // --- Respawn area support ---
+    private float spawnX, spawnY;
+    private Rectangle respawnArea;
+    // When true (set by LevelMaker delete mode) suppress automatic respawn
+    public static boolean EDITOR_DELETE_MODE = false;
+    public void setRespawnArea(Rectangle area) { if (area != null) this.respawnArea = area; }
+    public Rectangle getRespawnArea() { return respawnArea; }
+    public void respawn() {
+        x = spawnX;
+        y = spawnY;
+        vx = 0f; vy = 0f;
+        bounds.set(x, y, width, height);
+    }
+
+    // PIXEL for batch drawing (lazy)
+    private static com.badlogic.gdx.graphics.Texture PIXEL;
+    private static void ensurePixel() {
+        if (PIXEL == null) {
+            com.badlogic.gdx.graphics.Pixmap pm = new com.badlogic.gdx.graphics.Pixmap(1,1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+            pm.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+            pm.fill();
+            PIXEL = new com.badlogic.gdx.graphics.Texture(pm);
+            pm.dispose();
+        }
     }
 
     @Override

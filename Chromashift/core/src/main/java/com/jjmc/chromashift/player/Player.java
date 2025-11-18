@@ -13,6 +13,7 @@ import com.jjmc.chromashift.environment.interactable.Orb;
 import com.jjmc.chromashift.healthsystem.HealthListener;
 import com.jjmc.chromashift.healthsystem.HealthSystem;
 import com.chromashift.helper.SpriteAnimator;
+import com.chromashift.helper.SoundManager;
 import com.jjmc.chromashift.environment.Wall;
 import com.jjmc.chromashift.environment.interactable.Interactable;
 import com.jjmc.chromashift.environment.interactable.Pickable;
@@ -58,6 +59,9 @@ public class Player {
     protected boolean airAttacking = false;
     protected float airAttackTimer = 0f;
     protected float attackCooldownTimer = 0f;
+
+    // Walking sound state
+    private boolean walkingSoundPlaying = false;
 
     // Wall
     private boolean onWall = false;
@@ -246,6 +250,8 @@ public class Player {
                 velocityX = 0f;
             }
             updateWallSensor();
+            // Play dash sound
+            SoundManager.play("Dash");
             return;
         }
 
@@ -274,6 +280,20 @@ public class Player {
         // Zero horizontal velocity during wallsliding
         if (wallSliding) {
             velocityX = 0f;
+        }
+
+        // Play walking sound if moving on ground (looped)
+        if ((onGround || onWall) && isMoving() && !dashing) {
+            if (!walkingSoundPlaying) {
+                SoundManager.playLoopingSfx("Walking");
+                walkingSoundPlaying = true;
+            }
+        } else {
+            // Stop walking sound when not moving
+            if (walkingSoundPlaying) {
+                SoundManager.stopLoopingSfx("Walking");
+                walkingSoundPlaying = false;
+            }
         }
 
         if (onGround || onWall || wallSliding) dashUsed = false;
@@ -485,6 +505,13 @@ public class Player {
         // restore health to full (even if dead)
         health.reset();
 
+        // Play defeat sound (randomize between Defeat1 and Defeat2)
+        if (Math.random() < 0.5) {
+            SoundManager.play("Defeat1");
+        } else {
+            SoundManager.play("Defeat2");
+        }
+
         // give brief invulnerability and movement stun
         health.setInvulnerable(true);
         respawnInvulRemaining = respawnInvulDuration;
@@ -522,5 +549,16 @@ public class Player {
         }
         heldObject.throwWithVelocity(vx, vy);
         heldObject = null;
+    }
+
+    /**
+     * Reset dash state so the player may dash again. Used when external forces
+     * (e.g., launchpads) propel the player and should restore dash availability.
+     */
+    public void resetDash() {
+        this.dashing = false;
+        this.dashTimer = 0f;
+        this.dashCooldownTimer = 0f;
+        this.dashUsed = false;
     }
 }

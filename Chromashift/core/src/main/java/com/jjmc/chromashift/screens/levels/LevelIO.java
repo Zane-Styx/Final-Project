@@ -21,6 +21,9 @@ public class LevelIO {
         public Array<BoxData> boxes;
         public Array<OrbData> orbs;
         public Array<LaunchpadData> launchpads;
+        public Array<LaserData> lasers;
+        public Array<MirrorData> mirrors;
+        public Array<GlassData> glasses;
         public BossData boss;
 
         public static class Meta { public String name; public int version; }
@@ -40,16 +43,49 @@ public class LevelIO {
             public float openSpeed = 3f;
             public float closeSpeed = 3f;
         }
-        public static class BoxData { public float x, y; }
+        public static class BoxData { 
+            public float x, y; 
+            public String color = "CYAN"; 
+            // Respawn area dimensions (centered on x,y). Defaults set by editor if 0.
+            public float areaW = 1600f; 
+            public float areaH = 1200f; 
+        }
         public static class OrbData { 
             public float x, y; 
             // Whether this orb should bounce on collisions (default: true for backward compatibility)
             public boolean bouncy = true; 
+            // Respawn area dimensions (centered on x,y). Defaults set by editor if 0.
+            public float areaW = 1600f; 
+            public float areaH = 1200f; 
         }
         public static class LaunchpadData { 
             public float x, y;
             public String direction; // UP, DOWN, LEFT, RIGHT, etc.
             public float speed = 600f; // default launch speed
+        }
+        public static class LaserData {
+            public String id;
+            public float x, y;
+            public float rotation = 0f; // degrees
+            public int maxBounces = 8;
+            // Optional control links: button IDs to rotate left/right, and lever ID to rotate on toggle
+            public String leftButtonId;
+            public String rightButtonId;
+            public String leverId;
+            public float rotateStep = 90f;
+            // If true, spawn as an interactable LaserRay that the player can rotate
+            public boolean rotating = false;
+        }
+        public static class MirrorData {
+            public String id; // optional unique id for linking
+            public float x, y, width, height;
+            public float angleDeg = 45f;
+        }
+        public static class GlassData {
+            public float x, y, width, height;
+            public boolean rainbow = true;
+            public float speed = 1.5f;
+            public String color = "CYAN"; // user-selected base color (RAINBOW overrides)
         }
         public static class BossData { public float x, y; }
     }
@@ -127,6 +163,9 @@ public class LevelIO {
         s.boxes = new Array<>();
         s.orbs = new Array<>();
         s.launchpads = new Array<>();
+        s.lasers = new Array<>();
+        s.mirrors = new Array<>();
+        s.glasses = new Array<>();
         s.boss = null;
         return s;
     }

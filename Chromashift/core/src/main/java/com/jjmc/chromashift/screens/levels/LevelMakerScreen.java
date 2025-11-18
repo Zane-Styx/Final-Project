@@ -22,6 +22,9 @@ import com.jjmc.chromashift.environment.interactable.Lever;
 import com.jjmc.chromashift.environment.interactable.Interactable;
 import com.jjmc.chromashift.environment.interactable.Box;
 import com.jjmc.chromashift.environment.interactable.Orb;
+import com.jjmc.chromashift.environment.interactable.Laser;
+import com.jjmc.chromashift.environment.interactable.Mirror;
+import com.jjmc.chromashift.environment.interactable.Glass;
 import com.jjmc.chromashift.screens.Initialize;
 import com.jjmc.chromashift.entity.boss.BossInstance;
 
@@ -60,7 +63,7 @@ public class LevelMakerScreen implements Screen {
 	private boolean levelSelected = false;
 
 	private enum ObjectType {
-		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, NONE
+		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, NONE
 	}
 
 	private ObjectType selectedType = ObjectType.NONE;
@@ -131,6 +134,33 @@ public class LevelMakerScreen implements Screen {
 	}
 
 	private Array<DoorRecord> doorRecords = new Array<>();
+
+	private static class LaserRecord {
+		String id;
+		float x, y;
+
+		LaserRecord(String id, float x, float y) {
+			this.id = id;
+			this.x = x;
+			this.y = y;
+		}
+	}
+
+	private Array<LaserRecord> laserRecords = new Array<>();
+
+	// Mirror quick lookup for linking (center point use width/height)
+	private static class MirrorRecord {
+		String id;
+		float x, y, width, height;
+		MirrorRecord(String id, float x, float y, float w, float h) {
+			this.id = id;
+			this.x = x;
+			this.y = y;
+			this.width = w;
+			this.height = h;
+		}
+	}
+	private Array<MirrorRecord> mirrorRecords = new Array<>();
 	// door speed presets for placement
 	private float selectedDoorOpenSpeed = 3f;
 	private float selectedDoorCloseSpeed = 3f;
@@ -146,7 +176,28 @@ public class LevelMakerScreen implements Screen {
 	// Launchpad direction selection
 	private com.jjmc.chromashift.environment.Launchpad.LaunchDirection selectedLaunchpadDirection = com.jjmc.chromashift.environment.Launchpad.LaunchDirection.UP;
 	private float selectedLaunchpadSpeed = 600f;
+
+	// Laser type selection (normal vs rotating LaserRay)
+	private boolean selectedLaserIsRotating = false;
+	private Array<Rectangle> laserTypeRects = new Array<>();
+	// Laser direction selector (U/R/D/L)
+	private Array<Rectangle> laserDirRects = new Array<>();
+	private float selectedLaserRotation = 0f; // 0=RIGHT, 90=UP, 180=LEFT, 270=DOWN
 	private Array<Rectangle> launchpadDirRects = new Array<>();
+
+	// Mirror rotate control
+	private Rectangle mirrorRotateRect;
+	private float selectedMirrorAngleDeg = 45f;
+
+	// Glass color selection
+	private Array<Rectangle> glassColorRects = new Array<>();
+	private String selectedGlassColor = "CYAN"; // default
+	// Box color selection (same palette as Glass)
+	private Array<Rectangle> boxColorRects = new Array<>();
+	private String selectedBoxColor = "CYAN";
+	// Respawn area dimensions for new boxes/orbs (centered). Adjustable with [ ] keys.
+	private float selectedBoxAreaW = 1600f, selectedBoxAreaH = 1200f;
+	private float selectedOrbAreaW = 1600f, selectedOrbAreaH = 1200f;
 
 	// lever orientation UI and preview
 	private boolean selectedLeverHorizontal = false;
@@ -163,6 +214,10 @@ public class LevelMakerScreen implements Screen {
 	private int linkSourceX = 0, linkSourceY = 0;
 	private Array<String> linkSelectedDoorIds = new Array<>();
 	private com.chromashift.helper.SpriteAnimator previewLeverAnim;
+	// Debug toggle to visualize respawn areas for all placed Boxes/Orbs
+	private boolean debugRespawnAreas = false;
+	// Selected box/orb for editing respawn area (right-click to select, [ ] to resize)
+	private Interactable selectedObject = null;
 	// Door speed sliders and state
 	private Rectangle openSpeedSliderRect;
 	private Rectangle closeSpeedSliderRect;
@@ -195,6 +250,10 @@ public class LevelMakerScreen implements Screen {
 
 	@Override
 	public void show() {
+		// Initialize editor mode flags to false (will be set true only when delete mode active)
+		com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;
+		com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = false;
+		
 		ctx = Initialize.createCommon(800, 480, null);
 		camera = ctx.camera;
 		batch = ctx.batch;
@@ -211,8 +270,8 @@ public class LevelMakerScreen implements Screen {
 
 		// build UI buttons at BOTTOM center (Minecraft inventory style)
 		float bw = 60f, bh = 28f, gap = 8f;
-		// Added Launchpad + Link button (10 buttons total)
-		float totalWidth = 10 * bw + 9 * gap;
+		// Added laser types + Link + Delete (14 buttons total)
+		float totalWidth = 14 * bw + 13 * gap;
 		float bx = (uiCamera.viewportWidth - totalWidth) / 2f;
 		float by = 20f; // 20px from bottom
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.WALL, "Wall"));
@@ -233,14 +292,32 @@ public class LevelMakerScreen implements Screen {
 		bx += bw + gap;
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.LAUNCHPAD, "Launch"));
 		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.LASER, "Laser"));
+		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.MIRROR, "Mirror"));
+		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.GLASS, "Glass"));
+		bx += bw + gap;
 		// Linking mode toggle button (works for Button/Lever)
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.NONE, "Link"));
+		bx += bw + gap;
+		// Delete mode toggle button
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.NONE, "Delete"));
 
 		// Contextual option buttons - positioned above main buttons but only shown when
 		// relevant type selected
-		// Door direction buttons (shown only when Door selected)
-		float optionY = by + bh + 8f; // 8px above main buttons
-		float optionX = (uiCamera.viewportWidth - (4 * bw + 3 * gap)) / 2f;
+		// door direction buttons (shown only when Door selected)
+		// Position contextual options above the matching main toolbar button so they
+		// don't overlap
+		Rectangle doorButtonRect = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.DOOR) {
+				doorButtonRect = ub.rect;
+				break;
+			}
+		float optionY = (doorButtonRect != null) ? doorButtonRect.y + doorButtonRect.height + 8f : by + bh + 8f;
+		float optionX = (doorButtonRect != null) ? (doorButtonRect.x + (doorButtonRect.width - (4 * bw + 3 * gap)) / 2f)
+				: (uiCamera.viewportWidth - (4 * bw + 3 * gap)) / 2f;
 		for (int i = 0; i < doorDirections.length; i++) {
 			doorDirButtons.add(new Rectangle(optionX + i * (bw + gap), optionY, bw, bh));
 		}
@@ -248,25 +325,43 @@ public class LevelMakerScreen implements Screen {
 		// door speed controls (open/close) - small +/- boxes to the right of options
 		float speedW = 28f, speedH = 20f, speedGap = 6f;
 		float speedStartX = optionX + (4 * (bw + gap));
-		// Raise the speed controls further above direction buttons
-		float speedShiftY = 300f; // increased vertical offset
-		doorOpenMinusRect = new Rectangle(speedStartX, optionY + speedShiftY, speedW, speedH);
-		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + speedShiftY, speedW, speedH);
-		doorCloseMinusRect = new Rectangle(speedStartX, optionY + speedShiftY - (speedH + 4f), speedW, speedH);
-		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + speedShiftY - (speedH + 4f),
-				speedW, speedH);
+		// Place the small +/- buttons above the slider, aligned with other door controls
+		float doorControlsBaseY = optionY + 46f;
+		doorOpenMinusRect = new Rectangle(speedStartX, doorControlsBaseY, speedW, speedH);
+		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, doorControlsBaseY, speedW, speedH);
+		doorCloseMinusRect = new Rectangle(speedStartX, doorControlsBaseY - (speedH + 4f), speedW, speedH);
+		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, doorControlsBaseY - (speedH + 4f),
+			speedW, speedH);
 
 		// Button color swatches (shown only when Button selected)
 		float sw = 40f, sh = 24f, sg = 6f;
 		Button.ButtonColor[] cols = Button.ButtonColor.values();
 		float colorsWidth = cols.length * sw + (cols.length - 1) * sg;
-		float cx = (uiCamera.viewportWidth - colorsWidth) / 2f;
+		// position above the BUTTON toolbar button
+		Rectangle buttonBtnRect = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.BUTTON) {
+				buttonBtnRect = ub.rect;
+				break;
+			}
+		float buttonColorsX = (buttonBtnRect != null) ? (buttonBtnRect.x + (buttonBtnRect.width - colorsWidth) / 2f)
+				: (uiCamera.viewportWidth - colorsWidth) / 2f;
 		for (int i = 0; i < cols.length; i++) {
-			buttonColorRects.add(new Rectangle(cx + i * (sw + sg), optionY, sw, sh));
+			buttonColorRects.add(new Rectangle(buttonColorsX + i * (sw + sg),
+					(buttonBtnRect != null) ? (buttonBtnRect.y + buttonBtnRect.height + 8f) : optionY, sw, sh));
 		}
 
 		// Lever orientation toggle (shown only when Lever selected)
-		leverOrientRect = new Rectangle((uiCamera.viewportWidth - 80f) / 2f, optionY, 80f, sh);
+		Rectangle leverBtnRect = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.LEVER) {
+				leverBtnRect = ub.rect;
+				break;
+			}
+		leverOrientRect = new Rectangle(
+				(leverBtnRect != null) ? (leverBtnRect.x + (leverBtnRect.width - 80f) / 2f)
+						: ((uiCamera.viewportWidth - 80f) / 2f),
+				(leverBtnRect != null) ? (leverBtnRect.y + leverBtnRect.height + 8f) : optionY, 80f, sh);
 
 		// Launchpad direction buttons (shown only when Launchpad selected)
 		// 3 directions: UP, LEFT, RIGHT
@@ -278,11 +373,30 @@ public class LevelMakerScreen implements Screen {
 			launchpadDirRects.add(new Rectangle(lpDirX + i * (lpDirW + lpDirGap), optionY, lpDirW, lpDirH));
 		}
 
+		// Laser type buttons (shown only when Laser selected)
+		// 2 types: Normal (static) and Rotating (LaserRay)
+		laserTypeRects.clear();
+		float laserTypeW = 70f, laserTypeH = 24f, laserTypeGap = 4f;
+		float laserTypesWidth = 2 * laserTypeW + laserTypeGap;
+		float laserTypeX = (uiCamera.viewportWidth - laserTypesWidth) / 2f;
+		laserTypeRects.add(new Rectangle(laserTypeX, optionY, laserTypeW, laserTypeH)); // Normal
+		laserTypeRects.add(new Rectangle(laserTypeX + laserTypeW + laserTypeGap, optionY, laserTypeW, laserTypeH)); // Rotating
+
+		// Laser direction buttons (U, R, D, L) - row above the type buttons
+		laserDirRects.clear();
+		float ldirW = 36f, ldirH = 24f, ldirGap = 6f;
+		float ldirsWidth = 4 * ldirW + 3 * ldirGap;
+		float ldirX = (uiCamera.viewportWidth - ldirsWidth) / 2f;
+		float ldirY = optionY + laserTypeH + 8f;
+		for (int i = 0; i < 4; i++) {
+			laserDirRects.add(new Rectangle(ldirX + i * (ldirW + ldirGap), ldirY, ldirW, ldirH));
+		}
+
 		// Sliders for door open/close speed (raise further for clear separation)
 		float sliderW = 220f, sliderH = 14f;
 		float sliderX = (uiCamera.viewportWidth - sliderW) / 2f;
-		// Place sliders well above speed buttons
-		float sliderY = optionY + 200f; // open speed slider higher
+		// Place sliders near the other door controls (aligned with +/- buttons)
+		float sliderY = optionY + 46f; // align with door +/- controls
 		openSpeedSliderRect = new Rectangle(sliderX, sliderY, sliderW, sliderH);
 		// close speed slider below open slider
 		closeSpeedSliderRect = new Rectangle(sliderX, sliderY - (sliderH + 10f), sliderW, sliderH);
@@ -310,6 +424,54 @@ public class LevelMakerScreen implements Screen {
 			previewLeverAnim.play(selectedLeverHorizontal ? "HORIZONTAL" : "VERTICAL", false);
 			previewLeverAnim.setFrame(0);
 		} catch (Exception ignored) {
+		}
+
+		// Mirror rotate button (contextual option)
+		float optW = 110f, optH = 24f;
+		Rectangle mirrorBtnRect = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.MIRROR) {
+				mirrorBtnRect = ub.rect;
+				break;
+			}
+		float optX = (mirrorBtnRect != null) ? (mirrorBtnRect.x + (mirrorBtnRect.width - optW) / 2f)
+				: (uiCamera.viewportWidth - optW) / 2f;
+		mirrorRotateRect = new Rectangle(optX,
+				(mirrorBtnRect != null) ? (mirrorBtnRect.y + mirrorBtnRect.height + 8f) : optionY, optW, optH);
+
+		// Glass color swatches (red, blue, green, yellow, purple) shown when GLASS
+		// selected
+		glassColorRects.clear();
+		String[] gcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
+		float gcw = 40f, gch = 24f, gcgap = 6f;
+		float gtotal = gcolors.length * gcw + (gcolors.length - 1) * gcgap;
+		Rectangle glassBtnRect = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.GLASS) {
+				glassBtnRect = ub.rect;
+				break;
+			}
+		float gcx = (glassBtnRect != null) ? (glassBtnRect.x + (glassBtnRect.width - gtotal) / 2f)
+				: (uiCamera.viewportWidth - gtotal) / 2f;
+		for (int i = 0; i < gcolors.length; i++) {
+			glassColorRects.add(new Rectangle(gcx + i * (gcw + gcgap),
+					(glassBtnRect != null) ? (glassBtnRect.y + glassBtnRect.height + 8f) : optionY, gcw, gch));
+		}
+
+		// Box color swatches (same palette)
+		boxColorRects.clear();
+		float btotal = gcolors.length * gcw + (gcolors.length - 1) * gcgap;
+		Rectangle boxBtnRect = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.BOX) {
+				boxBtnRect = ub.rect;
+				break;
+			}
+		float bcx = (boxBtnRect != null) ? (boxBtnRect.x + (boxBtnRect.width - btotal) / 2f)
+				: (uiCamera.viewportWidth - btotal) / 2f;
+		for (int i = 0; i < gcolors.length; i++) {
+			boxColorRects.add(new Rectangle(bcx + i * (gcw + gcgap),
+					(boxBtnRect != null) ? (boxBtnRect.y + boxBtnRect.height + 8f) : optionY - 32f, gcw, gch));
 		}
 
 		// list available level files from internal assets/levels
@@ -349,10 +511,9 @@ public class LevelMakerScreen implements Screen {
 		// project the snapped world cell to screen pixels
 		com.badlogic.gdx.math.Vector3 pv = new com.badlogic.gdx.math.Vector3(wx, wy, 0);
 		camera.project(pv);
-		// camera.project returns screen pixels with a Y origin opposite to the Input Y.
-		// Flip Y to convert to the UI/input coordinate space before unprojecting with
-		// uiCamera.
-		pv.y = Gdx.graphics.getHeight() - pv.y;
+		// camera.project returns screen pixels with a Y origin opposite to Input Y.
+		// Flip using the actual backbuffer height to avoid HiDPI/fullscreen mismatches.
+		pv.y = Gdx.graphics.getBackBufferHeight() - pv.y;
 		// convert screen pixels to uiCamera space for drawing
 		com.badlogic.gdx.math.Vector3 uv = new com.badlogic.gdx.math.Vector3(pv.x, pv.y, 0);
 		uiCamera.unproject(uv);
@@ -417,10 +578,10 @@ public class LevelMakerScreen implements Screen {
 		handleInput(delta);
 		// update ephemeral placement feedback
 		for (int i = placementFlashes.size - 1; i >= 0; --i) {
-			Flash f = placementFlashes.get(i);
-			f.ttl -= delta;
-			if (f.ttl <= 0f)
-				placementFlashes.removeIndex(i);
+			Flash f = placementFlashes.get(i); 
+			f.ttl -= delta; 
+			if (f.ttl <= 0f) 
+				placementFlashes.removeIndex(i); 
 		}
 		if (toastTimer > 0f) {
 			toastTimer -= delta;
@@ -449,7 +610,11 @@ public class LevelMakerScreen implements Screen {
 			shape.line(left - 10000, y, right + 10000, y);
 		shape.end();
 
-		// draw existing walls and interactables
+		// update and draw existing walls and interactables
+		// Ensure interactables (e.g., Laser/LaserRay) compute cached beams before rendering
+		for (int i = 0; i < interactableInstances.size; i++) {
+			try { interactableInstances.get(i).update(delta); } catch (Throwable ignored) {}
+		}
 		batch.begin();
 		for (Wall w : walls)
 			w.render(batch);
@@ -469,11 +634,11 @@ public class LevelMakerScreen implements Screen {
 		if (placementFlashes.size > 0) {
 			shape.setProjectionMatrix(camera.combined);
 			shape.begin(ShapeRenderer.ShapeType.Line);
-			for (int i = 0; i < placementFlashes.size; i++) {
-				Flash f = placementFlashes.get(i);
-				float a = (f.max <= 0f) ? 0f : Math.max(0f, Math.min(1f, f.ttl / f.max));
-				shape.setColor(1f, 1f, 0f, 0.25f + 0.6f * a);
-				shape.rect(f.x, f.y, f.w, f.h);
+			for (int i = 0; i < placementFlashes.size; i++) { 
+				Flash f = placementFlashes.get(i); 
+				float a = (f.max <= 0f) ? 0f : Math.max(0f, Math.min(1f, f.ttl / f.max)); 
+				shape.setColor(1f, 1f, 0f, 0.25f + 0.6f * a); 
+				shape.rect(f.x, f.y, f.w, f.h); 
 			}
 			shape.end();
 		}
@@ -486,31 +651,37 @@ public class LevelMakerScreen implements Screen {
 		float previewH = 32f * previewRows;
 		// adjust sizes for non-grid objects
 		switch (selectedType) {
-			case BUTTON -> {
+			case BUTTON: {
 				previewW = 64f;
 				previewH = 32f;
+				break;
 			}
-			case LEVER -> {
-				previewW = 16f;
-				previewH = 36f;
+			case LEVER: {
+				previewW = 64f;
+				previewH = 64f;
+				break;
 			}
-			case BOX -> {
-				previewW = 32f;
-				previewH = 32f;
-			}
-			case ORB -> {
+			case BOX: {
 				previewW = 24f;
 				previewH = 24f;
+				break;
 			}
-			case BOSS -> {
+			case ORB: {
+				previewW = 24f;
+				previewH = 24f;
+				break;
+			}
+			case BOSS: {
 				previewW = 96f;
 				previewH = 96f;
+				break;
 			}
-			case SPAWN -> {
+			case SPAWN: {
 				previewW = 16f;
 				previewH = 32f;
+				break;
 			}
-			case LAUNCHPAD -> {
+			case LAUNCHPAD: {
 				if (selectedLaunchpadDirection == com.jjmc.chromashift.environment.Launchpad.LaunchDirection.UP) {
 					previewW = 64f;
 					previewH = 32f;
@@ -518,11 +689,35 @@ public class LevelMakerScreen implements Screen {
 					previewW = 32f;
 					previewH = 64f;
 				}
+				break;
 			}
-			default -> {
+			case LASER: {
+				previewW = 32f;
+				previewH = 32f;
+				break;
+			}
+			case MIRROR: {
+				// Mirror is fixed 32x32
+				previewW = 32f;
+				previewH = 32f;
+				break;
+			}
+			case GLASS: {
+				// Glass is fixed 16x16, centered within the 32x32 cell
+				previewW = 16f;
+				previewH = 16f;
+				break;
+			}
+			case NONE:
+			default: {
+				break;
 			}
 		}
 		Rectangle previewWorldRect = new Rectangle(worldPreview.x, worldPreview.y, previewW, previewH);
+		if (selectedType == ObjectType.GLASS) {
+			// center 16x16 glass in the 32x32 grid cell
+			previewWorldRect.set(worldPreview.x + 8f, worldPreview.y + 8f, 16f, 16f);
+		}
 		previewBlocked = !isAreaFree(previewWorldRect);
 
 		// draw UI (screen-fixed) using uiCamera
@@ -532,6 +727,11 @@ public class LevelMakerScreen implements Screen {
 		// Main object type buttons (always visible)
 		for (UIButton b : uiButtons) {
 			Color c = (selectedType == b.type) ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f);
+			// Highlight toggle-style buttons when active
+			if ("Link".equalsIgnoreCase(b.label) && linkingMode)
+				c = Color.GOLD;
+			if ("Delete".equalsIgnoreCase(b.label) && deleteMode)
+				c = Color.GOLD;
 			shape.setColor(c);
 			shape.rect(b.rect.x, b.rect.y, b.rect.width, b.rect.height);
 			// Border for clarity
@@ -557,36 +757,36 @@ public class LevelMakerScreen implements Screen {
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
-			// draw sliders for open/close speed
-			if (openSpeedSliderRect != null) {
+			    // draw sliders for open/close speed (draw at rect.y so hits match visuals)
+			    if (openSpeedSliderRect != null) {
 				// background bar
 				shape.setColor(new Color(0.12f, 0.12f, 0.12f, 1f));
 				shape.rect(openSpeedSliderRect.x, openSpeedSliderRect.y, openSpeedSliderRect.width,
-						openSpeedSliderRect.height);
+					openSpeedSliderRect.height);
 				// filled portion
 				float frac = (selectedDoorOpenSpeed - DOOR_SPEED_MIN) / (DOOR_SPEED_MAX - DOOR_SPEED_MIN);
 				frac = Math.max(0f, Math.min(1f, frac));
 				shape.setColor(Color.GREEN);
 				shape.rect(openSpeedSliderRect.x, openSpeedSliderRect.y, openSpeedSliderRect.width * frac,
-						openSpeedSliderRect.height);
+					openSpeedSliderRect.height);
 				// thumb
 				float tx = openSpeedSliderRect.x + openSpeedSliderRect.width * frac;
 				shape.setColor(Color.WHITE);
 				shape.rect(tx - 3, openSpeedSliderRect.y - 4, 6, openSpeedSliderRect.height + 8);
-			}
-			if (closeSpeedSliderRect != null) {
+			    }
+			    if (closeSpeedSliderRect != null) {
 				shape.setColor(new Color(0.12f, 0.12f, 0.12f, 1f));
 				shape.rect(closeSpeedSliderRect.x, closeSpeedSliderRect.y, closeSpeedSliderRect.width,
-						closeSpeedSliderRect.height);
+					closeSpeedSliderRect.height);
 				float frac2 = (selectedDoorCloseSpeed - DOOR_SPEED_MIN) / (DOOR_SPEED_MAX - DOOR_SPEED_MIN);
 				frac2 = Math.max(0f, Math.min(1f, frac2));
 				shape.setColor(Color.ORANGE);
 				shape.rect(closeSpeedSliderRect.x, closeSpeedSliderRect.y, closeSpeedSliderRect.width * frac2,
-						closeSpeedSliderRect.height);
+					closeSpeedSliderRect.height);
 				float tx2 = closeSpeedSliderRect.x + closeSpeedSliderRect.width * frac2;
 				shape.setColor(Color.WHITE);
 				shape.rect(tx2 - 3, closeSpeedSliderRect.y - 4, 6, closeSpeedSliderRect.height + 8);
-			}
+			    }
 		} else if (selectedType == ObjectType.BUTTON) {
 			// button color swatches
 			for (int i = 0; i < buttonColorRects.size; i++) {
@@ -594,11 +794,12 @@ public class LevelMakerScreen implements Screen {
 				Button.ButtonColor bc = Button.ButtonColor.values()[i];
 				Color c = Color.WHITE;
 				switch (bc) {
-					case RED -> c = Color.RED;
-					case BLUE -> c = Color.BLUE;
-					case GREEN -> c = Color.GREEN;
-					case YELLOW -> c = Color.YELLOW;
-					case PURPLE -> c = Color.PURPLE;
+					case RED: c = Color.RED; break;
+					case BLUE: c = Color.BLUE; break;
+					case GREEN: c = Color.GREEN; break;
+					case YELLOW: c = Color.YELLOW; break;
+					case PURPLE: c = Color.PURPLE; break;
+					default: break;
 				}
 				shape.setColor(c);
 				shape.rect(r.x, r.y, r.width, r.height);
@@ -643,6 +844,109 @@ public class LevelMakerScreen implements Screen {
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
+		} else if (selectedType == ObjectType.LASER) {
+			// laser type buttons (Normal vs Rotating)
+			for (int i = 0; i < laserTypeRects.size; i++) {
+				Rectangle r = laserTypeRects.get(i);
+				boolean selected = (i == 1) ? selectedLaserIsRotating : !selectedLaserIsRotating;
+				shape.setColor(selected ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f));
+				shape.rect(r.x, r.y, r.width, r.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(Color.WHITE);
+				shape.rect(r.x, r.y, r.width, r.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+			}
+			// laser direction buttons (U, R, D, L)
+			for (int i = 0; i < laserDirRects.size; i++) {
+				Rectangle r = laserDirRects.get(i);
+				boolean selected;
+				// order: U(90), R(0), D(270), L(180)
+				switch (i) {
+					case 0: selected = (selectedLaserRotation == 90f); break;
+					case 1: selected = (selectedLaserRotation == 0f); break;
+					case 2: selected = (selectedLaserRotation == 270f); break;
+					case 3: selected = (selectedLaserRotation == 180f); break;
+					default: selected = false; break;
+				}
+				shape.setColor(selected ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f));
+				shape.rect(r.x, r.y, r.width, r.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(Color.WHITE);
+				shape.rect(r.x, r.y, r.width, r.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+			}
+		} else if (selectedType == ObjectType.MIRROR) {
+			// Mirror rotate button
+			if (mirrorRotateRect != null) {
+				shape.setColor(new Color(0.2f, 0.2f, 0.25f, 0.9f));
+				shape.rect(mirrorRotateRect.x, mirrorRotateRect.y, mirrorRotateRect.width, mirrorRotateRect.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(Color.WHITE);
+				shape.rect(mirrorRotateRect.x, mirrorRotateRect.y, mirrorRotateRect.width, mirrorRotateRect.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+			}
+		}
+		else if (selectedType == ObjectType.BOX) {
+			// Box color swatches
+			String[] bcolors = {"RED","BLUE","GREEN","YELLOW","PURPLE"};
+			for (int i=0;i<boxColorRects.size && i<bcolors.length;i++) {
+				Rectangle r = boxColorRects.get(i);
+				Color c;
+				switch (bcolors[i]) {
+					case "RED": c = Color.RED; break;
+					case "BLUE": c = Color.BLUE; break;
+					case "GREEN": c = Color.GREEN; break;
+					case "YELLOW": c = Color.YELLOW; break;
+					case "PURPLE": c = Color.PURPLE; break;
+					default: c = Color.CYAN; break;
+				}
+				shape.setColor(c);
+				shape.rect(r.x, r.y, r.width, r.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(selectedBoxColor.equalsIgnoreCase(bcolors[i]) ? Color.WHITE : Color.LIGHT_GRAY);
+				shape.rect(r.x, r.y, r.width, r.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+			}
+			// Draw respawn area preview outline around mouse preview origin
+			shape.end();
+			shape.begin(ShapeRenderer.ShapeType.Line);
+			shape.setColor(new Color(0f, 0.6f, 1f, 0.6f));
+			float aw = selectedBoxAreaW;
+			float ah = selectedBoxAreaH;
+			shape.rect(screenGx - aw/2f + 12f, screenGy - ah/2f + 12f, aw, ah);
+			shape.end();
+			shape.begin(ShapeRenderer.ShapeType.Filled);
+		} else if (selectedType == ObjectType.GLASS) {
+			// Glass color swatches
+			String[] gcolors = {"RED","BLUE","GREEN","YELLOW","PURPLE"};
+			for (int i=0;i<glassColorRects.size && i<gcolors.length;i++) {
+				Rectangle r = glassColorRects.get(i);
+				Color c;
+				switch (gcolors[i]) {
+					case "RED": c = Color.RED; break;
+					case "BLUE": c = Color.BLUE; break;
+					case "GREEN": c = Color.GREEN; break;
+					case "YELLOW": c = Color.YELLOW; break;
+					case "PURPLE": c = Color.PURPLE; break;
+					default: c = Color.CYAN; break;
+				}
+				shape.setColor(c);
+				shape.rect(r.x, r.y, r.width, r.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(selectedGlassColor.equalsIgnoreCase(gcolors[i]) ? Color.WHITE : Color.LIGHT_GRAY);
+				shape.rect(r.x, r.y, r.width, r.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+			}
 		}
 		// level list background
 		for (Rectangle lr : levelRects) {
@@ -669,13 +973,13 @@ public class LevelMakerScreen implements Screen {
 			// door speed labels
 			if (doorOpenMinusRect != null) {
 				font.setColor(Color.WHITE);
-				font.draw(batch, "-", doorOpenMinusRect.x + 8, doorOpenMinusRect.y + doorOpenMinusRect.height - 4);
-				font.draw(batch, "+", doorOpenPlusRect.x + 8, doorOpenPlusRect.y + doorOpenPlusRect.height - 4);
-				font.draw(batch, String.format("Open: %.1f", selectedDoorOpenSpeed), doorOpenPlusRect.x + 60,
+				font.draw(batch, "-", doorOpenMinusRect.x + 8, doorOpenMinusRect.y + doorOpenMinusRect.height);
+				font.draw(batch, "+", doorOpenPlusRect.x + 8, doorOpenPlusRect.y + doorOpenPlusRect.height);
+				font.draw(batch, String.format("Open: %.1f", selectedDoorOpenSpeed), doorOpenPlusRect.x,
 						doorOpenPlusRect.y + doorOpenPlusRect.height - 2);
-				font.draw(batch, "-", doorCloseMinusRect.x + 8, doorCloseMinusRect.y + doorCloseMinusRect.height - 4);
-				font.draw(batch, "+", doorClosePlusRect.x + 8, doorClosePlusRect.y + doorClosePlusRect.height - 4);
-				font.draw(batch, String.format("Close: %.1f", selectedDoorCloseSpeed), doorClosePlusRect.x + 60,
+				font.draw(batch, "-", doorCloseMinusRect.x + 8, doorCloseMinusRect.y + doorCloseMinusRect.height);
+				font.draw(batch, "+", doorClosePlusRect.x + 8, doorClosePlusRect.y + doorClosePlusRect.height);
+				font.draw(batch, String.format("Close: %.1f", selectedDoorCloseSpeed), doorClosePlusRect.x,
 						doorClosePlusRect.y + doorClosePlusRect.height - 2);
 			}
 		} else if (selectedType == ObjectType.BUTTON) {
@@ -692,6 +996,21 @@ public class LevelMakerScreen implements Screen {
 				font.draw(batch, selectedLeverHorizontal ? "Horizontal" : "Vertical", leverOrientRect.x + 8,
 						leverOrientRect.y + leverOrientRect.height - 6);
 			}
+		} else if (selectedType == ObjectType.LASER) {
+			// laser type labels
+			for (int i = 0; i < laserTypeRects.size; i++) {
+				Rectangle r = laserTypeRects.get(i);
+				font.setColor(Color.WHITE);
+				String label = (i == 0) ? "Normal" : "Rotating";
+				font.draw(batch, label, r.x + 8, r.y + r.height - 6);
+			}
+			// laser direction labels U, R, D, L
+			String[] dlabels = { "U", "R", "D", "L" };
+			for (int i = 0; i < laserDirRects.size && i < dlabels.length; i++) {
+				Rectangle r = laserDirRects.get(i);
+				font.setColor(Color.WHITE);
+				font.draw(batch, dlabels[i], r.x + 14, r.y + r.height - 6);
+			}
 		} else if (selectedType == ObjectType.LAUNCHPAD) {
 			// launchpad direction labels
 			com.jjmc.chromashift.environment.Launchpad.LaunchDirection[] dirs = com.jjmc.chromashift.environment.Launchpad.LaunchDirection
@@ -705,6 +1024,35 @@ public class LevelMakerScreen implements Screen {
 			// Speed display
 			font.draw(batch, String.format("Speed: %.0f", selectedLaunchpadSpeed),
 					launchpadDirRects.first().x, launchpadDirRects.first().y - 8);
+		} else if (selectedType == ObjectType.MIRROR) {
+			if (mirrorRotateRect != null) {
+				font.setColor(Color.WHITE);
+				font.draw(batch, "Rotate 45°", mirrorRotateRect.x + 10, mirrorRotateRect.y + mirrorRotateRect.height - 6);
+				// show current angle
+				font.draw(batch, String.format("Angle: %.0f°", selectedMirrorAngleDeg), mirrorRotateRect.x + 10, mirrorRotateRect.y - 4);
+			}
+		} else if (selectedType == ObjectType.GLASS) {
+			// labels for glass color (first letter)
+			String[] gcolors = {"RED","BLUE","GREEN","YELLOW","PURPLE"};
+			for (int i=0;i<glassColorRects.size && i<gcolors.length;i++) {
+				Rectangle r = glassColorRects.get(i);
+				font.setColor(Color.BLACK);
+				font.draw(batch, gcolors[i].substring(0,1), r.x + r.width/2f - 4, r.y + r.height - 6);
+			}
+		} else if (selectedType == ObjectType.BOX) {
+			// labels for box color swatches
+			String[] bcolors = {"RED","BLUE","GREEN","YELLOW","PURPLE"};
+			for (int i=0;i<boxColorRects.size && i<bcolors.length;i++) {
+				Rectangle r = boxColorRects.get(i);
+				font.setColor(Color.BLACK);
+				font.draw(batch, bcolors[i].substring(0,1), r.x + r.width/2f - 4, r.y + r.height - 6);
+			}
+			// Respawn area size label
+			font.setColor(Color.WHITE);
+			if (boxColorRects.size > 0) {
+				Rectangle first = boxColorRects.first();
+				font.draw(batch, String.format("Area %.0fx%.0f ([ ] width, - = height)", selectedBoxAreaW, selectedBoxAreaH), first.x, first.y - 12);
+			}
 		}
 		// draw level list labels
 		for (int i = 0; i < levelFiles.size; i++) {
@@ -756,25 +1104,44 @@ public class LevelMakerScreen implements Screen {
 				batch.begin();
 				previewLeverAnim.play(selectedLeverHorizontal ? "HORIZONTAL" : "VERTICAL", false);
 				previewLeverAnim.setFrame(0);
-				previewLeverAnim.render(batch, screenGx, screenGy, 16, 36);
+				previewLeverAnim.render(batch, screenGx, screenGy, 64, 64);
 				batch.end();
 				if (previewBlocked) {
 					shape.begin(ShapeRenderer.ShapeType.Filled);
 					shape.setColor(new Color(1f, 0f, 0f, 0.45f));
-					shape.rect(screenGx, screenGy, 16, 36);
+					shape.rect(screenGx, screenGy, 64, 64);
 					shape.end();
 					shapeActive = true;
 				}
 			} else {
 				shape.setColor(previewBlocked ? Color.FIREBRICK : Color.BROWN);
-				shape.rect(screenGx, screenGy, 16, 36);
+				shape.rect(screenGx, screenGy, 64, 64);
 			}
 		} else if (selectedType == ObjectType.BOX) {
-			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.LIGHT_GRAY);
-			shape.rect(screenGx, screenGy, 32, 32);
+			// draw box preview with selected color
+			Color bc = Color.CYAN;
+			switch (selectedBoxColor.toUpperCase()) {
+				case "RED" -> bc = Color.RED;
+				case "BLUE" -> bc = Color.BLUE;
+				case "GREEN" -> bc = Color.GREEN;
+				case "YELLOW" -> bc = Color.YELLOW;
+				case "PURPLE" -> bc = Color.PURPLE;
+				default -> bc = Color.CYAN;
+			}
+			shape.setColor(previewBlocked ? Color.FIREBRICK : bc);
+			shape.rect(screenGx, screenGy, 24, 24);
 		} else if (selectedType == ObjectType.ORB) {
 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.ORANGE);
-			shape.circle(screenGx + 16, screenGy + 16, 12);
+			shape.circle(screenGx + 12, screenGy + 12, 12);
+			// Respawn area preview outline for orb
+			shape.end();
+			shape.begin(ShapeRenderer.ShapeType.Line);
+			shape.setColor(new Color(1f, 0.5f, 0f, 0.6f));
+			float aw = selectedOrbAreaW;
+			float ah = selectedOrbAreaH;
+			shape.rect(screenGx - aw/2f + 12f, screenGy - ah/2f + 12f, aw, ah);
+			shape.end();
+			shape.begin(ShapeRenderer.ShapeType.Filled);
 		} else if (selectedType == ObjectType.BOSS) {
 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.PURPLE);
 			shape.rect(screenGx - 48, screenGy, 96, 96);
@@ -788,9 +1155,162 @@ public class LevelMakerScreen implements Screen {
 			} else {
 				shape.rect(screenGx, screenGy, 32, 64);
 			}
+		} else if (selectedType == ObjectType.LASER) {
+			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.RED);
+			shape.rect(screenGx, screenGy, 32, 32);
+		} else if (selectedType == ObjectType.MIRROR) {
+			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.CYAN);
+			shape.rect(screenGx, screenGy, 32f, 32f);
+		} else if (selectedType == ObjectType.GLASS) {
+			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.SKY);
+			// draw centered 16x16 preview in the 32x32 cell
+			shape.rect(screenGx + 8f, screenGy + 8f, 16f, 16f);
+		} else if (selectedType == ObjectType.ORB) {
+			// Orb area label (reuse first box rect if available or fallback near preview)
+			font.setColor(Color.WHITE);
+			float labelX = 20f; float labelY = 40f;
+			if (boxColorRects.size > 0) { Rectangle first = boxColorRects.first(); labelX = first.x; labelY = first.y - 12; }
+			font.draw(batch, String.format("Area %.0fx%.0f ([ ] width, - = height)", selectedOrbAreaW, selectedOrbAreaH), labelX, labelY);
 		}
 		if (shapeActive)
 			shape.end();
+
+		// Linking preview: when in link mode, show possible link targets
+		if (linkingMode) {
+			// Draw world-space lines from the selected source to all doors (possible targets)
+			shape.setProjectionMatrix(camera.combined);
+			// If we have picked a source already, draw lines to doors
+			if (linkStage == LinkStage.PICK_DOORS && linkSourceType != ObjectType.NONE) {
+				// try to find a runtime object for the source to get an accurate center
+				float srcCx = linkSourceX + 16f;
+				float srcCy = linkSourceY + 16f;
+				for (Interactable it : interactableInstances) {
+					if ((linkSourceType == ObjectType.BUTTON && it instanceof Button)
+						|| (linkSourceType == ObjectType.LEVER && it instanceof Lever)) {
+						Rectangle b = it.getBounds();
+						if (b != null && Math.abs(b.x - linkSourceX) < 5f && Math.abs(b.y - linkSourceY) < 5f) {
+							srcCx = b.x + b.width / 2f;
+							srcCy = b.y + b.height / 2f;
+							break;
+						}
+					}
+				}
+				// draw filled circles at door centers; highlight already-selected targets
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+				for (DoorRecord dr : doorRecords) {
+					if (dr == null) continue;
+					float dx = dr.x + (Math.max(1, dr.cols) * 32f) / 2f;
+					float dy = dr.y + (Math.max(1, dr.rows) * 32f) / 2f;
+					boolean sel = linkSelectedDoorIds.contains(dr.id, false);
+					shape.setColor(sel ? Color.GOLD : new Color(0.2f, 0.5f, 1f, 0.9f));
+					shape.circle(dx, dy, 4f);
+				}
+				shape.end();
+			}
+		}
+		// Persistent saved links: draw lines between sources and their saved targets (doors or lasers)
+		if (state != null && state.interactables != null) {
+			shape.setProjectionMatrix(camera.combined);
+			shape.begin(ShapeRenderer.ShapeType.Line);
+			// Persistent saved links: draw in red to distinguish from previews
+			shape.setColor(new Color(1f, 0f, 0f, 0.85f));
+			for (LevelIO.LevelState.InteractableData src : state.interactables) {
+				if (src == null || src.targetId == null || src.targetId.trim().isEmpty()) continue;
+				float srcCx = src.x + 16f;
+				float srcCy = src.y + 16f;
+				String[] parts = src.targetId.split(",");
+				for (String p : parts) {
+					String tid = p.trim();
+					if (tid.length() == 0) continue;
+					// find door target
+					boolean drawn = false;
+					for (DoorRecord dr : doorRecords) {
+						if (dr != null && dr.id != null && dr.id.equals(tid)) {
+							float dx = dr.x + (Math.max(1, dr.cols) * 32f) / 2f;
+							float dy = dr.y + (Math.max(1, dr.rows) * 32f) / 2f;
+							shape.line(srcCx, srcCy, dx, dy);
+							drawn = true;
+							break;
+						}
+					}
+					if (drawn) continue;
+					// find laser target
+					for (LaserRecord lr : laserRecords) {
+						if (lr != null && lr.id != null && lr.id.equals(tid)) {
+							float dx = lr.x + 16f;
+							float dy = lr.y + 16f;
+							shape.line(srcCx, srcCy, dx, dy);
+							break;
+						}
+					}
+					// find mirror target
+					for (MirrorRecord mr : mirrorRecords) {
+						if (mr != null && mr.id != null && mr.id.equals(tid)) {
+							float dx = mr.x + mr.width / 2f;
+							float dy = mr.y + mr.height / 2f;
+							shape.line(srcCx, srcCy, dx, dy);
+							break;
+						}
+					}
+				}
+			}
+			shape.end();
+		}
+
+		// Debug draw: respawn areas for all Boxes/Orbs if toggled
+		if (debugRespawnAreas) {
+			shape.setProjectionMatrix(camera.combined);
+			shape.begin(ShapeRenderer.ShapeType.Line);
+			shape.setColor(new Color(0f, 0.5f, 1f, 0.25f));
+			for (Interactable it : interactableInstances) {
+				if (it instanceof Box b) {
+					Rectangle ra = b.getRespawnArea();
+					if (ra != null) shape.rect(ra.x, ra.y, ra.width, ra.height);
+				} else if (it instanceof Orb o) {
+					Rectangle ra = o.getRespawnArea();
+					if (ra != null) shape.rect(ra.x, ra.y, ra.width, ra.height);
+				}
+			}
+			shape.end();
+		}
+
+		// Highlight selected box/orb for editing
+		if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
+			shape.setProjectionMatrix(camera.combined);
+			shape.begin(ShapeRenderer.ShapeType.Line);
+			Gdx.gl.glLineWidth(3f);
+			shape.setColor(Color.YELLOW);
+			Rectangle b = selectedObject.getBounds();
+			shape.rect(b.x - 2, b.y - 2, b.width + 4, b.height + 4);
+			// Draw respawn area outline
+			shape.setColor(new Color(1f, 1f, 0f, 0.7f));
+			Rectangle ra = null;
+			if (selectedObject instanceof Box box) ra = box.getRespawnArea();
+			else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+			if (ra != null) shape.rect(ra.x, ra.y, ra.width, ra.height);
+			Gdx.gl.glLineWidth(1f);
+			shape.end();
+		}
+
+		// Linking preview: when in link mode, show possible link targets
+		if (linkingMode) {
+			// Draw world-space lines from the selected source to all doors (possible targets)
+			shape.setProjectionMatrix(camera.combined);
+			// If we have picked a source already, draw lines to doors
+			if (linkStage == LinkStage.PICK_DOORS && linkSourceType != ObjectType.NONE) {
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(new Color(0.2f, 0.5f, 1f, 0.9f));
+				for (Interactable it : interactableInstances) {
+					if (it instanceof Button || it instanceof Lever) {
+						Rectangle b = it.getBounds();
+						if (b != null) {
+							shape.rect(b.x - 2f, b.y - 2f, b.width + 4f, b.height + 4f);
+						}
+					}
+				}
+				shape.end();
+			}
+		}
 
 		// Draw delete preview outline (in UI space) if delete mode is active
 		if (deleteMode) {
@@ -813,7 +1333,8 @@ public class LevelMakerScreen implements Screen {
 				uiCamera.position.x - 380, uiCamera.position.y + 200);
 		font.draw(batch, "Keys: 1=Wall 2=Door 3=Button 4=Lever 5=Box 6=Orb 7=Boss 8=Spawn 9=Launchpad 0=None",
 				uiCamera.position.x - 380, uiCamera.position.y + 180);
-		font.draw(batch, "Arrow Keys: adjust size (Wall/Door). Left click=place. E=Delete Mode. P=Export. Ctrl+S=Save",
+		font.draw(batch,
+				"Arrow Keys: adjust size (Wall/Door). Left click=place. Delete button toggles delete. P=Export. Ctrl+S=Save",
 				uiCamera.position.x - 380, uiCamera.position.y + 160);
 		font.draw(batch, "WASD to pan camera. Esc to exit LevelMaker.", uiCamera.position.x - 380,
 				uiCamera.position.y + 140);
@@ -829,6 +1350,23 @@ public class LevelMakerScreen implements Screen {
 						" @ (" + linkSourceX + "," + linkSourceY + ")";
 				font.draw(batch, "Link: " + src + ". Left-click doors to toggle, Right-click to finish.", lx, ly);
 				font.draw(batch, "Selected doors: " + linkSelectedDoorIds.size, lx, ly - 16);
+			}
+		}
+		// Respawn debug hint
+		if (debugRespawnAreas) {
+			font.setColor(Color.CYAN);
+			font.draw(batch, "Respawn Areas ON (F3 to toggle)", uiCamera.position.x - 380, uiCamera.position.y + 110);
+		}
+		// Selected object info
+		if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
+			font.setColor(Color.YELLOW);
+			String type = selectedObject instanceof Box ? "Box" : "Orb";
+			Rectangle ra = null;
+			if (selectedObject instanceof Box box) ra = box.getRespawnArea();
+			else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+			if (ra != null) {
+				font.draw(batch, String.format("Selected %s - Area: %.0fx%.0f ([ ] width, - = height)", type, ra.width, ra.height),
+					uiCamera.position.x - 380, uiCamera.position.y + 95);
 			}
 		}
 		// placement toast (screen-fixed)
@@ -893,6 +1431,99 @@ public class LevelMakerScreen implements Screen {
 		if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
 			changeLevel("levels/bossroom.json");
 		}
+		// Resize respawn area with independent width/height controls when placing Box or Orb OR editing selected object
+		// [ ] for width, - = for height
+		if (selectedType == ObjectType.BOX || selectedType == ObjectType.ORB || selectedObject != null) {
+			float step = 200f;
+			
+			// WIDTH CONTROLS: [ ]
+			if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT_BRACKET)) {
+				if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
+					// Decrease width of selected object's respawn area
+					Rectangle ra = null;
+					if (selectedObject instanceof Box box) ra = box.getRespawnArea();
+					else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+					if (ra != null) {
+						float newW = Math.max(200f, ra.width - step);
+						Rectangle bounds = selectedObject.getBounds();
+						float cx = bounds.x + bounds.width / 2f;
+						float cy = bounds.y + bounds.height / 2f;
+						if (selectedObject instanceof Box box) box.setRespawnArea(new Rectangle(cx - newW/2f, cy - ra.height/2f, newW, ra.height));
+						else if (selectedObject instanceof Orb orb) orb.setRespawnArea(new Rectangle(cx - newW/2f, cy - ra.height/2f, newW, ra.height));
+						updateRespawnAreaInState(selectedObject, newW, ra.height);
+					}
+				} else if (selectedType == ObjectType.BOX) {
+					selectedBoxAreaW = Math.max(200f, selectedBoxAreaW - step);
+				} else if (selectedType == ObjectType.ORB) {
+					selectedOrbAreaW = Math.max(200f, selectedOrbAreaW - step);
+				}
+			}
+			if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT_BRACKET)) {
+				if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
+					// Increase width of selected object's respawn area
+					Rectangle ra = null;
+					if (selectedObject instanceof Box box) ra = box.getRespawnArea();
+					else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+					if (ra != null) {
+						float newW = Math.min(5000f, ra.width + step);
+						Rectangle bounds = selectedObject.getBounds();
+						float cx = bounds.x + bounds.width / 2f;
+						float cy = bounds.y + bounds.height / 2f;
+						if (selectedObject instanceof Box box) box.setRespawnArea(new Rectangle(cx - newW/2f, cy - ra.height/2f, newW, ra.height));
+						else if (selectedObject instanceof Orb orb) orb.setRespawnArea(new Rectangle(cx - newW/2f, cy - ra.height/2f, newW, ra.height));
+						updateRespawnAreaInState(selectedObject, newW, ra.height);
+					}
+				} else if (selectedType == ObjectType.BOX) {
+					selectedBoxAreaW = Math.min(5000f, selectedBoxAreaW + step);
+				} else if (selectedType == ObjectType.ORB) {
+					selectedOrbAreaW = Math.min(5000f, selectedOrbAreaW + step);
+				}
+			}
+			
+			// HEIGHT CONTROLS: - =
+			if (Gdx.input.isKeyJustPressed(Input.Keys.MINUS)) {
+				if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
+					// Decrease height of selected object's respawn area
+					Rectangle ra = null;
+					if (selectedObject instanceof Box box) ra = box.getRespawnArea();
+					else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+					if (ra != null) {
+						float newH = Math.max(200f, ra.height - step);
+						Rectangle bounds = selectedObject.getBounds();
+						float cx = bounds.x + bounds.width / 2f;
+						float cy = bounds.y + bounds.height / 2f;
+						if (selectedObject instanceof Box box) box.setRespawnArea(new Rectangle(cx - ra.width/2f, cy - newH/2f, ra.width, newH));
+						else if (selectedObject instanceof Orb orb) orb.setRespawnArea(new Rectangle(cx - ra.width/2f, cy - newH/2f, ra.width, newH));
+						updateRespawnAreaInState(selectedObject, ra.width, newH);
+					}
+				} else if (selectedType == ObjectType.BOX) {
+					selectedBoxAreaH = Math.max(200f, selectedBoxAreaH - step);
+				} else if (selectedType == ObjectType.ORB) {
+					selectedOrbAreaH = Math.max(200f, selectedOrbAreaH - step);
+				}
+			}
+			if (Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)) {
+				if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
+					// Increase height of selected object's respawn area
+					Rectangle ra = null;
+					if (selectedObject instanceof Box box) ra = box.getRespawnArea();
+					else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+					if (ra != null) {
+						float newH = Math.min(5000f, ra.height + step);
+						Rectangle bounds = selectedObject.getBounds();
+						float cx = bounds.x + bounds.width / 2f;
+						float cy = bounds.y + bounds.height / 2f;
+						if (selectedObject instanceof Box box) box.setRespawnArea(new Rectangle(cx - ra.width/2f, cy - newH/2f, ra.width, newH));
+						else if (selectedObject instanceof Orb orb) orb.setRespawnArea(new Rectangle(cx - ra.width/2f, cy - newH/2f, ra.width, newH));
+						updateRespawnAreaInState(selectedObject, ra.width, newH);
+					}
+				} else if (selectedType == ObjectType.BOX) {
+					selectedBoxAreaH = Math.min(5000f, selectedBoxAreaH + step);
+				} else if (selectedType == ObjectType.ORB) {
+					selectedOrbAreaH = Math.min(5000f, selectedOrbAreaH + step);
+				}
+			}
+		}
 		if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
 			changeLevel("levels/tutorial.json");
 		}
@@ -952,7 +1583,18 @@ public class LevelMakerScreen implements Screen {
 				if (b.rect.contains(ux, uy)) {
 					if ("Link".equalsIgnoreCase(b.label)) {
 						// Toggle linking mode with two-stage flow
+						// When entering link mode, clear delete and any selected placement tool
 						linkingMode = !linkingMode;
+						if (linkingMode) {
+							// entering link mode -> deselect other placement buttons
+							selectedType = ObjectType.NONE;
+							deleteMode = false;
+						} else {
+							// leaving link mode
+							linkStage = LinkStage.PICK_SOURCE;
+							linkSourceType = ObjectType.NONE;
+							linkSelectedDoorIds.clear();
+						}
 						if (linkingMode) {
 							linkStage = LinkStage.PICK_SOURCE;
 							linkSourceType = ObjectType.NONE;
@@ -960,21 +1602,32 @@ public class LevelMakerScreen implements Screen {
 							toastText = "Link mode: click a Button/Lever";
 							toastTimer = 1.5f;
 						} else {
-							linkStage = LinkStage.PICK_SOURCE;
-							linkSourceType = ObjectType.NONE;
-							linkSelectedDoorIds.clear();
 							toastText = "Link mode off";
 							toastTimer = 1.2f;
 						}
+					} else if ("Delete".equalsIgnoreCase(b.label)) {
+						// Toggle delete mode
+						// When entering delete mode, deselect other placement tools
+						deleteMode = !deleteMode;
+						if (deleteMode) {
+							selectedType = ObjectType.NONE;
+							linkingMode = false;
+							com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = true;
+							com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = true;
+						} else {
+							com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;
+							com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = false;
+						}
+						toastText = deleteMode ? "Delete mode ON (Left-click to delete)" : "Delete mode OFF";
+						toastTimer = 1.4f;
 					} else {
 						selectedType = b.type;
-						// Turning off linking mode when choosing a non-link button
-						if (selectedType != ObjectType.BUTTON && selectedType != ObjectType.LEVER) {
-							linkingMode = false;
-							linkStage = LinkStage.PICK_SOURCE;
-							linkSourceType = ObjectType.NONE;
-							linkSelectedDoorIds.clear();
-						}
+						// Selecting any placement tool should clear toggle modes
+						linkingMode = false;
+						linkStage = LinkStage.PICK_SOURCE;
+						linkSourceType = ObjectType.NONE;
+						linkSelectedDoorIds.clear();
+						deleteMode = false;
 					}
 					return;
 				}
@@ -1006,6 +1659,51 @@ public class LevelMakerScreen implements Screen {
 				for (int i = 0; i < launchpadDirRects.size && i < dirs.length; i++) {
 					if (launchpadDirRects.get(i).contains(ux, uy)) {
 						selectedLaunchpadDirection = dirs[i];
+						return;
+					}
+				}
+			} else if (selectedType == ObjectType.LASER) {
+				// Handle laser type button clicks (Normal vs Rotating)
+				for (int i = 0; i < laserTypeRects.size; i++) {
+					if (laserTypeRects.get(i).contains(ux, uy)) {
+						selectedLaserIsRotating = (i == 1);
+						return;
+					}
+				}
+				// Handle laser direction selection (U, R, D, L)
+				for (int i = 0; i < laserDirRects.size; i++) {
+					if (laserDirRects.get(i).contains(ux, uy)) {
+						// order: U(90), R(0), D(270), L(180)
+						switch (i) {
+							case 0 -> selectedLaserRotation = 90f;
+							case 1 -> selectedLaserRotation = 0f;
+							case 2 -> selectedLaserRotation = 270f;
+							case 3 -> selectedLaserRotation = 180f;
+						}
+						return;
+					}
+				}
+			} else if (selectedType == ObjectType.MIRROR) {
+				// Handle mirror rotate button
+				if (mirrorRotateRect != null && mirrorRotateRect.contains(ux, uy)) {
+					selectedMirrorAngleDeg = (selectedMirrorAngleDeg + 45f) % 360f;
+					return;
+				}
+			} else if (selectedType == ObjectType.BOX) {
+				// Box color swatch click
+				String[] bcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
+				for (int i = 0; i < boxColorRects.size && i < bcolors.length; i++) {
+					if (boxColorRects.get(i).contains(ux, uy)) {
+						selectedBoxColor = bcolors[i];
+						return;
+					}
+				}
+			} else if (selectedType == ObjectType.GLASS) {
+				// Glass color swatch click
+				String[] gcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
+				for (int i = 0; i < glassColorRects.size && i < gcolors.length; i++) {
+					if (glassColorRects.get(i).contains(ux, uy)) {
+						selectedGlassColor = gcolors[i];
 						return;
 					}
 				}
@@ -1099,13 +1797,24 @@ public class LevelMakerScreen implements Screen {
 						}
 					}
 					linkStage = LinkStage.PICK_DOORS;
-					toastText = "Now click doors to add/remove";
+					toastText = "Now click doors/lasers to add/remove";
 					toastTimer = 1.6f;
 					return;
 				} else if (linkStage == LinkStage.PICK_DOORS) {
 					String did = findDoorIdAt(wx, wy);
+					String targetType = "door";
 					if (did == null) {
-						toastText = "No door at cursor";
+						// try laser
+						did = findLaserIdAt(wx, wy);
+						targetType = "laser";
+					}
+					if (did == null) {
+						// try mirror
+						did = findMirrorIdAt(wx, wy);
+						targetType = "mirror";
+					}
+					if (did == null) {
+						toastText = "No door/laser/mirror at cursor";
 						toastTimer = 1.0f;
 						return;
 					}
@@ -1174,7 +1883,7 @@ public class LevelMakerScreen implements Screen {
 			placeAt(wx, wy);
 		}
 
-		// RIGHT CLICK: finish linking (if in linking mode). No deletion here anymore.
+		// RIGHT CLICK: finish linking (if in linking mode), or select box/orb for editing
 		if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
 			if (linkingMode) {
 				linkingMode = false;
@@ -1184,8 +1893,28 @@ public class LevelMakerScreen implements Screen {
 				toastText = "Linking finished";
 				toastTimer = 1.2f;
 				return;
+			} else {
+				// Select box/orb for editing respawn area
+				Vector2 worldClick = screenCellBottomLeftToWorldGrid();
+				Interactable clicked = null;
+				for (int i = interactableInstances.size - 1; i >= 0; --i) {
+					Interactable it = interactableInstances.get(i);
+					if ((it instanceof Box || it instanceof Orb) && it.getBounds().contains(worldClick.x, worldClick.y)) {
+						clicked = it;
+						break;
+					}
+				}
+				if (clicked != null) {
+					selectedObject = clicked;
+					toastText = "Selected " + (clicked instanceof Box ? "Box" : "Orb") + " ([ ] width, - = height)";
+					toastTimer = 1.5f;
+				} else if (selectedObject != null) {
+					selectedObject = null;
+					toastText = "Deselected";
+					toastTimer = 1.0f;
+				}
 			}
-		} // end right-click deletion block
+		} // end right-click block
 
 		// save (Ctrl+S to avoid conflict with S key used for camera panning)
 		if ((Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT))
@@ -1195,6 +1924,8 @@ public class LevelMakerScreen implements Screen {
 		// Toggle Delete Mode - E
 		if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
 			deleteMode = !deleteMode;
+			com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = deleteMode;
+			com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = deleteMode;
 			toastText = deleteMode ? "Delete mode ON (Left-click to delete)" : "Delete mode OFF";
 			toastTimer = 1.4f;
 		}
@@ -1234,11 +1965,18 @@ public class LevelMakerScreen implements Screen {
 			}
 		}
 
-		// exit
+		// Toggle respawn area debug visualization (F3)
+		if (Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
+			debugRespawnAreas = !debugRespawnAreas;
+			toastText = debugRespawnAreas ? "Respawn areas: ON" : "Respawn areas: OFF";
+			toastTimer = 1.2f;
+		}
+
+		// exit: return to TestMenuScreen on ESC
 		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-			Gdx.app.postRunnable(() -> {
-				dispose();
-			});
+			((com.badlogic.gdx.Game) Gdx.app.getApplicationListener())
+					.setScreen(new com.jjmc.chromashift.screens.TestMenuScreen());
+			return;
 		}
 	}
 
@@ -1319,6 +2057,55 @@ public class LevelMakerScreen implements Screen {
 							break;
 						}
 					}
+				} else if (it instanceof Laser
+						|| it instanceof com.jjmc.chromashift.environment.interactable.LaserRay) {
+					if (state.lasers != null) {
+						for (int j = 0; j < state.lasers.size; ++j) {
+							LevelIO.LevelState.LaserData ld = state.lasers.get(j);
+							if (Math.abs(ld.x - ob.x) < 5f && Math.abs(ld.y - ob.y) < 5f) {
+								// remove any editor laser record with matching id
+								if (ld.id != null) {
+									for (int k = laserRecords.size - 1; k >= 0; --k) {
+										if (laserRecords.get(k).id != null && laserRecords.get(k).id.equals(ld.id)) {
+											laserRecords.removeIndex(k);
+											break;
+										}
+									}
+								}
+								state.lasers.removeIndex(j);
+								break;
+							}
+						}
+					}
+				} else if (it instanceof Mirror) {
+					if (state.mirrors != null) {
+						for (int j = 0; j < state.mirrors.size; ++j) {
+							LevelIO.LevelState.MirrorData md = state.mirrors.get(j);
+							if (Math.abs(md.x - ob.x) < 5f && Math.abs(md.y - ob.y) < 5f) {
+								// remove mirror record if id matches
+								if (md.id != null) {
+									for (int k = mirrorRecords.size - 1; k >= 0; --k) {
+										if (mirrorRecords.get(k).id != null && mirrorRecords.get(k).id.equals(md.id)) {
+											mirrorRecords.removeIndex(k);
+											break;
+										}
+									}
+								}
+								state.mirrors.removeIndex(j);
+								break;
+							}
+						}
+					}
+				} else if (it instanceof Glass) {
+					if (state.glasses != null) {
+						for (int j = 0; j < state.glasses.size; ++j) {
+							LevelIO.LevelState.GlassData gd = state.glasses.get(j);
+							if (Math.abs(gd.x - ob.x) < 5f && Math.abs(gd.y - ob.y) < 5f) {
+								state.glasses.removeIndex(j);
+								break;
+							}
+						}
+					}
 				} else if (it instanceof com.jjmc.chromashift.environment.Launchpad) {
 					for (int j = 0; j < state.launchpads.size; ++j) {
 						LevelIO.LevelState.LaunchpadData lpd = state.launchpads.get(j);
@@ -1328,7 +2115,8 @@ public class LevelMakerScreen implements Screen {
 						}
 					}
 				}
-				if (it instanceof Solid) solids.removeValue((Solid) it, true);
+				if (it instanceof Solid)
+					solids.removeValue((Solid) it, true);
 				interactableInstances.removeIndex(i);
 				deleted = true;
 			}
@@ -1336,7 +2124,8 @@ public class LevelMakerScreen implements Screen {
 		// Ensure Launchpads can be deleted by clicking any part of their full footprint
 		for (int j = state.launchpads.size - 1; j >= 0; --j) {
 			LevelIO.LevelState.LaunchpadData lpd = state.launchpads.get(j);
-			if (lpd == null || lpd.direction == null) continue;
+			if (lpd == null || lpd.direction == null)
+				continue;
 			boolean up = "UP".equalsIgnoreCase(lpd.direction);
 			Rectangle lpRect = new Rectangle(lpd.x, lpd.y, up ? 64f : 32f, up ? 32f : 64f);
 			if (lpRect.overlaps(area)) {
@@ -1350,9 +2139,11 @@ public class LevelMakerScreen implements Screen {
 						if (ib == null || !ib.overlaps(lpRect)) {
 							// try a fallback overlap using the full rectangle as bounds
 							Rectangle fb = new Rectangle(lpRect);
-							if (ib != null && !fb.overlaps(ib)) continue;
+							if (ib != null && !fb.overlaps(ib))
+								continue;
 						}
-						if (it instanceof Solid) solids.removeValue((Solid) it, true);
+						if (it instanceof Solid)
+							solids.removeValue((Solid) it, true);
 						interactableInstances.removeIndex(i);
 						break;
 					}
@@ -1382,32 +2173,80 @@ public class LevelMakerScreen implements Screen {
 	}
 
 	private void placeAt(int gx, int gy) {
-		// compute preview area for this placement and cancel if overlapping existing objects
+		// compute preview area for this placement and cancel if overlapping existing
+		// objects
 		float areaW = 32f * previewCols;
 		float areaH = 32f * previewRows;
 		switch (selectedType) {
-			case BUTTON -> { areaW = 64f; areaH = 32f; }
-			case LEVER -> { areaW = 16f; areaH = 36f; }
-			case BOX -> { areaW = 32f; areaH = 32f; }
-			case ORB -> { areaW = 24f; areaH = 24f; }
-			case BOSS -> { areaW = 96f; areaH = 96f; }
-			case SPAWN -> { areaW = 16f; areaH = 32f; }
-			case LAUNCHPAD -> {
-				if (selectedLaunchpadDirection == com.jjmc.chromashift.environment.Launchpad.LaunchDirection.UP) {
-					areaW = 64f; areaH = 32f;
-				} else {
-					areaW = 32f; areaH = 64f;
-				}
+			case BUTTON: {
+				areaW = 64f;
+				areaH = 32f;
+				break;
 			}
-			default -> {}
+			case LEVER: {
+				areaW = 16f;
+				areaH = 36f;
+				break;
+			}
+			case BOX: {
+				areaW = 32f;
+				areaH = 32f;
+				break;
+			}
+			case ORB: {
+				areaW = 24f;
+				areaH = 24f;
+				break;
+			}
+			case BOSS: {
+				areaW = 96f;
+				areaH = 96f;
+				break;
+			}
+			case SPAWN: {
+				areaW = 16f;
+				areaH = 32f;
+				break;
+			}
+			case LAUNCHPAD: {
+				if (selectedLaunchpadDirection == com.jjmc.chromashift.environment.Launchpad.LaunchDirection.UP) {
+					areaW = 64f;
+					areaH = 32f;
+				} else {
+					areaW = 32f;
+					areaH = 64f;
+				}
+				break;
+			}
+			case LASER: {
+				areaW = 32f;
+				areaH = 32f;
+				break;
+			}
+			case MIRROR:
+			case GLASS: {
+				areaW = previewCols * 32f;
+				areaH = previewRows * 32f;
+				break;
+			}
+			case NONE:
+			default: {
+				break;
+			}
 		}
 		Rectangle intended = new Rectangle(gx, gy, areaW, areaH);
+		if (selectedType == ObjectType.GLASS) {
+			// Glass uses a centered 16x16 footprint
+			intended.x += 8f;
+			intended.y += 8f;
+		}
 		boolean areaFree = isAreaFree(intended);
 		if (!areaFree) {
 			// Log overlaps for debugging
 			for (Wall w : walls) {
 				if (w.getBounds().overlaps(intended))
-					Gdx.app.log("LevelMaker", "Overlaps wall at " + (int) w.getBounds().x + "," + (int) w.getBounds().y);
+					Gdx.app.log("LevelMaker",
+							"Overlaps wall at " + (int) w.getBounds().x + "," + (int) w.getBounds().y);
 			}
 			for (Interactable it : interactableInstances) {
 				if (it.getBounds().overlaps(intended))
@@ -1419,22 +2258,32 @@ public class LevelMakerScreen implements Screen {
 		}
 		boolean placed = false;
 		switch (selectedType) {
-			case WALL -> {
+			case WALL: {
 				LevelIO.LevelState.WallData wd = new LevelIO.LevelState.WallData();
-				wd.x = gx; wd.y = gy; wd.width = previewCols; wd.height = previewRows;
+				wd.x = gx;
+				wd.y = gy;
+				wd.width = previewCols;
+				wd.height = previewRows;
 				state.walls.add(wd);
 				walls.add(new Wall(wd.x, wd.y, previewCols, previewRows));
 				placed = true;
+				break;
 			}
-			case DOOR -> {
+			case DOOR: {
 				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
-				idd.type = "door"; idd.x = gx; idd.y = gy; idd.cols = previewCols; idd.rows = previewRows;
+				idd.type = "door";
+				idd.x = gx;
+				idd.y = gy;
+				idd.cols = previewCols;
+				idd.rows = previewRows;
 				idd.openDirection = doorDirections[selectedDoorDirIndex];
 				idd.id = "door_" + (state.interactables.size + 1);
-				idd.openSpeed = selectedDoorOpenSpeed; idd.closeSpeed = selectedDoorCloseSpeed;
+				idd.openSpeed = selectedDoorOpenSpeed;
+				idd.closeSpeed = selectedDoorCloseSpeed;
 				state.interactables.add(idd);
 				Door.OpenDirection dir = Door.OpenDirection.valueOf(idd.openDirection);
-				int cols = Math.max(1, idd.cols); int rows = Math.max(1, idd.rows);
+				int cols = Math.max(1, idd.cols);
+				int rows = Math.max(1, idd.rows);
 				Wall base = new Wall(gx, gy - 32, Math.max(1, cols), 1);
 				Door d = new Door(gx, base, cols, rows, dir, idd.openSpeed, idd.closeSpeed);
 				interactableInstances.add(d);
@@ -1442,100 +2291,289 @@ public class LevelMakerScreen implements Screen {
 				doorRecords.add(new DoorRecord(idd.id, gx, gy, idd.cols, idd.rows));
 				placements.add(new Placement(ObjectType.DOOR, gx, gy, idd.cols, idd.rows, idd.id));
 				placed = true;
+				break;
 			}
-			case BUTTON -> {
+			case BUTTON: {
 				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
-				idd.type = "button"; idd.x = gx; idd.y = gy; idd.color = selectedButtonColor.name();
+				idd.type = "button";
+				idd.x = gx;
+				idd.y = gy;
+				idd.color = selectedButtonColor.name();
+				// assign a unique id for button
+				int btnCount = 0;
+				for (LevelIO.LevelState.InteractableData e : state.interactables)
+					if (e != null && "button".equalsIgnoreCase(String.valueOf(e.type)))
+						btnCount++;
+				idd.id = "button_" + (btnCount + 1);
 				state.interactables.add(idd);
 				Array<Solid> allSolids = new Array<>();
-				for (Wall w : walls) allSolids.add(w);
-				for (Interactable inter : interactableInstances) if (inter instanceof Solid) allSolids.add((Solid) inter);
+				for (Wall w : walls)
+					allSolids.add(w);
+				for (Interactable inter : interactableInstances)
+					if (inter instanceof Solid)
+						allSolids.add((Solid) inter);
 				Solid baseSolid = findBaseSolidFor(gx, gy, allSolids);
-				if (baseSolid == null) baseSolid = new Wall(gx, gy - 32, 4, 1);
+				if (baseSolid == null)
+					baseSolid = new Wall(gx, gy - 32, 4, 1);
 				String foundDoor = null;
 				for (DoorRecord dr : doorRecords) {
-					if (Math.abs((int) dr.x - gx) <= 32 && Math.abs((int) dr.y - gy) <= 32) { foundDoor = dr.id; break; }
+					if (Math.abs((int) dr.x - gx) <= 32 && Math.abs((int) dr.y - gy) <= 32) {
+						foundDoor = dr.id;
+						break;
+					}
 				}
 				idd.targetId = foundDoor;
-				Button b = new Button(gx, baseSolid, foundDoor != null ? findDoorById(foundDoor) : null, selectedButtonColor);
+				Button b = new Button(gx, baseSolid, foundDoor != null ? findDoorById(foundDoor) : null,
+						selectedButtonColor);
 				interactableInstances.add(b);
 				solids.add(b);
 				placements.add(new Placement(ObjectType.BUTTON, gx, gy, 1, 1, null));
 				placed = true;
+				break;
 			}
-			case LEVER -> {
+			case LEVER: {
 				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
-				idd.type = "lever"; idd.x = gx; idd.y = gy; idd.orientation = selectedLeverHorizontal ? "HORIZONTAL" : "VERTICAL";
+				idd.type = "lever";
+				idd.x = gx;
+				idd.y = gy;
+				idd.orientation = selectedLeverHorizontal ? "HORIZONTAL" : "VERTICAL";
+				// assign a unique id for lever
+				int levCount = 0;
+				for (LevelIO.LevelState.InteractableData e : state.interactables)
+					if (e != null && "lever".equalsIgnoreCase(String.valueOf(e.type)))
+						levCount++;
+				idd.id = "lever_" + (levCount + 1);
 				state.interactables.add(idd);
 				String foundDoor = null;
 				for (DoorRecord dr : doorRecords) {
-					if (Math.abs((int) dr.x - gx) <= 32 && Math.abs((int) dr.y - gy) <= 32) { foundDoor = dr.id; break; }
+					if (Math.abs((int) dr.x - gx) <= 32 && Math.abs((int) dr.y - gy) <= 32) {
+						foundDoor = dr.id;
+						break;
+					}
 				}
 				idd.targetId = foundDoor;
-				Lever l = new Lever(gx, gy, 16, 36, selectedLeverHorizontal, foundDoor != null ? findDoorById(foundDoor) : null);
+				Lever l = new Lever(gx, gy, 64, 64, selectedLeverHorizontal,
+						foundDoor != null ? findDoorById(foundDoor) : null);
 				if (foundDoor != null) {
 					String tid = foundDoor;
 					l.setOnToggle(() -> {
 						Door dd = findDoorById(tid);
-						if (dd != null) { dd.setOpen(!dd.isOpen()); dd.interact(); }
+						if (dd != null) {
+							dd.setOpen(!dd.isOpen());
+							dd.interact();
+						}
 					});
 				}
 				interactableInstances.add(l);
 				placements.add(new Placement(ObjectType.LEVER, gx, gy, 1, 1, null));
 				placed = true;
+				break;
 			}
-			case BOX -> {
+			case BOX: {
 				LevelIO.LevelState.BoxData bd = new LevelIO.LevelState.BoxData();
-				bd.x = gx; bd.y = gy; state.boxes.add(bd);
+				// Center 24x24 box in 32x32 grid cell
+				bd.x = gx + 4f;
+				bd.y = gy + 4f;
+				bd.color = selectedBoxColor;
+				bd.areaW = selectedBoxAreaW;
+				bd.areaH = selectedBoxAreaH;
+				state.boxes.add(bd);
 				Box box = new Box(bd.x, bd.y, new Array<>());
+				// apply color
+				com.badlogic.gdx.graphics.Color base = com.badlogic.gdx.graphics.Color.CYAN;
+				switch (selectedBoxColor.toUpperCase()) {
+					case "RED": base = com.badlogic.gdx.graphics.Color.RED; break;
+					case "BLUE": base = com.badlogic.gdx.graphics.Color.BLUE; break;
+					case "GREEN": base = com.badlogic.gdx.graphics.Color.GREEN; break;
+					case "YELLOW": base = com.badlogic.gdx.graphics.Color.YELLOW; break;
+					case "PURPLE": base = com.badlogic.gdx.graphics.Color.PURPLE; break;
+					default: base = com.badlogic.gdx.graphics.Color.CYAN; break;
+				}
+				try {
+					box.setColor(base);
+				} catch (Throwable ignored) {
+				}
+				try { box.setRespawnArea(new Rectangle(bd.x - bd.areaW/2f, bd.y - bd.areaH/2f, bd.areaW, bd.areaH)); } catch (Throwable ignored) {}
 				interactableInstances.add(box);
 				placements.add(new Placement(ObjectType.BOX, gx, gy, 1, 1, null));
 				placed = true;
+				break;
 			}
-			case ORB -> {
+			case ORB: {
 				LevelIO.LevelState.OrbData od = new LevelIO.LevelState.OrbData();
-				od.x = gx; od.y = gy;
+				// Center 24x24 orb in grid cell
+				od.x = gx + 4f;
+				od.y = gy + 4f;
+				od.areaW = selectedOrbAreaW;
+				od.areaH = selectedOrbAreaH;
 				state.orbs.add(od);
 				Orb orb = new Orb(od.x, od.y, new Array<>());
+				try { orb.setRespawnArea(new Rectangle(od.x - od.areaW/2f, od.y - od.areaH/2f, od.areaW, od.areaH)); } catch (Throwable ignored) {}
 				interactableInstances.add(orb);
 				placements.add(new Placement(ObjectType.ORB, gx, gy, 1, 1, null));
 				placed = true;
+				break;
 			}
-			case BOSS -> {
+			case BOSS: {
 				LevelIO.LevelState.BossData bd = new LevelIO.LevelState.BossData();
-				bd.x = gx; bd.y = gy; state.boss = bd;
-				if (bossInstance == null) bossInstance = new BossInstance();
+				bd.x = gx;
+				bd.y = gy;
+				state.boss = bd;
+				if (bossInstance == null)
+					bossInstance = new BossInstance();
 				bossInstance.setPosition(bd.x, bd.y);
 				placements.add(new Placement(ObjectType.BOSS, gx, gy, 1, 1, null));
 				placed = true;
+				break;
 			}
-			case SPAWN -> {
+			case SPAWN: {
 				LevelIO.LevelState.SpawnData sd = new LevelIO.LevelState.SpawnData();
-				sd.x = gx; sd.y = gy; state.spawn = sd;
-				if (spawnPreview == null) spawnPreview = new Spawn(gx, gy); else spawnPreview.setPosition(gx, gy);
+				sd.x = gx;
+				sd.y = gy;
+				state.spawn = sd;
+				if (spawnPreview == null)
+					spawnPreview = new Spawn(gx, gy);
+				else
+					spawnPreview.setPosition(gx, gy);
 				placements.add(new Placement(ObjectType.SPAWN, gx, gy, 1, 1, null));
 				placed = true;
+				break;
 			}
-			case LAUNCHPAD -> {
+			case LAUNCHPAD: {
 				LevelIO.LevelState.LaunchpadData lpd = new LevelIO.LevelState.LaunchpadData();
-				lpd.x = gx; lpd.y = gy; lpd.direction = selectedLaunchpadDirection.name(); lpd.speed = selectedLaunchpadSpeed;
+				lpd.x = gx;
+				lpd.y = gy;
+				lpd.direction = selectedLaunchpadDirection.name();
+				lpd.speed = selectedLaunchpadSpeed;
 				state.launchpads.add(lpd);
 				com.jjmc.chromashift.environment.Launchpad launchpad = new com.jjmc.chromashift.environment.Launchpad(
 						gx, gy, selectedLaunchpadDirection, selectedLaunchpadSpeed);
 				interactableInstances.add(launchpad);
 				placements.add(new Placement(ObjectType.LAUNCHPAD, gx, gy, 1, 1, null));
 				placed = true;
+				break;
 			}
-			default -> {}
+			case LASER: {
+				LevelIO.LevelState.LaserData ld = new LevelIO.LevelState.LaserData();
+				ld.x = gx;
+				ld.y = gy;
+				ld.rotation = selectedLaserRotation;
+				ld.maxBounces = 8;
+				ld.rotating = selectedLaserIsRotating;
+				// assign unique id for laser
+				int laserCount = (state.lasers != null) ? state.lasers.size : 0;
+				ld.id = "laser_" + (laserCount + 1);
+				state.lasers.add(ld);
+				if (selectedLaserIsRotating) {
+					// Preview as interactable LaserRay emitter
+					com.jjmc.chromashift.environment.interactable.LaserRay lray = new com.jjmc.chromashift.environment.interactable.LaserRay(
+							gx, gy, true);
+					lray.setRotation(selectedLaserRotation);
+					interactableInstances.add(lray);
+					laserRecords.add(new LaserRecord(ld.id, ld.x, ld.y));
+				} else {
+					Laser laser = new Laser(gx, gy);
+					laser.setRotation(selectedLaserRotation);
+					interactableInstances.add(laser);
+					laserRecords.add(new LaserRecord(ld.id, ld.x, ld.y));
+				}
+				placements.add(new Placement(ObjectType.LASER, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
+			case MIRROR: {
+				LevelIO.LevelState.MirrorData md = new LevelIO.LevelState.MirrorData();
+				md.x = gx;
+				md.y = gy;
+				md.width = 32f;
+				md.height = 32f;
+				md.angleDeg = selectedMirrorAngleDeg;
+				// assign unique id for mirror
+				int mirrorCount = (state.mirrors != null) ? state.mirrors.size : 0;
+				md.id = "mirror_" + (mirrorCount + 1);
+				state.mirrors.add(md);
+				Mirror mirror = new Mirror(gx, gy, md.width, md.height);
+				try {
+					mirror.setAngleDegrees(md.angleDeg);
+				} catch (Exception ignored) {
+				}
+				interactableInstances.add(mirror);
+				mirrorRecords.add(new MirrorRecord(md.id, md.x, md.y, md.width, md.height));
+				placements.add(new Placement(ObjectType.MIRROR, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
+			case GLASS: {
+				LevelIO.LevelState.GlassData gd = new LevelIO.LevelState.GlassData();
+				gd.x = gx + 8f; // center 16x16 in 32x32 cell
+				gd.y = gy + 8f;
+				gd.width = 16f;
+				gd.height = 16f;
+				gd.rainbow = false; // user chooses static color
+				gd.speed = 1.5f;
+				gd.color = selectedGlassColor;
+				state.glasses.add(gd);
+				com.badlogic.gdx.graphics.Color base;
+				switch (selectedGlassColor.toUpperCase()) {
+					case "RED": base = com.badlogic.gdx.graphics.Color.RED; break;
+					case "BLUE": base = com.badlogic.gdx.graphics.Color.BLUE; break;
+					case "GREEN": base = com.badlogic.gdx.graphics.Color.GREEN; break;
+					case "YELLOW": base = com.badlogic.gdx.graphics.Color.YELLOW; break;
+					case "PURPLE": base = com.badlogic.gdx.graphics.Color.PURPLE; break;
+					default: base = com.badlogic.gdx.graphics.Color.CYAN; break;
+				}
+				Glass glass = new Glass(gd.x, gd.y, gd.width, gd.height, base, true, 1f, gd.rainbow);
+				interactableInstances.add(glass);
+				placements.add(new Placement(ObjectType.GLASS, (int) gd.x, (int) gd.y, 1, 1, null));
+				placed = true;
+				break;
+			}
+			case NONE:
+			default: {
+				break;
+			}
 		}
 		if (placed) {
 			refreshPreviewFromState();
 			placementFlashes.add(new Flash(gx, gy, areaW, areaH, 0.6f));
 			toastText = "Placed " + selectedType + " at (" + gx + "," + gy + ")";
 			toastTimer = 1.4f;
-			try { LevelIO.save(currentLevelPath, state); } catch (Exception ignored) {}
+			try {
+				LevelIO.save(currentLevelPath, state);
+			} catch (Exception ignored) {
+			}
 			Gdx.app.log("LevelMaker", "Placed " + selectedType + " at (" + gx + "," + gy + ")");
 		}
+	}
+
+	/**
+	 * Update the respawn area dimensions in the level state for a given box/orb.
+	 */
+	private void updateRespawnAreaInState(Interactable obj, float newW, float newH) {
+		if (state == null) return;
+		Rectangle bounds = obj.getBounds();
+		float cx = bounds.x + bounds.width / 2f;
+		float cy = bounds.y + bounds.height / 2f;
+		if (obj instanceof Box && state.boxes != null) {
+			for (LevelIO.LevelState.BoxData bd : state.boxes) {
+				if (Math.abs(bd.x - bounds.x) < 5f && Math.abs(bd.y - bounds.y) < 5f) {
+					bd.areaW = newW;
+					bd.areaH = newH;
+					break;
+				}
+			}
+		} else if (obj instanceof Orb && state.orbs != null) {
+			for (LevelIO.LevelState.OrbData od : state.orbs) {
+				if (Math.abs(od.x - bounds.x) < 5f && Math.abs(od.y - bounds.y) < 5f) {
+					od.areaW = newW;
+					od.areaH = newH;
+					break;
+				}
+			}
+		}
+		try {
+			LevelIO.save(currentLevelPath, state);
+		} catch (Exception ignored) {}
 	}
 
 	/**
@@ -1560,10 +2598,28 @@ public class LevelMakerScreen implements Screen {
 			}
 			// Rebuild doorRecords for linking
 			this.doorRecords.clear();
+			// Rebuild laserRecords for linking
+			this.laserRecords.clear();
+			// Rebuild mirrorRecords for linking
+			this.mirrorRecords.clear();
 			if (state != null && state.interactables != null) {
 				for (LevelIO.LevelState.InteractableData idd : state.interactables) {
 					if (idd != null && "door".equalsIgnoreCase(String.valueOf(idd.type))) {
 						this.doorRecords.add(new DoorRecord(idd.id, idd.x, idd.y, idd.cols, idd.rows));
+					}
+				}
+			}
+			if (state != null && state.lasers != null) {
+				for (LevelIO.LevelState.LaserData ld : state.lasers) {
+					if (ld != null && ld.id != null) {
+						this.laserRecords.add(new LaserRecord(ld.id, ld.x, ld.y));
+					}
+				}
+			}
+			if (state != null && state.mirrors != null) {
+				for (LevelIO.LevelState.MirrorData md : state.mirrors) {
+					if (md != null && md.id != null) {
+						this.mirrorRecords.add(new MirrorRecord(md.id, md.x, md.y, md.width, md.height));
 					}
 				}
 			}
@@ -1608,6 +2664,12 @@ public class LevelMakerScreen implements Screen {
 			state.orbs = new Array<>();
 		if (state.launchpads == null)
 			state.launchpads = new Array<>();
+		if (state.lasers == null)
+			state.lasers = new Array<>();
+		if (state.mirrors == null)
+			state.mirrors = new Array<>();
+		if (state.glasses == null)
+			state.glasses = new Array<>();
 		if (state.interactables == null)
 			state.interactables = new Array<>();
 		if (state.spawn == null)
@@ -1667,37 +2729,166 @@ public class LevelMakerScreen implements Screen {
 			b.rect = new Rectangle(bx, by, bw, bh);
 			bx += bw + gap;
 		}
-		// door dir buttons (above main buttons)
+
+		// Compute a shared optionY baseline from the DOOR button (fallback to by + bh +
+		// 8f)
+		Rectangle doorBtn = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.DOOR) {
+				doorBtn = ub.rect;
+				break;
+			}
+		float optionY = (doorBtn != null) ? (doorBtn.y + doorBtn.height + 8f) : (by + bh + 8f);
+
+		// door dir buttons (position above the DOOR toolbar button)
 		doorDirButtons.clear();
-		float optionY = by + bh + 8f;
-		float optionX = (uiCamera.viewportWidth - (4 * bw + 3 * gap)) / 2f;
+		float optionX = (doorBtn != null) ? (doorBtn.x + (doorBtn.width - (4 * bw + 3 * gap)) / 2f)
+				: (uiCamera.viewportWidth - (4 * bw + 3 * gap)) / 2f;
 		for (int i = 0; i < doorDirections.length; i++) {
 			doorDirButtons.add(new Rectangle(optionX + i * (bw + gap), optionY, bw, bh));
 		}
-		// door speed controls
+
+		// door speed controls (placed to the right of the door options)
 		float speedW = 28f, speedH = 20f, speedGap = 6f;
 		float speedStartX = optionX + (4 * (bw + gap));
-		doorOpenMinusRect = new Rectangle(speedStartX, optionY + 70f, speedW, speedH);
-		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + 70f, speedW, speedH);
-		doorCloseMinusRect = new Rectangle(speedStartX, optionY + 70f - (speedH + 4f), speedW, speedH);
-		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + 70f - (speedH + 4f), speedW,
-				speedH);
+		// Move the controls higher so they don't overlap the main toolbar
+		doorOpenMinusRect = new Rectangle(speedStartX, optionY + 46f, speedW, speedH);
+		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + 46f, speedW, speedH);
+		doorCloseMinusRect = new Rectangle(speedStartX, optionY + 46f - (speedH + 6f), speedW, speedH);
+		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + 46f - (speedH + 6f), speedW,
+			speedH);
 
-		// launchpad direction buttons (rebuild)
+		// launchpad direction buttons (rebuild above LAUNCHPAD toolbar button)
 		launchpadDirRects.clear();
 		float lpDirW = 50f, lpDirH = 24f, lpDirGap = 4f;
+		Rectangle lpBtn = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.LAUNCHPAD) {
+				lpBtn = ub.rect;
+				break;
+			}
 		float lpDirsWidth = 3 * lpDirW + 2 * lpDirGap;
-		float lpDirX = (uiCamera.viewportWidth - lpDirsWidth) / 2f;
+		float lpDirX = (lpBtn != null) ? (lpBtn.x + (lpBtn.width - lpDirsWidth) / 2f)
+				: (uiCamera.viewportWidth - lpDirsWidth) / 2f;
 		for (int i = 0; i < 3; i++) {
-			launchpadDirRects.add(new Rectangle(lpDirX + i * (lpDirW + lpDirGap), optionY, lpDirW, lpDirH));
+			launchpadDirRects.add(new Rectangle(lpDirX + i * (lpDirW + lpDirGap),
+					(lpBtn != null) ? (lpBtn.y + lpBtn.height + 8f) : optionY, lpDirW, lpDirH));
 		}
 
-		// sliders positions (keep above options)
+		// laser type buttons (rebuild on resize) - above LASER toolbar button
+		laserTypeRects.clear();
+		float laserTypeW = 70f, laserTypeH = 24f, laserTypeGap = 4f;
+		float laserTypesWidth = 2 * laserTypeW + laserTypeGap;
+		Rectangle laserBtn = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.LASER) {
+				laserBtn = ub.rect;
+				break;
+			}
+		float laserTypeX = (laserBtn != null) ? (laserBtn.x + (laserBtn.width - laserTypesWidth) / 2f)
+				: (uiCamera.viewportWidth - laserTypesWidth) / 2f;
+		laserTypeRects.add(new Rectangle(laserTypeX, (laserBtn != null) ? (laserBtn.y + laserBtn.height + 8f) : optionY,
+				laserTypeW, laserTypeH));
+		laserTypeRects.add(new Rectangle(laserTypeX + laserTypeW + laserTypeGap,
+				(laserBtn != null) ? (laserBtn.y + laserBtn.height + 8f) : optionY, laserTypeW, laserTypeH));
+
+		// laser direction buttons (rebuild on resize) above type buttons
+		laserDirRects.clear();
+		float ldirW = 36f, ldirH = 24f, ldirGap = 6f;
+		float ldirsWidth = 4 * ldirW + 3 * ldirGap;
+		float ldirX = (laserBtn != null) ? (laserBtn.x + (laserBtn.width - ldirsWidth) / 2f)
+				: (uiCamera.viewportWidth - ldirsWidth) / 2f;
+		float ldirY = (laserBtn != null) ? (laserBtn.y + laserBtn.height + 8f + laserTypeH + 8f)
+				: optionY + laserTypeH + 8f;
+		for (int i = 0; i < 4; i++) {
+			laserDirRects.add(new Rectangle(ldirX + i * (ldirW + ldirGap), ldirY, ldirW, ldirH));
+		}
+
+		// sliders positions (placed above the door options if available)
 		float sliderW = 220f, sliderH = 14f;
-		float sliderX = (uiCamera.viewportWidth - sliderW) / 2f;
-		float sliderY = optionY + 70f;
+		float sliderX = (doorBtn != null) ? (doorBtn.x + (doorBtn.width - sliderW) / 2f)
+				: (uiCamera.viewportWidth - sliderW) / 2f;
+		float sliderY = (doorBtn != null) ? (doorBtn.y + doorBtn.height + 8f + 40f) : (optionY + 70f);
 		openSpeedSliderRect = new Rectangle(sliderX, sliderY, sliderW, sliderH);
 		closeSpeedSliderRect = new Rectangle(sliderX, sliderY - (sliderH + 10f), sliderW, sliderH);
+
+		// Button color swatches (rebuild on resize) - placed above BUTTON toolbar
+		// button
+		buttonColorRects.clear();
+		float sw = 40f, sh = 24f, sg = 6f;
+		Button.ButtonColor[] cols = Button.ButtonColor.values();
+		float colorsWidth = cols.length * sw + (cols.length - 1) * sg;
+		Rectangle buttonBtn = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.BUTTON) {
+				buttonBtn = ub.rect;
+				break;
+			}
+		float bcx = (buttonBtn != null) ? (buttonBtn.x + (buttonBtn.width - colorsWidth) / 2f)
+				: (uiCamera.viewportWidth - colorsWidth) / 2f;
+		for (int i = 0; i < cols.length; i++) {
+			buttonColorRects.add(new Rectangle(bcx + i * (sw + sg),
+					(buttonBtn != null) ? (buttonBtn.y + buttonBtn.height + 8f) : optionY, sw, sh));
+		}
+
+		// lever orientation - above LEVER toolbar button
+		Rectangle leverBtn = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.LEVER) {
+				leverBtn = ub.rect;
+				break;
+			}
+		leverOrientRect = new Rectangle(
+				(leverBtn != null) ? (leverBtn.x + (leverBtn.width - 80f) / 2f) : ((uiCamera.viewportWidth - 80f) / 2f),
+				(leverBtn != null) ? (leverBtn.y + leverBtn.height + 8f) : optionY, 80f, sh);
+
+		// Mirror rotate - above MIRROR toolbar button
+		float optW = 110f, optH = 24f;
+		Rectangle mirrorBtn = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.MIRROR) {
+				mirrorBtn = ub.rect;
+				break;
+			}
+		float optX = (mirrorBtn != null) ? (mirrorBtn.x + (mirrorBtn.width - optW) / 2f)
+				: (uiCamera.viewportWidth - optW) / 2f;
+		mirrorRotateRect = new Rectangle(optX, (mirrorBtn != null) ? (mirrorBtn.y + mirrorBtn.height + 8f) : optionY,
+				optW, optH);
+
+		// Glass color swatches
+		glassColorRects.clear();
+		String[] gcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
+		float gcw = 40f, gch = 24f, gcgap = 6f;
+		float gtotal = gcolors.length * gcw + (gcolors.length - 1) * gcgap;
+		Rectangle glassBtn = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.GLASS) {
+				glassBtn = ub.rect;
+				break;
+			}
+		float gcx = (glassBtn != null) ? (glassBtn.x + (glassBtn.width - gtotal) / 2f)
+				: (uiCamera.viewportWidth - gtotal) / 2f;
+		for (int i = 0; i < gcolors.length; i++) {
+			glassColorRects.add(new Rectangle(gcx + i * (gcw + gcgap),
+					(glassBtn != null) ? (glassBtn.y + glassBtn.height + 8f) : optionY, gcw, gch));
+		}
+
+		// Box color swatches
+		boxColorRects.clear();
+		float btotal = gcolors.length * gcw + (gcolors.length - 1) * gcgap;
+		Rectangle boxBtn = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.BOX) {
+				boxBtn = ub.rect;
+				break;
+			}
+		float boxCx = (boxBtn != null) ? (boxBtn.x + (boxBtn.width - btotal) / 2f)
+				: (uiCamera.viewportWidth - btotal) / 2f;
+		for (int i = 0; i < gcolors.length; i++) {
+			boxColorRects.add(new Rectangle(boxCx + i * (gcw + gcgap),
+					(boxBtn != null) ? (boxBtn.y + boxBtn.height + 8f) : optionY, gcw, gch));
+		}
+
 		// recompute level rects
 		levelRects.clear();
 		float lx = uiCamera.position.x + uiCamera.viewportWidth / 2f - 180f;
@@ -1759,6 +2950,27 @@ public class LevelMakerScreen implements Screen {
 		for (DoorRecord dr : doorRecords) {
 			if (Math.abs((int) dr.x - wx) <= 32 && Math.abs((int) dr.y - wy) <= 32)
 				return dr.id;
+		}
+		return null;
+	}
+
+	/**
+	 * Find a laser record id at the provided world-grid cell (approx). Returns null
+	 * if none found.
+	 */
+	private String findLaserIdAt(int wx, int wy) {
+		for (LaserRecord lr : laserRecords) {
+			if (Math.abs((int) lr.x - wx) <= 32 && Math.abs((int) lr.y - wy) <= 32)
+				return lr.id;
+		}
+		return null;
+	}
+
+	/** Find a mirror record id near the provided world-grid cell. */
+	private String findMirrorIdAt(int wx, int wy) {
+		for (MirrorRecord mr : mirrorRecords) {
+			if (Math.abs((int) mr.x - wx) <= 32 && Math.abs((int) mr.y - wy) <= 32)
+				return mr.id;
 		}
 		return null;
 	}
@@ -1886,6 +3098,49 @@ public class LevelMakerScreen implements Screen {
 					}
 				}
 				break;
+			case LASER:
+				for (int i = 0; i < state.lasers.size; ++i) {
+					LevelIO.LevelState.LaserData ld = state.lasers.get(i);
+					if (ld.x == p.x && ld.y == p.y) {
+						state.lasers.removeIndex(i);
+						break;
+					}
+				}
+				for (int i = interactableInstances.size - 1; i >= 0; --i) {
+					Interactable it = interactableInstances.get(i);
+					if (it instanceof Laser) {
+						Rectangle rb = it.getBounds();
+						if ((int) rb.x == p.x && (int) rb.y == p.y) {
+							interactableInstances.removeIndex(i);
+							break;
+						}
+					}
+				}
+				break;
+			case MIRROR:
+				for (int i = 0; i < state.mirrors.size; ++i) {
+					LevelIO.LevelState.MirrorData md = state.mirrors.get(i);
+					if (md.x == p.x && md.y == p.y) {
+						state.mirrors.removeIndex(i);
+						break;
+					}
+				}
+				for (int i = interactableInstances.size - 1; i >= 0; --i)
+					if (interactableInstances.get(i) instanceof Mirror)
+						interactableInstances.removeIndex(i);
+				break;
+			case GLASS:
+				for (int i = 0; i < state.glasses.size; ++i) {
+					LevelIO.LevelState.GlassData gd = state.glasses.get(i);
+					if (gd.x == p.x && gd.y == p.y) {
+						state.glasses.removeIndex(i);
+						break;
+					}
+				}
+				for (int i = interactableInstances.size - 1; i >= 0; --i)
+					if (interactableInstances.get(i) instanceof Glass)
+						interactableInstances.removeIndex(i);
+				break;
 			case NONE:
 				break;
 			default:
@@ -1893,7 +3148,6 @@ public class LevelMakerScreen implements Screen {
 		}
 	}
 
-	
 	@Override
 	public void resize(int width, int height) {
 		camera.viewportWidth = width;
@@ -1907,8 +3161,6 @@ public class LevelMakerScreen implements Screen {
 			rebuildUIPositions();
 		}
 	}
-
-
 
 	// (Removed anchor-based door helpers; doors can be placed anywhere now.)
 

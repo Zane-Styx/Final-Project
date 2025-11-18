@@ -140,6 +140,9 @@ public class PlayerLogic {
             player.setVelocityY(player.getConfig().jumpForce);
             player.setOnGround(false);
             
+            // Play dash sound when jumping
+            com.chromashift.helper.SoundManager.play("Dash");
+            
             // If we're dashing, end the dash
             if (player.isDashing()) {
                 player.setDashing(false);

@@ -56,11 +56,18 @@ public class TestSceneScreen implements Screen {
     private Wall baseRight;
 
     private float groundY = -64f;
+    // Camera zoom settings
+    private float desiredZoom = 0.4f; // <1 = zoom in a bit
+    private float zoomLerpSpeed = 2.5f; // how fast camera zooms to target
 
     @Override
     public void show() {
+        // Reset editor flags when entering game mode
+        com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;
+        com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = false;
+        
         // Use Initialize helper to create common systems
-        ctx = Initialize.createCommon(800, 480, null);
+        ctx = Initialize.createCommon(500, 180, null);
         camera = ctx.camera;
         camController = ctx.camController;
         batch = ctx.batch;
@@ -69,8 +76,14 @@ public class TestSceneScreen implements Screen {
 
         // Load everything via the unified LevelLoader
         String levelPath = "levels/level1.json";
-        com.jjmc.chromashift.screens.levels.LevelLoader.Result loaded =
-                com.jjmc.chromashift.screens.levels.LevelLoader.load(levelPath);
+        // Prefer workspace copy when available so editor changes (door speeds, links)
+        // are reflected immediately during playtesting.
+        com.jjmc.chromashift.screens.levels.LevelLoader.Result loaded;
+        try {
+            loaded = com.jjmc.chromashift.screens.levels.LevelLoader.loadFromWorkspace(levelPath);
+        } catch (Exception ex) {
+            loaded = com.jjmc.chromashift.screens.levels.LevelLoader.load(levelPath);
+        }
 
         // Adopt loaded collections so updates/render iterate the same instances
         this.walls = loaded.walls;
@@ -102,9 +115,10 @@ public class TestSceneScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        // Basic input: close app with ESC
+        // Basic input: ESC returns to test menu
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            Gdx.app.exit();
+            ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new TestMenuScreen());
+            return;
         }
 
         // Respawn player to initial spawn with R
@@ -161,11 +175,38 @@ public class TestSceneScreen implements Screen {
             boss.update(delta);
         }
 
+        // Check laser beams against the player hitbox; if intersecting, kill the player
+        Rectangle playerHit = player.getHitboxRect();
+        float beamThickness = 6f; // matches Laser/LaserRay outer thickness
+        for (int i = 0; i < interactables.size; i++) {
+            Interactable it = interactables.get(i);
+            java.util.ArrayList<com.badlogic.gdx.math.Vector2> pts = null;
+            if (it instanceof com.jjmc.chromashift.environment.interactable.Laser l) {
+                pts = l.getCachedPoints();
+            } else if (it instanceof com.jjmc.chromashift.environment.interactable.LaserRay lr) {
+                pts = lr.getCachedPoints();
+            }
+            if (pts == null || pts.size() < 2) continue;
+            if (beamIntersectsRect(pts, playerHit, beamThickness)) {
+                // kill player instantly
+                try { player.getHealthSystem().kill(it); } catch (Throwable ignored) {}
+                break;
+            }
+        }
+
         // Camera update / follow
         Vector2 playerCenter = new Vector2(player.getX() + player.getHitboxWidth() / 2f,
                                            player.getY() + player.getHitboxHeight() / 2f);
         camController.setTarget(playerCenter);
         camController.update(delta);
+
+        // Smoothly adjust camera zoom toward desiredZoom so view focuses slightly on player
+        if (camera != null) {
+            float cur = camera.zoom;
+            float t = Math.min(1f, zoomLerpSpeed * delta);
+            camera.zoom = cur + (desiredZoom - cur) * t;
+            camera.update();
+        }
 
         // Draw
         Gdx.gl.glClearColor(0.08f, 0.09f, 0.12f, 1f);
@@ -269,6 +310,17 @@ public class TestSceneScreen implements Screen {
             for (Wall w : walls) w.debugDraw(shape);
             for (Interactable i : interactables) i.debugDraw(shape);
             player.debugDrawHitbox(shape);
+            // Draw respawn areas for boxes and orbs
+            shape.setColor(new Color(0f,0.5f,1f,0.25f));
+            for (Interactable i : interactables) {
+                if (i instanceof com.jjmc.chromashift.environment.interactable.Box b) {
+                    Rectangle area = b.getRespawnArea();
+                    if (area != null) shape.rect(area.x, area.y, area.width, area.height);
+                } else if (i instanceof com.jjmc.chromashift.environment.interactable.Orb o) {
+                    Rectangle area = o.getRespawnArea();
+                    if (area != null) shape.rect(area.x, area.y, area.width, area.height);
+                }
+            }
             shape.end();
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
@@ -281,6 +333,48 @@ public class TestSceneScreen implements Screen {
         if (boss != null && Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             boss.getHealthSystem().heal(100f);        
         }
+    }
+
+    /**
+     * Return true if any segment in the polyline `points` intersects rectangle `r` within `thickness`.
+     */
+    private boolean beamIntersectsRect(java.util.ArrayList<com.badlogic.gdx.math.Vector2> points, Rectangle r, float thickness) {
+        if (points == null || points.size() < 2 || r == null) return false;
+        float pad = thickness * 0.5f;
+        Rectangle re = new Rectangle(r.x - pad, r.y - pad, r.width + pad*2f, r.height + pad*2f);
+
+        // helper: check segment intersects rectangle `re`
+        for (int i = 0; i < points.size() - 1; i++) {
+            com.badlogic.gdx.math.Vector2 a = points.get(i);
+            com.badlogic.gdx.math.Vector2 b = points.get(i+1);
+            // if either endpoint inside rect -> hit
+            if (re.contains(a.x, a.y) || re.contains(b.x, b.y)) return true;
+            // check intersection with each rectangle edge
+            com.badlogic.gdx.math.Vector2 r1 = new com.badlogic.gdx.math.Vector2(re.x, re.y);
+            com.badlogic.gdx.math.Vector2 r2 = new com.badlogic.gdx.math.Vector2(re.x + re.width, re.y);
+            com.badlogic.gdx.math.Vector2 r3 = new com.badlogic.gdx.math.Vector2(re.x + re.width, re.y + re.height);
+            com.badlogic.gdx.math.Vector2 r4 = new com.badlogic.gdx.math.Vector2(re.x, re.y + re.height);
+            if (segmentsIntersect(a, b, r1, r2)) return true;
+            if (segmentsIntersect(a, b, r2, r3)) return true;
+            if (segmentsIntersect(a, b, r3, r4)) return true;
+            if (segmentsIntersect(a, b, r4, r1)) return true;
+        }
+        return false;
+    }
+
+    // Standard 2D segment intersection test
+    private boolean segmentsIntersect(com.badlogic.gdx.math.Vector2 p1, com.badlogic.gdx.math.Vector2 p2, com.badlogic.gdx.math.Vector2 q1, com.badlogic.gdx.math.Vector2 q2) {
+        float o1 = orient(p1, p2, q1);
+        float o2 = orient(p1, p2, q2);
+        float o3 = orient(q1, q2, p1);
+        float o4 = orient(q1, q2, p2);
+
+        if (o1 * o2 < 0f && o3 * o4 < 0f) return true;
+        return false;
+    }
+
+    private float orient(com.badlogic.gdx.math.Vector2 a, com.badlogic.gdx.math.Vector2 b, com.badlogic.gdx.math.Vector2 c) {
+        return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
     }
 
     @Override

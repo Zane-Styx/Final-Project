@@ -1,19 +1,15 @@
 package com.jjmc.chromashift;
 
 import com.badlogic.gdx.Game;
-import com.jjmc.chromashift.screens.TestSceneScreen;
-import com.jjmc.chromashift.screens.levels.LevelMakerScreen;
+import com.jjmc.chromashift.screens.LoadingScreen;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class ChromashiftGame extends Game {
     @Override
     public void create() {
-        // Preload assets (textures/atlases) on the GL thread to avoid costly
-        // texture uploads during gameplay. Assets.loadAll() blocks until
-        // loaded and should be called before heavy object construction.
-        Assets.loadAll();
-
-        setScreen(new TestSceneScreen());
+        // Start with loading screen that enqueues and loads all assets,
+        // then transitions to the initial screen.
+        setScreen(new LoadingScreen(this));
     }
 }
 

@@ -1,4 +1,7 @@
+
 package com.jjmc.chromashift.environment.interactable;
+
+import com.chromashift.helper.SoundManager;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -116,6 +119,8 @@ public class Lever implements Interactable {
         if (!canInteract()) return;
 
         on = !on;
+        // Play lever sound effect
+        SoundManager.play("Lever");
         // Update visual frame to reflect new state (toggle between column 0 and 1)
         try { if (anim != null) anim.setFrame(on ? 1 : 0); } catch (Exception ignored) {}
         if (onToggle != null) onToggle.run();
