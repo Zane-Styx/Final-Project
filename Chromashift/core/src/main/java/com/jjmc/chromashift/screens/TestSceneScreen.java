@@ -2,12 +2,15 @@ package com.jjmc.chromashift.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
@@ -40,10 +43,13 @@ public class TestSceneScreen implements Screen {
     private Player player;
     private BossInstance boss;
     private Initialize.Context ctx;
+    private Stage uiStage;
 
     private Array<Wall> walls;
     private Array<Interactable> interactables;
     private Array<Solid> solids;
+    private Array<com.jjmc.chromashift.environment.collectible.Collectible> collectibles;
+    private Array<com.jjmc.chromashift.environment.interactable.Shop> shops;
 
     // Player spawn for respawn key
     private float playerSpawnX;
@@ -89,6 +95,16 @@ public class TestSceneScreen implements Screen {
         this.walls = loaded.walls;
         this.solids = loaded.solids;
         this.interactables = loaded.interactables;
+        this.collectibles = loaded.collectibles;
+        
+        // Initialize UI stage for shop dialogs
+        uiStage = new Stage(new ScreenViewport());
+        
+        // Use InputMultiplexer to allow both UI and game input
+        // Stage gets priority for UI clicks, but keyboard input still works for player
+        InputMultiplexer multiplexer = new InputMultiplexer();
+        multiplexer.addProcessor(uiStage);
+        Gdx.input.setInputProcessor(multiplexer);
 
         // Boss (only for BossRoom level)
         if (loaded.boss != null) {
@@ -111,6 +127,15 @@ public class TestSceneScreen implements Screen {
         playerSpawnY = player.getY();
         // Visible spawn marker (static frame by default)
         spawnMarker = new Spawn(playerSpawnX, playerSpawnY);
+        
+        // Instantiate shops now that we have Player and Stage
+        shops = new Array<>();
+        for (com.jjmc.chromashift.screens.levels.LevelIO.LevelState.ShopData sd : loaded.shopDataList) {
+            com.jjmc.chromashift.environment.interactable.Shop shop = 
+                new com.jjmc.chromashift.environment.interactable.Shop(sd.x, sd.y, player, uiStage);
+            shops.add(shop);
+            interactables.add(shop); // Add to interactables for collision/interaction
+        }
     }
 
     @Override
@@ -166,6 +191,17 @@ public class TestSceneScreen implements Screen {
             }
         }
 
+        // Update collectibles and check for collection
+        for (int i = collectibles.size - 1; i >= 0; i--) {
+            com.jjmc.chromashift.environment.collectible.Collectible c = collectibles.get(i);
+            c.update(delta);
+            c.checkCollision(player);
+            // Remove collected items
+            if (c.isCollected()) {
+                collectibles.removeIndex(i);
+            }
+        }
+        
         // Player update
         player.update(delta, groundY, solids, interactables, 1);
 
@@ -216,9 +252,13 @@ public class TestSceneScreen implements Screen {
 
         batch.setProjectionMatrix(camController.getCamera().combined);
         batch.begin();
-        // Draw world: walls first, then interactables, spawn marker, boss, and player
+        // Draw world: walls first, then interactables, collectibles, spawn marker, boss, and player
         for (Wall w : walls) w.render(batch);
         for (Interactable i : interactables) i.render(batch);
+        // Render collectibles (diamonds, etc.)
+        for (com.jjmc.chromashift.environment.collectible.Collectible c : collectibles) {
+            c.render(batch);
+        }
         if (spawnMarker != null) {
             spawnMarker.update(delta);
             if (spawnMarker.isVisible()) {
@@ -230,64 +270,64 @@ public class TestSceneScreen implements Screen {
         }
         player.render(batch);
 
-        // Draw debug UI with clean layout
-        float baseX = camController.getCamera().position.x - 480 + 8;  // Left align
-        float baseY = camController.getCamera().position.y + 260;      // Top of screen
-        float lineHeight = 20f;  // Space between lines
+        // // Draw debug UI with clean layout
+        // float baseX = camController.getCamera().position.x - 480 + 8;  // Left align
+        // float baseY = camController.getCamera().position.y + 260;      // Top of screen
+        // float lineHeight = 20f;  // Space between lines
         
-        // Title
-        font.setColor(Color.GOLD);
-        font.draw(batch, "Debug Info (F3 for hitboxes)", baseX, baseY);
+        // // Title
+        // font.setColor(Color.GOLD);
+        // font.draw(batch, "Debug Info (F3 for hitboxes)", baseX, baseY);
         
-        // Movement controls
-        font.setColor(Color.WHITE);
-        baseY -= lineHeight;
-        font.draw(batch, "Movement:", baseX, baseY);
-        font.setColor(Color.LIGHT_GRAY);
-        baseY -= lineHeight;
-        font.draw(batch, "• A/D - Move Left/Right", baseX + 10, baseY);
-        baseY -= lineHeight;
-        font.draw(batch, "• W - Jump", baseX + 10, baseY);
-        baseY -= lineHeight;
-        font.draw(batch, "• Space - Attack", baseX + 10, baseY);
-        baseY -= lineHeight;
-        font.draw(batch, "• SHIFT - Dash (once until landing)", baseX + 10, baseY);
+        // // Movement controls
+        // font.setColor(Color.WHITE);
+        // baseY -= lineHeight;
+        // font.draw(batch, "Movement:", baseX, baseY);
+        // font.setColor(Color.LIGHT_GRAY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• A/D - Move Left/Right", baseX + 10, baseY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• W - Jump", baseX + 10, baseY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• Space - Attack", baseX + 10, baseY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• SHIFT - Dash (once until landing)", baseX + 10, baseY);
         
-        // Combat/Health
-        baseY -= lineHeight * 1.5f;
-        font.setColor(Color.WHITE);
-        font.draw(batch, "Combat:", baseX, baseY);
-        font.setColor(Color.LIGHT_GRAY);
-        baseY -= lineHeight;
-        String healthText = String.format("• Player Health: %.0f/%.0f", player.getHealthSystem().getCurrentHealth(), player.getHealthSystem().getMaxHealth());
-        font.draw(batch, healthText, baseX + 10, baseY);
-        baseY -= lineHeight;
-        String bossHealthText = boss != null ? String.format("• Boss Health: %.0f/%.0f", boss.getHealthSystem().getCurrentHealth(), boss.getHealthSystem().getMaxHealth()) : "• Boss: None";
-        font.draw(batch, bossHealthText, baseX + 10, baseY);
-        baseY -= lineHeight;
-        font.draw(batch, "• O - Test damage (100)", baseX + 10, baseY);
+        // // Combat/Health
+        // baseY -= lineHeight * 1.5f;
+        // font.setColor(Color.WHITE);
+        // font.draw(batch, "Combat:", baseX, baseY);
+        // font.setColor(Color.LIGHT_GRAY);
+        // baseY -= lineHeight;
+        // String healthText = String.format("• Player Health: %.0f/%.0f", player.getHealthSystem().getCurrentHealth(), player.getHealthSystem().getMaxHealth());
+        // font.draw(batch, healthText, baseX + 10, baseY);
+        // baseY -= lineHeight;
+        // String bossHealthText = boss != null ? String.format("• Boss Health: %.0f/%.0f", boss.getHealthSystem().getCurrentHealth(), boss.getHealthSystem().getMaxHealth()) : "• Boss: None";
+        // font.draw(batch, bossHealthText, baseX + 10, baseY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• O - Test damage (100)", baseX + 10, baseY);
         
-        // Interaction controls
-        baseY -= lineHeight * 1.5f;
-        font.setColor(Color.WHITE);
-        font.draw(batch, "Interaction:", baseX, baseY);
-        font.setColor(Color.LIGHT_GRAY);
-        baseY -= lineHeight;
-        font.draw(batch, "• G - Pick up/Throw objects (aim with mouse)", baseX + 10, baseY);
-        baseY -= lineHeight;
-        font.draw(batch, "• F - Interact", baseX + 10, baseY);
+        // // Interaction controls
+        // baseY -= lineHeight * 1.5f;
+        // font.setColor(Color.WHITE);
+        // font.draw(batch, "Interaction:", baseX, baseY);
+        // font.setColor(Color.LIGHT_GRAY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• G - Pick up/Throw objects (aim with mouse)", baseX + 10, baseY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• F - Interact", baseX + 10, baseY);
         
-        // System controls
-        baseY -= lineHeight * 1.5f;
-        font.setColor(Color.WHITE);
-        font.draw(batch, "System:", baseX, baseY);
-        font.setColor(Color.LIGHT_GRAY);
-        baseY -= lineHeight;
-        font.draw(batch, "• R - Respawn", baseX + 10, baseY);
-        baseY -= lineHeight;
-        font.draw(batch, "• F3 - Show Debug Lines", baseX + 10, baseY);
-        baseY -= lineHeight;
-        font.draw(batch, "• ESC - Exit game", baseX + 10, baseY);
+        // // System controls
+        // baseY -= lineHeight * 1.5f;
+        // font.setColor(Color.WHITE);
+        // font.draw(batch, "System:", baseX, baseY);
+        // font.setColor(Color.LIGHT_GRAY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• R - Respawn", baseX + 10, baseY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• F3 - Show Debug Lines", baseX + 10, baseY);
+        // baseY -= lineHeight;
+        // font.draw(batch, "• ESC - Exit game", baseX + 10, baseY);
         
         // Status effects (if any active)
         if (player.getHealthSystem().isInvulnerable()) {
@@ -297,6 +337,10 @@ public class TestSceneScreen implements Screen {
                      camController.getCamera().position.y + 40);
         }
         batch.end();
+        
+        // Update and draw UI stage for shop dialogs
+        uiStage.act(delta);
+        uiStage.draw();
 
         // Debug visuals
         shape.setProjectionMatrix(camController.getCamera().combined);
@@ -381,6 +425,9 @@ public class TestSceneScreen implements Screen {
     public void resize(int width, int height) {
         if (width <= 0 || height <= 0) return;
         camera.setToOrtho(false, width, height);
+        if (uiStage != null) {
+            uiStage.getViewport().update(width, height, true);
+        }
     }
 
     @Override public void pause() {}
@@ -394,6 +441,12 @@ public class TestSceneScreen implements Screen {
         if (boss != null) boss.disposeParts();
         // dispose button sprites
         for (Interactable i : interactables) if (i instanceof Button b) b.dispose();
+        // dispose collectibles
+        for (com.jjmc.chromashift.environment.collectible.Collectible c : collectibles) c.dispose();
+        // dispose shops
+        for (com.jjmc.chromashift.environment.interactable.Shop s : shops) s.dispose();
+        // dispose UI stage
+        if (uiStage != null) uiStage.dispose();
         // dispose wall/shared textures
         com.jjmc.chromashift.environment.Wall.dispose();
     }

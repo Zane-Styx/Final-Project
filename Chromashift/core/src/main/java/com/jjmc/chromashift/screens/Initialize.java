@@ -54,6 +54,15 @@ public class Initialize {
             player.setCamera(camera);
             player.setX(spawnX);
             player.setY(spawnY);
+            // Attach persistent UI using a ScreenViewport bound to the same camera so it follows between screens.
+            try {
+                com.badlogic.gdx.utils.viewport.ScreenViewport vp = new com.badlogic.gdx.utils.viewport.ScreenViewport(camera);
+                player.attachUI(vp);
+                // Set font for PlayerUI to display diamond count
+                if (player.getPlayerUI() != null && font != null) {
+                    player.getPlayerUI().setFont(font);
+                }
+            } catch (Exception ignored) {}
             return player;
         }
     }
@@ -99,6 +108,7 @@ public class Initialize {
             SoundManager.addSound("Lever", "sounds/Lever.wav");
             SoundManager.addSound("Launchpad", "sounds/Launchpad.wav");
             SoundManager.addSound("UISelect", "sounds/UISelect.wav");
+            SoundManager.addSound("PickUpItem", "sounds/PickUpItem.wav");
             SoundManager.addLoopingSfx("Walking", "sounds/Walking.wav");
 
             // Add ambient background music

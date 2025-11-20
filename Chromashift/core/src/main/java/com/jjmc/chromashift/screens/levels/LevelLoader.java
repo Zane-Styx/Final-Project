@@ -23,6 +23,9 @@ public final class LevelLoader {
         public final Array<Wall> walls = new Array<>();
         public final Array<Solid> solids = new Array<>();
         public final Array<Interactable> interactables = new Array<>();
+        public final Array<com.jjmc.chromashift.environment.collectible.Collectible> collectibles = new Array<>();
+        // Shop position data (shops need Player and Stage, so they're instantiated by screens)
+        public final Array<LevelIO.LevelState.ShopData> shopDataList = new Array<>();
         public BossInstance boss; // optional
         public float spawnX;
         public float spawnY;
@@ -351,6 +354,23 @@ public final class LevelLoader {
                     lr.setGlasses(glist);
                     lr.setSolids(slist);
                 }
+            }
+        }
+
+        // Diamonds (collectibles)
+        if (state.diamonds != null) {
+            for (LevelIO.LevelState.DiamondData dd : state.diamonds) {
+                com.jjmc.chromashift.environment.collectible.Diamond diamond = 
+                    new com.jjmc.chromashift.environment.collectible.Diamond(dd.x, dd.y);
+                out.collectibles.add(diamond);
+            }
+        }
+
+        // Shops (interactables) - Store data for screen-level instantiation
+        // Shop requires Player and Stage references, so screens must create them
+        if (state.shops != null) {
+            for (LevelIO.LevelState.ShopData sd : state.shops) {
+                out.shopDataList.add(sd);
             }
         }
 

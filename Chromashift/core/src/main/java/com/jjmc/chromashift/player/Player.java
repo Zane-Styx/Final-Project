@@ -18,6 +18,8 @@ import com.jjmc.chromashift.environment.Wall;
 import com.jjmc.chromashift.environment.interactable.Interactable;
 import com.jjmc.chromashift.environment.interactable.Pickable;
 import com.jjmc.chromashift.environment.Solid;
+import com.jjmc.chromashift.ui.PlayerUI;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 /**
  * Cleaned Player implementation — single, consistent class.
@@ -39,12 +41,14 @@ public class Player {
     protected boolean canJump = true;
     private boolean moving = false;
     private com.badlogic.gdx.graphics.Camera gameCamera;
+    // Persistent UI overlay for this player
+    private PlayerUI playerUI;
 
     // Timers / state
     protected float dashTimer = 0f;
     protected float dashCooldownTimer = 0f;
     protected boolean dashUsed = false;
-    
+
     public void setCamera(com.badlogic.gdx.graphics.Camera camera) {
         this.gameCamera = camera;
         // Also set camera for held object if any
@@ -53,6 +57,8 @@ public class Player {
         } else if (heldObject instanceof Orb orb) {
             orb.setCamera(camera);
         }
+        // Camera change may imply viewport change; caller should reattach viewport if
+        // needed
     }
 
     private boolean attacking = false;
@@ -79,12 +85,15 @@ public class Player {
     protected int rows, cols, attackFrames;
     protected int attackFrameW, attackFrameH;
 
+    // Shield / Armor
+    private int shield = 0;
+
     public Player(float startX, float startY,
-                  int keyLeft, int keyRight, int keyJump, int keyAttack,
-                  PlayerType type,
-                  int rows, int cols,
-                  int attackFrameW, int attackFrameH, int attackFrames,
-                  PlayerConfig config) {
+            int keyLeft, int keyRight, int keyJump, int keyAttack,
+            PlayerType type,
+            int rows, int cols,
+            int attackFrameW, int attackFrameH, int attackFrames,
+            PlayerConfig config) {
         this.x = startX;
         this.y = startY;
         this.keyLeft = keyLeft;
@@ -113,7 +122,8 @@ public class Player {
         anim.addAnimation("idle", 3, 0, 1, 0.1f, true);
         anim.addAnimation("wallslide", 4, 0, 8, 0.1f, true);
         anim.addAnimation("dash", 5, 0, 9, 0.05f, false);
-        anim.addAnimationFromTexture("attack", type.getAttackSpritePath(), attackFrameW, attackFrameH, attackFrames, 0.08f, false);
+        anim.addAnimationFromTexture("attack", type.getAttackSpritePath(), attackFrameW, attackFrameH, attackFrames,
+                0.08f, false);
 
         wallSensor = new Circle(x, y, 5f);
         backSensor = new Circle(x, y, 3f);
@@ -122,8 +132,27 @@ public class Player {
         this.respawnX = startX;
         this.respawnY = startY;
 
-        // Initialize health system (sane defaults)
-        this.health = new HealthSystem(200f);
+        // Initialize health system with shield logic
+        this.health = new HealthSystem(200f) {
+            @Override
+            public boolean damage(float amount, Object source) {
+                if (amount <= 0f)
+                    return false;
+                if (isInvulnerable())
+                    return false;
+                if (isDead())
+                    return false;
+
+                // Shield absorbs damage first
+                if (shield > 0) {
+                    shield--;
+                    // Shield absorbs the hit completely
+                    return true;
+                }
+
+                return super.damage(amount, source);
+            }
+        };
         // small auto-regen after 1.5s
         this.health.setRegenPerSecond(1f);
         this.health.setRegenDelayAfterDamage(1.5f);
@@ -157,8 +186,9 @@ public class Player {
 
     public void update(float delta, float groundY, Array<Wall> walls) {
         // update health first (regen, timers)
-        if (health != null) health.update(delta);
-        
+        if (health != null)
+            health.update(delta);
+
         // handle respawn timers
         if (respawnInvulRemaining > 0f) {
             respawnInvulRemaining -= delta;
@@ -187,8 +217,9 @@ public class Player {
 
     public void update(float delta, float groundY, Array<Wall> walls, Array<Solid> solids) {
         // update health (regen, timers)
-        if (health != null) health.update(delta);
-        
+        if (health != null)
+            health.update(delta);
+
         // handle respawn timers
         if (respawnInvulRemaining > 0f) {
             respawnInvulRemaining -= delta;
@@ -205,28 +236,23 @@ public class Player {
             }
         }
 
-        // If stunned, only update animation
-        if (isStunned) {
-            anim.update(delta);
-            anim.play("idle", facingLeft);
-            return;
-        }
-
         moving = false;
         groundedBySolid = false;
 
         PlayerLogic.handleAttackCooldown(this, delta);
 
-        if (dashing) {
+        if (dashing && !isStunned) {
             PlayerLogic.handleDash(this, delta, walls, solids);
             anim.update(delta);
             return;
         }
 
-        // Apply velocityX from external sources (e.g., launchpads) - applies in air or on ground
+        // Apply velocityX from external sources (e.g., launchpads) - applies in air or
+        // on ground
         if (velocityX != 0f) {
             x += velocityX * delta;
-            // No air friction: preserve horizontal momentum while airborne for clean parabolic arcs
+            // No air friction: preserve horizontal momentum while airborne for clean
+            // parabolic arcs
             float friction = onGround ? 0.75f : 1.0f;
             velocityX *= friction;
             if (Math.abs(velocityX) < 1f) {
@@ -234,11 +260,14 @@ public class Player {
             }
         }
 
-        PlayerLogic.handleGroundMovement(this, delta, walls, solids);
-        PlayerLogic.handleJump(this);
-        PlayerLogic.handleAttack(this, delta);
+        // Only allow input-based movement when not stunned
+        if (!isStunned) {
+            PlayerLogic.handleGroundMovement(this, delta, walls, solids);
+            PlayerLogic.handleJump(this);
+            PlayerLogic.handleAttack(this, delta);
+        }
 
-        if (Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
+        if (!isStunned && Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
             dashing = true;
             dashTimer = config.dashTime;
             anim.play("dash", facingLeft);
@@ -260,7 +289,8 @@ public class Player {
             hitSideWall = PlayerCollision.resolveSolidCollision(getHitboxRect(), solids) || hitSideWall;
         }
         // Check if back/side hits a wall and cancel horizontal velocity
-        // Do not cancel when holding an object to preserve launch momentum while carrying
+        // Do not cancel when holding an object to preserve launch momentum while
+        // carrying
         boolean backOrSideHit = PlayerCollision.checkWallCollision(backSensor, walls) || hitSideWall;
         if (backOrSideHit) {
             velocityX = 0f;
@@ -296,32 +326,40 @@ public class Player {
             }
         }
 
-        if (onGround || onWall || wallSliding) dashUsed = false;
+        if (onGround || onWall || wallSliding)
+            dashUsed = false;
 
         anim.update(delta);
-        PlayerLogic.handleAnimationState(this);
+        if (isStunned) {
+            // Show idle animation when stunned
+            anim.play("idle", facingLeft);
+        } else {
+            PlayerLogic.handleAnimationState(this);
+        }
     }
-
 
     public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables, float x) {
         Array<Wall> walls = new Array<>();
         for (Solid s : solids) {
-            if (!s.isBlocking()) continue;
-            if (s instanceof Wall w) walls.add(w);
+            if (!s.isBlocking())
+                continue;
+            if (s instanceof Wall w)
+                walls.add(w);
         }
         groundedBySolid = false;
 
         // health handled in the chained update
         update(delta, groundY, walls, solids);
 
-        if (onGround || onWall || wallSliding) dashUsed = false;
+        if (onGround || onWall || wallSliding)
+            dashUsed = false;
 
         // Handle interactables
         Rectangle playerHitbox = getHitboxRect();
         for (Interactable i : interactables) {
             i.checkInteraction(playerHitbox);
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+        if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.F)) {
             for (Interactable i : interactables) {
                 // Activate any interactable that reports it can be interacted with.
                 // Buttons (pressure plates) should return false for canInteract()
@@ -331,27 +369,27 @@ public class Player {
                 }
             }
         }
-                // Pickup/throw with G key
-        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+        // Pickup/throw with G key (only when not stunned)
+        if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.G)) {
             if (heldObject != null) {
                 // Get mouse position in world coordinates
                 com.badlogic.gdx.math.Vector3 mousePos = new com.badlogic.gdx.math.Vector3(
-                    Gdx.input.getX(), Gdx.input.getY(), 0);
+                        Gdx.input.getX(), Gdx.input.getY(), 0);
                 if (gameCamera != null) {
                     gameCamera.unproject(mousePos);
                 }
                 float mouseX = mousePos.x;
                 float mouseY = mousePos.y;
-                
+
                 // Get player center position for throw origin
                 float playerCenterX = getHitboxX() + getHitboxWidth() / 2f;
                 float playerCenterY = getHitboxY() + getHitboxHeight() / 2f;
-                
+
                 // Calculate throw direction and velocity
                 float dirX = mouseX - playerCenterX;
                 float dirY = mouseY - playerCenterY;
-                float len = (float)Math.sqrt(dirX * dirX + dirY * dirY);
-                
+                float len = (float) Math.sqrt(dirX * dirX + dirY * dirY);
+
                 if (len > 0.001f) {
                     // Normalize and scale to desired throw speed
                     float throwSpeed = 400f;
@@ -374,21 +412,26 @@ public class Player {
                 }
             }
         }
-        // pickup/throw handled by screen (needs camera/mouse); Player exposes held-object API
+        // pickup/throw handled by screen (needs camera/mouse); Player exposes
+        // held-object API
     }
 
-    public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables, boolean dummy) {
+    public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables,
+            boolean dummy) {
         Array<Wall> walls = new Array<>();
         for (Solid s : solids) {
-            if (!s.isBlocking()) continue;
-            if (s instanceof Wall w) walls.add(w);
+            if (!s.isBlocking())
+                continue;
+            if (s instanceof Wall w)
+                walls.add(w);
         }
         groundedBySolid = false;
 
         // health handled in the chained update
         update(delta, groundY, walls, solids);
 
-        if (onGround || onWall || wallSliding) dashUsed = false;
+        if (onGround || onWall || wallSliding)
+            dashUsed = false;
 
         // Handle interactables
         Rectangle playerHitbox = getHitboxRect();
@@ -413,7 +456,7 @@ public class Player {
         float offsetX = facingLeft ? -6f : 6f;
         wallSensor.setPosition(centerX + offsetX, centerY);
         wallSensor.setRadius(3f);
-        
+
         // Update back sensor (opposite side from wall sensor)
         float backOffsetX = facingLeft ? 6f : -6f;
         backSensor.setPosition(centerX + backOffsetX, centerY);
@@ -425,60 +468,183 @@ public class Player {
         float width = "attack".equals(cur) ? attackFrameW : baseWidth;
         float height = baseHeight;
         float drawX = x;
-        if ("attack".equals(cur) && facingLeft) drawX = x - (width - baseWidth);
+        if ("attack".equals(cur) && facingLeft)
+            drawX = x - (width - baseWidth);
         anim.render(batch, drawX, y, width, height);
+        // Render persistent UI overlay after player
+        if (playerUI != null) {
+            playerUI.render(batch);
+        }
     }
 
     // Hitbox helpers
-    public void setHitbox(float offsetX, float offsetY, float width, float height) { this.hitboxOffsetX = offsetX; this.hitboxOffsetY = offsetY; this.hitboxWidth = width; this.hitboxHeight = height; }
-    public float getHitboxX() { return x + hitboxOffsetX; }
-    public float getHitboxY() { return y + hitboxOffsetY; }
-    public float getHitboxWidth() { return hitboxWidth; }
-    public float getHitboxHeight() { return hitboxHeight; }
-    public Rectangle getHitboxRect() { return new Rectangle(getHitboxX(), getHitboxY(), getHitboxWidth(), getHitboxHeight()); }
+    public void setHitbox(float offsetX, float offsetY, float width, float height) {
+        this.hitboxOffsetX = offsetX;
+        this.hitboxOffsetY = offsetY;
+        this.hitboxWidth = width;
+        this.hitboxHeight = height;
+    }
+
+    public float getHitboxX() {
+        return x + hitboxOffsetX;
+    }
+
+    public float getHitboxY() {
+        return y + hitboxOffsetY;
+    }
+
+    public float getHitboxWidth() {
+        return hitboxWidth;
+    }
+
+    public float getHitboxHeight() {
+        return hitboxHeight;
+    }
+
+    public Rectangle getHitboxRect() {
+        return new Rectangle(getHitboxX(), getHitboxY(), getHitboxWidth(), getHitboxHeight());
+    }
 
     // Getters
-    public float getX() { return x; }
-    public float getY() { return y; }
-    public float getVelocityX() { return velocityX; }
-    public float getVelocityY() { return velocityY; }
-    public boolean isFacingLeft() { return facingLeft; }
-    public boolean isWallSliding() { return wallSliding; }
-    public boolean isDashing() { return dashing; }
-    public boolean isAttacking() { return attacking; }
-    public boolean isAttackingJustNow() { return (attacking || airAttacking); }
-    public boolean isOnGround() { return onGround; }
-    public boolean isOnWall() { return onWall; }
-    public boolean isMoving() { return moving; }
-    public Circle getWallSensor() { return wallSensor; }
-    public Circle getBackSensor() { return backSensor; }
-    public PlayerConfig getConfig() { return config; }
-    public SpriteAnimator getAnim() { return anim; }
-    public int getKeyLeft() { return keyLeft; }
-    public int getKeyRight() { return keyRight; }
-    public int getKeyJump() { return keyJump; }
-    public int getKeyAttack() { return keyAttack; }
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public float getVelocityX() {
+        return velocityX;
+    }
+
+    public float getVelocityY() {
+        return velocityY;
+    }
+
+    public boolean isFacingLeft() {
+        return facingLeft;
+    }
+
+    public boolean isWallSliding() {
+        return wallSliding;
+    }
+
+    public boolean isDashing() {
+        return dashing;
+    }
+
+    public boolean isAttacking() {
+        return attacking;
+    }
+
+    public boolean isAttackingJustNow() {
+        return (attacking || airAttacking);
+    }
+
+    public boolean isOnGround() {
+        return onGround;
+    }
+
+    public boolean isOnWall() {
+        return onWall;
+    }
+
+    public boolean isMoving() {
+        return moving;
+    }
+
+    public Circle getWallSensor() {
+        return wallSensor;
+    }
+
+    public Circle getBackSensor() {
+        return backSensor;
+    }
+
+    public PlayerConfig getConfig() {
+        return config;
+    }
+
+    public SpriteAnimator getAnim() {
+        return anim;
+    }
+
+    public int getKeyLeft() {
+        return keyLeft;
+    }
+
+    public int getKeyRight() {
+        return keyRight;
+    }
+
+    public int getKeyJump() {
+        return keyJump;
+    }
+
+    public int getKeyAttack() {
+        return keyAttack;
+    }
 
     // Setters
-    public void setX(float x) { this.x = x; }
-    public void setY(float y) { this.y = y; }
-    public void setVelocityX(float velocityX) { this.velocityX = velocityX; }
-    public void setVelocityY(float velocityY) { this.velocityY = velocityY; }
-    public void setFacingLeft(boolean facingLeft) { this.facingLeft = facingLeft; }
-    public void setWallSliding(boolean wallSliding) { this.wallSliding = wallSliding; }
-    public void setDashing(boolean dashing) { this.dashing = dashing; }
-    public void setAttacking(boolean attacking) { this.attacking = attacking; }
-    public void setOnGround(boolean onGround) { this.onGround = onGround; }
-    public void setOnWall(boolean onWall) { this.onWall = onWall; }
-    public void setMoving(boolean moving) { this.moving = moving; }
+    public void setX(float x) {
+        this.x = x;
+    }
 
-    public void dispose() { anim.dispose(); }
+    public void setY(float y) {
+        this.y = y;
+    }
+
+    public void setVelocityX(float velocityX) {
+        this.velocityX = velocityX;
+    }
+
+    public void setVelocityY(float velocityY) {
+        this.velocityY = velocityY;
+    }
+
+    public void setFacingLeft(boolean facingLeft) {
+        this.facingLeft = facingLeft;
+    }
+
+    public void setWallSliding(boolean wallSliding) {
+        this.wallSliding = wallSliding;
+    }
+
+    public void setDashing(boolean dashing) {
+        this.dashing = dashing;
+    }
+
+    public void setAttacking(boolean attacking) {
+        this.attacking = attacking;
+    }
+
+    public void setOnGround(boolean onGround) {
+        this.onGround = onGround;
+    }
+
+    public void setOnWall(boolean onWall) {
+        this.onWall = onWall;
+    }
+
+    public void setMoving(boolean moving) {
+        this.moving = moving;
+    }
+
+    public void dispose() {
+        anim.dispose();
+        if (playerUI != null)
+            playerUI.dispose();
+    }
 
     // --- Health / Respawn API ---
-    public HealthSystem getHealthSystem() { return health; }
+    public HealthSystem getHealthSystem() {
+        return health;
+    }
 
     /**
-     * Set the respawn point for this player. When the player dies they'll be moved here.
+     * Set the respawn point for this player. When the player dies they'll be moved
+     * here.
      */
     public void setRespawnPoint(float rx, float ry) {
         this.respawnX = rx;
@@ -486,7 +652,8 @@ public class Player {
     }
 
     /**
-     * Respawn the player at the last set respawn point. Restores HP to full, clears velocities and
+     * Respawn the player at the last set respawn point. Restores HP to full, clears
+     * velocities and
      * gives a short invulnerability window.
      */
     public void respawn() {
@@ -517,6 +684,57 @@ public class Player {
         respawnInvulRemaining = respawnInvulDuration;
         isStunned = true;
         respawnStunRemaining = respawnStunDuration;
+
+        // Reset shield
+        this.shield = 0;
+    }
+
+    public int getShield() {
+        return shield;
+    }
+
+    public void setShield(int shield) {
+        this.shield = shield;
+    }
+
+    public void addShield(int amount) {
+        this.shield += amount;
+        if (this.shield > 3) this.shield = 3; // Cap at 3 shields
+    }
+
+    public boolean isStunned() {
+        return isStunned;
+    }
+
+    public void setStunned(boolean stunned) {
+        this.isStunned = stunned;
+    }
+
+    // Collectibles
+    private int diamondCount = 0;
+
+    public int getDiamonds() {
+        return diamondCount;
+    }
+
+    public void addDiamonds(int amount) {
+        this.diamondCount += amount;
+    }
+
+    public void setDiamonds(int amount) {
+        this.diamondCount = amount;
+    }
+
+    public PlayerType getType() {
+        return type;
+    }
+
+    public float getDashCooldownTimer() {
+        return dashCooldownTimer;
+    }
+
+    public float getDashCooldownMax() {
+        return config.dashCooldown;
     }
 
     public void debugDrawHitbox(ShapeRenderer shape) {
@@ -527,21 +745,34 @@ public class Player {
         // Draw back sensor in magenta
         shape.setColor(Color.MAGENTA);
         shape.circle(backSensor.x, backSensor.y, backSensor.radius);
-        float centerX = getHitboxX() + getHitboxWidth()/2;
+        float centerX = getHitboxX() + getHitboxWidth() / 2;
         shape.setColor(onGround ? Color.GREEN : Color.YELLOW);
         shape.circle(centerX, getHitboxY(), 3f);
-        if (groundedBySolid) { shape.setColor(Color.WHITE); shape.circle(centerX, getHitboxY() - 4f, 2f); }
+        if (groundedBySolid) {
+            shape.setColor(Color.WHITE);
+            shape.circle(centerX, getHitboxY() - 4f, 2f);
+        }
     }
 
     // Held object API used by screens
-    public com.jjmc.chromashift.environment.interactable.Pickable getHeldObject() { return heldObject; }
-    public void setHeldObject(com.jjmc.chromashift.environment.interactable.Pickable obj) { this.heldObject = obj; }
-    public void clearHeldObject() { this.heldObject = null; }
+    public com.jjmc.chromashift.environment.interactable.Pickable getHeldObject() {
+        return heldObject;
+    }
+
+    public void setHeldObject(com.jjmc.chromashift.environment.interactable.Pickable obj) {
+        this.heldObject = obj;
+    }
+
+    public void clearHeldObject() {
+        this.heldObject = null;
+    }
+
     public void throwHeldWithVelocity(float vx, float vy) {
-        if (heldObject == null) return;
+        if (heldObject == null)
+            return;
         // Cap throw velocity to prevent objects from moving too fast
         float maxThrowSpeed = 600f;
-        float speed = (float)Math.sqrt(vx * vx + vy * vy);
+        float speed = (float) Math.sqrt(vx * vx + vy * vy);
         if (speed > maxThrowSpeed) {
             float scale = maxThrowSpeed / speed;
             vx *= scale;
@@ -560,5 +791,27 @@ public class Player {
         this.dashTimer = 0f;
         this.dashCooldownTimer = 0f;
         this.dashUsed = false;
+    }
+
+    /**
+     * Attach or update a persistent UI for this player without reinitializing
+     * textures.
+     */
+    public void attachUI(Viewport viewport) {
+        if (viewport == null)
+            return;
+        if (playerUI == null) {
+            playerUI = new PlayerUI(this, viewport);
+        } else {
+            playerUI.setViewport(viewport);
+        }
+    }
+
+    public PlayerUI getPlayerUI() {
+        return playerUI;
+    }
+
+    public boolean getCanJump() {
+        return canJump;
     }
 }

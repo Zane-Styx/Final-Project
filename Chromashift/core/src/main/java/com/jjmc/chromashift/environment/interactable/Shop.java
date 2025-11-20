@@ -1,0 +1,259 @@
+package com.jjmc.chromashift.environment.interactable;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Array;
+import com.jjmc.chromashift.player.Player;
+
+/**
+ * Shop interactable that allows players to purchase items using diamonds.
+ * When interacted with, opens a dialog UI that displays available items.
+ * Movement is disabled while the shop UI is open.
+ */
+public class Shop implements Interactable {
+    private float x, y;
+    private float width = 64f, height = 64f;
+    private Player player;
+    private Stage uiStage;
+    private Skin skin;
+    private boolean isOpen = false;
+    private boolean playerWasMovable = true;
+    private Texture shopTexture;
+    private boolean playerNearby = false;
+    
+    // Store player state when shop opens
+    private float savedVelocityX = 0f;
+    private float savedVelocityY = 0f;
+    
+    // Shop inventory - modifiable list of items
+    private Array<ShopItem> inventory;
+
+    /**
+     * Represents an item that can be purchased in the shop
+     */
+    public static class ShopItem {
+        public String name;
+        public int cost;
+        public Runnable onPurchase;
+
+        public ShopItem(String name, int cost, Runnable onPurchase) {
+            this.name = name;
+            this.cost = cost;
+            this.onPurchase = onPurchase;
+        }
+    }
+
+    public Shop(float x, float y, Player player, Stage uiStage) {
+        this.x = x;
+        this.y = y;
+        this.player = player;
+        this.uiStage = uiStage;
+
+        try {
+            skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
+        } catch (Exception e) {
+            Gdx.app.error("Shop", "Failed to load skin: " + e.getMessage());
+        }
+        
+        // Load shop sprite
+        try {
+            shopTexture = new Texture(Gdx.files.internal("environment/shop.png"));
+        } catch (Exception e) {
+            Gdx.app.error("Shop", "Failed to load shop texture: " + e.getMessage());
+        }
+        
+        // Initialize default inventory
+        initializeDefaultInventory();
+    }
+    
+    private void initializeDefaultInventory() {
+        inventory = new Array<>();
+        
+        // Add default shop items
+        inventory.add(new ShopItem("Shield", 5, () -> {
+            if (player != null) {
+                player.addShield(1);
+                Gdx.app.log("Shop", "Purchased Shield! Player now has " + player.getShield() + " shields");
+            }
+        }));
+        
+        inventory.add(new ShopItem("Health Potion", 3, () -> {
+            if (player != null && player.getHealthSystem() != null) {
+                player.getHealthSystem().heal(50f);
+                Gdx.app.log("Shop", "Purchased Health Potion! Healed 50 HP");
+            }
+        }));
+        
+        inventory.add(new ShopItem("Max HP Upgrade", 10, () -> {
+            if (player != null && player.getHealthSystem() != null) {
+                player.getHealthSystem().setMaxHealth(player.getHealthSystem().getMaxHealth() + 25f);
+                player.getHealthSystem().heal(25f);
+                Gdx.app.log("Shop", "Purchased Max HP Upgrade! +25 max HP");
+            }
+        }));
+    }
+    
+    /**
+     * Add a custom item to the shop inventory
+     */
+    public void addItem(String name, int cost, Runnable onPurchase) {
+        inventory.add(new ShopItem(name, cost, onPurchase));
+    }
+    
+    /**
+     * Clear all items from the shop
+     */
+    public void clearInventory() {
+        inventory.clear();
+    }
+    
+    /**
+     * Set the player reference (useful for level loading)
+     */
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    @Override
+    public Rectangle getBounds() {
+        return new Rectangle(x, y, width, height);
+    }
+
+    @Override
+    public void update(float delta) {
+        // Animation updates if any
+    }
+
+    @Override
+    public void checkInteraction(Rectangle playerHitbox) {
+        // Check if player is close enough to interact with shop
+        playerNearby = playerHitbox.overlaps(getBounds());
+    }
+
+    @Override
+    public void render(SpriteBatch batch) {
+        if (shopTexture != null) {
+            batch.draw(shopTexture, x, y, width, height);
+        }
+    }
+
+    @Override
+    public void debugDraw(ShapeRenderer shape) {
+        shape.setColor(Color.GOLD);
+        shape.rect(x, y, width, height);
+    }
+
+    @Override
+    public void interact() {
+        if (isOpen || skin == null || player == null || uiStage == null) {
+            return;
+        }
+
+        isOpen = true;
+        
+        // Store current movement state and disable player movement
+        playerWasMovable = player.getCanJump(); // Using canJump as a proxy for movement enabled
+        disablePlayerMovement();
+
+        // Create shop dialog
+        Dialog dialog = new Dialog("Shop", skin) {
+            @Override
+            protected void result(Object object) {
+                closeShop();
+            }
+        };
+        
+        dialog.pad(20);
+        
+        // Create content table
+        Table contentTable = new Table(skin);
+        contentTable.defaults().pad(5);
+        
+        // Display player's diamond count
+        Label diamondLabel = new Label("Your Diamonds: " + player.getDiamonds(), skin);
+        diamondLabel.setColor(Color.GOLD);
+        contentTable.add(diamondLabel).colspan(2).padBottom(15).row();
+        
+        // Add shop items
+        for (ShopItem item : inventory) {
+            Label itemLabel = new Label(item.name + " - " + item.cost + " diamonds", skin);
+            contentTable.add(itemLabel).left().padRight(10);
+            
+            TextButton buyButton = new TextButton("Buy", skin);
+            buyButton.addListener(new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    purchaseItem(item, dialog, diamondLabel);
+                }
+            });
+            contentTable.add(buyButton).width(80).row();
+        }
+        
+        dialog.getContentTable().add(contentTable);
+        
+        // Add close button
+        TextButton closeButton = new TextButton("Close", skin);
+        dialog.button(closeButton);
+        
+        dialog.show(uiStage);
+    }
+    
+    private void purchaseItem(ShopItem item, Dialog dialog, Label diamondLabel) {
+        if (player.getDiamonds() >= item.cost) {
+            player.addDiamonds(-item.cost);
+            item.onPurchase.run();
+            
+            // Update diamond display
+            diamondLabel.setText("Your Diamonds: " + player.getDiamonds());
+            
+            // Show purchase success feedback
+            Gdx.app.log("Shop", "Successfully purchased " + item.name);
+        } else {
+            Gdx.app.log("Shop", "Not enough diamonds! Need " + item.cost + ", have " + player.getDiamonds());
+        }
+    }
+    
+    private void disablePlayerMovement() {
+        // Save current velocity before stunning player
+        if (player != null) {
+            savedVelocityX = player.getVelocityX();
+            savedVelocityY = player.getVelocityY();
+            player.setStunned(true);
+        }
+    }
+    
+    private void enablePlayerMovement() {
+        if (player != null && playerWasMovable) {
+            player.setStunned(false);
+            // Restore the saved velocity so player continues their movement
+            player.setVelocityX(savedVelocityX);
+            player.setVelocityY(savedVelocityY);
+        }
+    }
+    
+    private void closeShop() {
+        isOpen = false;
+        enablePlayerMovement();
+    }
+
+    @Override
+    public boolean canInteract() {
+        return playerNearby && !isOpen;
+    }
+
+    public void dispose() {
+        if (skin != null) {
+            skin.dispose();
+        }
+        if (shopTexture != null) {
+            shopTexture.dispose();
+        }
+    }
+}

@@ -63,7 +63,7 @@ public class LevelMakerScreen implements Screen {
 	private boolean levelSelected = false;
 
 	private enum ObjectType {
-		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, NONE
+		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, NONE
 	}
 
 	private ObjectType selectedType = ObjectType.NONE;
@@ -75,6 +75,7 @@ public class LevelMakerScreen implements Screen {
 	private Array<Wall> walls = new Array<>();
 	private Array<Solid> solids = new Array<>();
 	private Array<Interactable> interactableInstances = new Array<>();
+	private Array<com.jjmc.chromashift.environment.collectible.Collectible> collectibleInstances = new Array<>();
 	private BossInstance bossInstance;
 	private Spawn spawnPreview;
 
@@ -152,6 +153,7 @@ public class LevelMakerScreen implements Screen {
 	private static class MirrorRecord {
 		String id;
 		float x, y, width, height;
+
 		MirrorRecord(String id, float x, float y, float w, float h) {
 			this.id = id;
 			this.x = x;
@@ -160,6 +162,7 @@ public class LevelMakerScreen implements Screen {
 			this.height = h;
 		}
 	}
+
 	private Array<MirrorRecord> mirrorRecords = new Array<>();
 	// door speed presets for placement
 	private float selectedDoorOpenSpeed = 3f;
@@ -195,7 +198,8 @@ public class LevelMakerScreen implements Screen {
 	// Box color selection (same palette as Glass)
 	private Array<Rectangle> boxColorRects = new Array<>();
 	private String selectedBoxColor = "CYAN";
-	// Respawn area dimensions for new boxes/orbs (centered). Adjustable with [ ] keys.
+	// Respawn area dimensions for new boxes/orbs (centered). Adjustable with [ ]
+	// keys.
 	private float selectedBoxAreaW = 1600f, selectedBoxAreaH = 1200f;
 	private float selectedOrbAreaW = 1600f, selectedOrbAreaH = 1200f;
 
@@ -216,7 +220,8 @@ public class LevelMakerScreen implements Screen {
 	private com.chromashift.helper.SpriteAnimator previewLeverAnim;
 	// Debug toggle to visualize respawn areas for all placed Boxes/Orbs
 	private boolean debugRespawnAreas = false;
-	// Selected box/orb for editing respawn area (right-click to select, [ ] to resize)
+	// Selected box/orb for editing respawn area (right-click to select, [ ] to
+	// resize)
 	private Interactable selectedObject = null;
 	// Door speed sliders and state
 	private Rectangle openSpeedSliderRect;
@@ -250,10 +255,11 @@ public class LevelMakerScreen implements Screen {
 
 	@Override
 	public void show() {
-		// Initialize editor mode flags to false (will be set true only when delete mode active)
+		// Initialize editor mode flags to false (will be set true only when delete mode
+		// active)
 		com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;
 		com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = false;
-		
+
 		ctx = Initialize.createCommon(800, 480, null);
 		camera = ctx.camera;
 		batch = ctx.batch;
@@ -270,8 +276,8 @@ public class LevelMakerScreen implements Screen {
 
 		// build UI buttons at BOTTOM center (Minecraft inventory style)
 		float bw = 60f, bh = 28f, gap = 8f;
-		// Added laser types + Link + Delete (14 buttons total)
-		float totalWidth = 14 * bw + 13 * gap;
+		// Added Diamond, Shop, laser types + Link + Delete (16 buttons total)
+		float totalWidth = 16 * bw + 15 * gap;
 		float bx = (uiCamera.viewportWidth - totalWidth) / 2f;
 		float by = 20f; // 20px from bottom
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.WALL, "Wall"));
@@ -297,6 +303,10 @@ public class LevelMakerScreen implements Screen {
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.MIRROR, "Mirror"));
 		bx += bw + gap;
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.GLASS, "Glass"));
+		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.DIAMOND, "Diamond"));
+		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.SHOP, "Shop"));
 		bx += bw + gap;
 		// Linking mode toggle button (works for Button/Lever)
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.NONE, "Link"));
@@ -325,13 +335,14 @@ public class LevelMakerScreen implements Screen {
 		// door speed controls (open/close) - small +/- boxes to the right of options
 		float speedW = 28f, speedH = 20f, speedGap = 6f;
 		float speedStartX = optionX + (4 * (bw + gap));
-		// Place the small +/- buttons above the slider, aligned with other door controls
+		// Place the small +/- buttons above the slider, aligned with other door
+		// controls
 		float doorControlsBaseY = optionY + 46f;
 		doorOpenMinusRect = new Rectangle(speedStartX, doorControlsBaseY, speedW, speedH);
 		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, doorControlsBaseY, speedW, speedH);
 		doorCloseMinusRect = new Rectangle(speedStartX, doorControlsBaseY - (speedH + 4f), speedW, speedH);
 		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, doorControlsBaseY - (speedH + 4f),
-			speedW, speedH);
+				speedW, speedH);
 
 		// Button color swatches (shown only when Button selected)
 		float sw = 40f, sh = 24f, sg = 6f;
@@ -578,10 +589,10 @@ public class LevelMakerScreen implements Screen {
 		handleInput(delta);
 		// update ephemeral placement feedback
 		for (int i = placementFlashes.size - 1; i >= 0; --i) {
-			Flash f = placementFlashes.get(i); 
-			f.ttl -= delta; 
-			if (f.ttl <= 0f) 
-				placementFlashes.removeIndex(i); 
+			Flash f = placementFlashes.get(i);
+			f.ttl -= delta;
+			if (f.ttl <= 0f)
+				placementFlashes.removeIndex(i);
 		}
 		if (toastTimer > 0f) {
 			toastTimer -= delta;
@@ -611,15 +622,30 @@ public class LevelMakerScreen implements Screen {
 		shape.end();
 
 		// update and draw existing walls and interactables
-		// Ensure interactables (e.g., Laser/LaserRay) compute cached beams before rendering
+		// Ensure interactables (e.g., Laser/LaserRay) compute cached beams before
+		// rendering
 		for (int i = 0; i < interactableInstances.size; i++) {
-			try { interactableInstances.get(i).update(delta); } catch (Throwable ignored) {}
+			try {
+				interactableInstances.get(i).update(delta);
+			} catch (Throwable ignored) {
+			}
+		}
+		// Update collectibles for animation
+		for (int i = 0; i < collectibleInstances.size; i++) {
+			try {
+				collectibleInstances.get(i).update(delta);
+			} catch (Throwable ignored) {
+			}
 		}
 		batch.begin();
 		for (Wall w : walls)
 			w.render(batch);
 		for (Interactable i : interactableInstances) {
 			i.render(batch);
+		}
+		// Render collectibles (Diamond, etc.)
+		for (com.jjmc.chromashift.environment.collectible.Collectible c : collectibleInstances) {
+			c.render(batch);
 		}
 		if (spawnPreview != null) {
 			// Editor: always show first frame (non-animated)
@@ -634,11 +660,11 @@ public class LevelMakerScreen implements Screen {
 		if (placementFlashes.size > 0) {
 			shape.setProjectionMatrix(camera.combined);
 			shape.begin(ShapeRenderer.ShapeType.Line);
-			for (int i = 0; i < placementFlashes.size; i++) { 
-				Flash f = placementFlashes.get(i); 
-				float a = (f.max <= 0f) ? 0f : Math.max(0f, Math.min(1f, f.ttl / f.max)); 
-				shape.setColor(1f, 1f, 0f, 0.25f + 0.6f * a); 
-				shape.rect(f.x, f.y, f.w, f.h); 
+			for (int i = 0; i < placementFlashes.size; i++) {
+				Flash f = placementFlashes.get(i);
+				float a = (f.max <= 0f) ? 0f : Math.max(0f, Math.min(1f, f.ttl / f.max));
+				shape.setColor(1f, 1f, 0f, 0.25f + 0.6f * a);
+				shape.rect(f.x, f.y, f.w, f.h);
 			}
 			shape.end();
 		}
@@ -708,6 +734,18 @@ public class LevelMakerScreen implements Screen {
 				previewH = 16f;
 				break;
 			}
+			case DIAMOND: {
+				// Diamond is 32x32
+				previewW = 32f;
+				previewH = 32f;
+				break;
+			}
+			case SHOP: {
+				// Shop is 64x64
+				previewW = 64f;
+				previewH = 64f;
+				break;
+			}
 			case NONE:
 			default: {
 				break;
@@ -757,36 +795,36 @@ public class LevelMakerScreen implements Screen {
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
-			    // draw sliders for open/close speed (draw at rect.y so hits match visuals)
-			    if (openSpeedSliderRect != null) {
+			// draw sliders for open/close speed (draw at rect.y so hits match visuals)
+			if (openSpeedSliderRect != null) {
 				// background bar
 				shape.setColor(new Color(0.12f, 0.12f, 0.12f, 1f));
 				shape.rect(openSpeedSliderRect.x, openSpeedSliderRect.y, openSpeedSliderRect.width,
-					openSpeedSliderRect.height);
+						openSpeedSliderRect.height);
 				// filled portion
 				float frac = (selectedDoorOpenSpeed - DOOR_SPEED_MIN) / (DOOR_SPEED_MAX - DOOR_SPEED_MIN);
 				frac = Math.max(0f, Math.min(1f, frac));
 				shape.setColor(Color.GREEN);
 				shape.rect(openSpeedSliderRect.x, openSpeedSliderRect.y, openSpeedSliderRect.width * frac,
-					openSpeedSliderRect.height);
+						openSpeedSliderRect.height);
 				// thumb
 				float tx = openSpeedSliderRect.x + openSpeedSliderRect.width * frac;
 				shape.setColor(Color.WHITE);
 				shape.rect(tx - 3, openSpeedSliderRect.y - 4, 6, openSpeedSliderRect.height + 8);
-			    }
-			    if (closeSpeedSliderRect != null) {
+			}
+			if (closeSpeedSliderRect != null) {
 				shape.setColor(new Color(0.12f, 0.12f, 0.12f, 1f));
 				shape.rect(closeSpeedSliderRect.x, closeSpeedSliderRect.y, closeSpeedSliderRect.width,
-					closeSpeedSliderRect.height);
+						closeSpeedSliderRect.height);
 				float frac2 = (selectedDoorCloseSpeed - DOOR_SPEED_MIN) / (DOOR_SPEED_MAX - DOOR_SPEED_MIN);
 				frac2 = Math.max(0f, Math.min(1f, frac2));
 				shape.setColor(Color.ORANGE);
 				shape.rect(closeSpeedSliderRect.x, closeSpeedSliderRect.y, closeSpeedSliderRect.width * frac2,
-					closeSpeedSliderRect.height);
+						closeSpeedSliderRect.height);
 				float tx2 = closeSpeedSliderRect.x + closeSpeedSliderRect.width * frac2;
 				shape.setColor(Color.WHITE);
 				shape.rect(tx2 - 3, closeSpeedSliderRect.y - 4, 6, closeSpeedSliderRect.height + 8);
-			    }
+			}
 		} else if (selectedType == ObjectType.BUTTON) {
 			// button color swatches
 			for (int i = 0; i < buttonColorRects.size; i++) {
@@ -794,12 +832,23 @@ public class LevelMakerScreen implements Screen {
 				Button.ButtonColor bc = Button.ButtonColor.values()[i];
 				Color c = Color.WHITE;
 				switch (bc) {
-					case RED: c = Color.RED; break;
-					case BLUE: c = Color.BLUE; break;
-					case GREEN: c = Color.GREEN; break;
-					case YELLOW: c = Color.YELLOW; break;
-					case PURPLE: c = Color.PURPLE; break;
-					default: break;
+					case RED:
+						c = Color.RED;
+						break;
+					case BLUE:
+						c = Color.BLUE;
+						break;
+					case GREEN:
+						c = Color.GREEN;
+						break;
+					case YELLOW:
+						c = Color.YELLOW;
+						break;
+					case PURPLE:
+						c = Color.PURPLE;
+						break;
+					default:
+						break;
 				}
 				shape.setColor(c);
 				shape.rect(r.x, r.y, r.width, r.height);
@@ -864,11 +913,21 @@ public class LevelMakerScreen implements Screen {
 				boolean selected;
 				// order: U(90), R(0), D(270), L(180)
 				switch (i) {
-					case 0: selected = (selectedLaserRotation == 90f); break;
-					case 1: selected = (selectedLaserRotation == 0f); break;
-					case 2: selected = (selectedLaserRotation == 270f); break;
-					case 3: selected = (selectedLaserRotation == 180f); break;
-					default: selected = false; break;
+					case 0:
+						selected = (selectedLaserRotation == 90f);
+						break;
+					case 1:
+						selected = (selectedLaserRotation == 0f);
+						break;
+					case 2:
+						selected = (selectedLaserRotation == 270f);
+						break;
+					case 3:
+						selected = (selectedLaserRotation == 180f);
+						break;
+					default:
+						selected = false;
+						break;
 				}
 				shape.setColor(selected ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f));
 				shape.rect(r.x, r.y, r.width, r.height);
@@ -891,20 +950,31 @@ public class LevelMakerScreen implements Screen {
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
-		}
-		else if (selectedType == ObjectType.BOX) {
+		} else if (selectedType == ObjectType.BOX) {
 			// Box color swatches
-			String[] bcolors = {"RED","BLUE","GREEN","YELLOW","PURPLE"};
-			for (int i=0;i<boxColorRects.size && i<bcolors.length;i++) {
+			String[] bcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
+			for (int i = 0; i < boxColorRects.size && i < bcolors.length; i++) {
 				Rectangle r = boxColorRects.get(i);
 				Color c;
 				switch (bcolors[i]) {
-					case "RED": c = Color.RED; break;
-					case "BLUE": c = Color.BLUE; break;
-					case "GREEN": c = Color.GREEN; break;
-					case "YELLOW": c = Color.YELLOW; break;
-					case "PURPLE": c = Color.PURPLE; break;
-					default: c = Color.CYAN; break;
+					case "RED":
+						c = Color.RED;
+						break;
+					case "BLUE":
+						c = Color.BLUE;
+						break;
+					case "GREEN":
+						c = Color.GREEN;
+						break;
+					case "YELLOW":
+						c = Color.YELLOW;
+						break;
+					case "PURPLE":
+						c = Color.PURPLE;
+						break;
+					default:
+						c = Color.CYAN;
+						break;
 				}
 				shape.setColor(c);
 				shape.rect(r.x, r.y, r.width, r.height);
@@ -921,22 +991,34 @@ public class LevelMakerScreen implements Screen {
 			shape.setColor(new Color(0f, 0.6f, 1f, 0.6f));
 			float aw = selectedBoxAreaW;
 			float ah = selectedBoxAreaH;
-			shape.rect(screenGx - aw/2f + 12f, screenGy - ah/2f + 12f, aw, ah);
+			shape.rect(screenGx - aw / 2f + 12f, screenGy - ah / 2f + 12f, aw, ah);
 			shape.end();
 			shape.begin(ShapeRenderer.ShapeType.Filled);
 		} else if (selectedType == ObjectType.GLASS) {
 			// Glass color swatches
-			String[] gcolors = {"RED","BLUE","GREEN","YELLOW","PURPLE"};
-			for (int i=0;i<glassColorRects.size && i<gcolors.length;i++) {
+			String[] gcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
+			for (int i = 0; i < glassColorRects.size && i < gcolors.length; i++) {
 				Rectangle r = glassColorRects.get(i);
 				Color c;
 				switch (gcolors[i]) {
-					case "RED": c = Color.RED; break;
-					case "BLUE": c = Color.BLUE; break;
-					case "GREEN": c = Color.GREEN; break;
-					case "YELLOW": c = Color.YELLOW; break;
-					case "PURPLE": c = Color.PURPLE; break;
-					default: c = Color.CYAN; break;
+					case "RED":
+						c = Color.RED;
+						break;
+					case "BLUE":
+						c = Color.BLUE;
+						break;
+					case "GREEN":
+						c = Color.GREEN;
+						break;
+					case "YELLOW":
+						c = Color.YELLOW;
+						break;
+					case "PURPLE":
+						c = Color.PURPLE;
+						break;
+					default:
+						c = Color.CYAN;
+						break;
 				}
 				shape.setColor(c);
 				shape.rect(r.x, r.y, r.width, r.height);
@@ -1027,31 +1109,35 @@ public class LevelMakerScreen implements Screen {
 		} else if (selectedType == ObjectType.MIRROR) {
 			if (mirrorRotateRect != null) {
 				font.setColor(Color.WHITE);
-				font.draw(batch, "Rotate 45°", mirrorRotateRect.x + 10, mirrorRotateRect.y + mirrorRotateRect.height - 6);
+				font.draw(batch, "Rotate 45°", mirrorRotateRect.x + 10,
+						mirrorRotateRect.y + mirrorRotateRect.height - 6);
 				// show current angle
-				font.draw(batch, String.format("Angle: %.0f°", selectedMirrorAngleDeg), mirrorRotateRect.x + 10, mirrorRotateRect.y - 4);
+				font.draw(batch, String.format("Angle: %.0f°", selectedMirrorAngleDeg), mirrorRotateRect.x + 10,
+						mirrorRotateRect.y - 4);
 			}
 		} else if (selectedType == ObjectType.GLASS) {
 			// labels for glass color (first letter)
-			String[] gcolors = {"RED","BLUE","GREEN","YELLOW","PURPLE"};
-			for (int i=0;i<glassColorRects.size && i<gcolors.length;i++) {
+			String[] gcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
+			for (int i = 0; i < glassColorRects.size && i < gcolors.length; i++) {
 				Rectangle r = glassColorRects.get(i);
 				font.setColor(Color.BLACK);
-				font.draw(batch, gcolors[i].substring(0,1), r.x + r.width/2f - 4, r.y + r.height - 6);
+				font.draw(batch, gcolors[i].substring(0, 1), r.x + r.width / 2f - 4, r.y + r.height - 6);
 			}
 		} else if (selectedType == ObjectType.BOX) {
 			// labels for box color swatches
-			String[] bcolors = {"RED","BLUE","GREEN","YELLOW","PURPLE"};
-			for (int i=0;i<boxColorRects.size && i<bcolors.length;i++) {
+			String[] bcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
+			for (int i = 0; i < boxColorRects.size && i < bcolors.length; i++) {
 				Rectangle r = boxColorRects.get(i);
 				font.setColor(Color.BLACK);
-				font.draw(batch, bcolors[i].substring(0,1), r.x + r.width/2f - 4, r.y + r.height - 6);
+				font.draw(batch, bcolors[i].substring(0, 1), r.x + r.width / 2f - 4, r.y + r.height - 6);
 			}
 			// Respawn area size label
 			font.setColor(Color.WHITE);
 			if (boxColorRects.size > 0) {
 				Rectangle first = boxColorRects.first();
-				font.draw(batch, String.format("Area %.0fx%.0f ([ ] width, - = height)", selectedBoxAreaW, selectedBoxAreaH), first.x, first.y - 12);
+				font.draw(batch,
+						String.format("Area %.0fx%.0f ([ ] width, - = height)", selectedBoxAreaW, selectedBoxAreaH),
+						first.x, first.y - 12);
 			}
 		}
 		// draw level list labels
@@ -1139,7 +1225,7 @@ public class LevelMakerScreen implements Screen {
 			shape.setColor(new Color(1f, 0.5f, 0f, 0.6f));
 			float aw = selectedOrbAreaW;
 			float ah = selectedOrbAreaH;
-			shape.rect(screenGx - aw/2f + 12f, screenGy - ah/2f + 12f, aw, ah);
+			shape.rect(screenGx - aw / 2f + 12f, screenGy - ah / 2f + 12f, aw, ah);
 			shape.end();
 			shape.begin(ShapeRenderer.ShapeType.Filled);
 		} else if (selectedType == ObjectType.BOSS) {
@@ -1165,19 +1251,34 @@ public class LevelMakerScreen implements Screen {
 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.SKY);
 			// draw centered 16x16 preview in the 32x32 cell
 			shape.rect(screenGx + 8f, screenGy + 8f, 16f, 16f);
+		} else if (selectedType == ObjectType.DIAMOND) {
+			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.CYAN);
+			// draw diamond shape (approximate as a rotated square for preview)
+			shape.rect(screenGx, screenGy, 32f, 32f);
+		} else if (selectedType == ObjectType.SHOP) {
+			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.GOLD);
+			shape.rect(screenGx, screenGy, 64f, 64f);
 		} else if (selectedType == ObjectType.ORB) {
 			// Orb area label (reuse first box rect if available or fallback near preview)
 			font.setColor(Color.WHITE);
-			float labelX = 20f; float labelY = 40f;
-			if (boxColorRects.size > 0) { Rectangle first = boxColorRects.first(); labelX = first.x; labelY = first.y - 12; }
-			font.draw(batch, String.format("Area %.0fx%.0f ([ ] width, - = height)", selectedOrbAreaW, selectedOrbAreaH), labelX, labelY);
+			float labelX = 20f;
+			float labelY = 40f;
+			if (boxColorRects.size > 0) {
+				Rectangle first = boxColorRects.first();
+				labelX = first.x;
+				labelY = first.y - 12;
+			}
+			font.draw(batch,
+					String.format("Area %.0fx%.0f ([ ] width, - = height)", selectedOrbAreaW, selectedOrbAreaH), labelX,
+					labelY);
 		}
 		if (shapeActive)
 			shape.end();
 
 		// Linking preview: when in link mode, show possible link targets
 		if (linkingMode) {
-			// Draw world-space lines from the selected source to all doors (possible targets)
+			// Draw world-space lines from the selected source to all doors (possible
+			// targets)
 			shape.setProjectionMatrix(camera.combined);
 			// If we have picked a source already, draw lines to doors
 			if (linkStage == LinkStage.PICK_DOORS && linkSourceType != ObjectType.NONE) {
@@ -1186,7 +1287,7 @@ public class LevelMakerScreen implements Screen {
 				float srcCy = linkSourceY + 16f;
 				for (Interactable it : interactableInstances) {
 					if ((linkSourceType == ObjectType.BUTTON && it instanceof Button)
-						|| (linkSourceType == ObjectType.LEVER && it instanceof Lever)) {
+							|| (linkSourceType == ObjectType.LEVER && it instanceof Lever)) {
 						Rectangle b = it.getBounds();
 						if (b != null && Math.abs(b.x - linkSourceX) < 5f && Math.abs(b.y - linkSourceY) < 5f) {
 							srcCx = b.x + b.width / 2f;
@@ -1198,7 +1299,8 @@ public class LevelMakerScreen implements Screen {
 				// draw filled circles at door centers; highlight already-selected targets
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 				for (DoorRecord dr : doorRecords) {
-					if (dr == null) continue;
+					if (dr == null)
+						continue;
 					float dx = dr.x + (Math.max(1, dr.cols) * 32f) / 2f;
 					float dy = dr.y + (Math.max(1, dr.rows) * 32f) / 2f;
 					boolean sel = linkSelectedDoorIds.contains(dr.id, false);
@@ -1208,20 +1310,23 @@ public class LevelMakerScreen implements Screen {
 				shape.end();
 			}
 		}
-		// Persistent saved links: draw lines between sources and their saved targets (doors or lasers)
+		// Persistent saved links: draw lines between sources and their saved targets
+		// (doors or lasers)
 		if (state != null && state.interactables != null) {
 			shape.setProjectionMatrix(camera.combined);
 			shape.begin(ShapeRenderer.ShapeType.Line);
 			// Persistent saved links: draw in red to distinguish from previews
 			shape.setColor(new Color(1f, 0f, 0f, 0.85f));
 			for (LevelIO.LevelState.InteractableData src : state.interactables) {
-				if (src == null || src.targetId == null || src.targetId.trim().isEmpty()) continue;
+				if (src == null || src.targetId == null || src.targetId.trim().isEmpty())
+					continue;
 				float srcCx = src.x + 16f;
 				float srcCy = src.y + 16f;
 				String[] parts = src.targetId.split(",");
 				for (String p : parts) {
 					String tid = p.trim();
-					if (tid.length() == 0) continue;
+					if (tid.length() == 0)
+						continue;
 					// find door target
 					boolean drawn = false;
 					for (DoorRecord dr : doorRecords) {
@@ -1233,7 +1338,8 @@ public class LevelMakerScreen implements Screen {
 							break;
 						}
 					}
-					if (drawn) continue;
+					if (drawn)
+						continue;
 					// find laser target
 					for (LaserRecord lr : laserRecords) {
 						if (lr != null && lr.id != null && lr.id.equals(tid)) {
@@ -1265,10 +1371,12 @@ public class LevelMakerScreen implements Screen {
 			for (Interactable it : interactableInstances) {
 				if (it instanceof Box b) {
 					Rectangle ra = b.getRespawnArea();
-					if (ra != null) shape.rect(ra.x, ra.y, ra.width, ra.height);
+					if (ra != null)
+						shape.rect(ra.x, ra.y, ra.width, ra.height);
 				} else if (it instanceof Orb o) {
 					Rectangle ra = o.getRespawnArea();
-					if (ra != null) shape.rect(ra.x, ra.y, ra.width, ra.height);
+					if (ra != null)
+						shape.rect(ra.x, ra.y, ra.width, ra.height);
 				}
 			}
 			shape.end();
@@ -1285,16 +1393,20 @@ public class LevelMakerScreen implements Screen {
 			// Draw respawn area outline
 			shape.setColor(new Color(1f, 1f, 0f, 0.7f));
 			Rectangle ra = null;
-			if (selectedObject instanceof Box box) ra = box.getRespawnArea();
-			else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
-			if (ra != null) shape.rect(ra.x, ra.y, ra.width, ra.height);
+			if (selectedObject instanceof Box box)
+				ra = box.getRespawnArea();
+			else if (selectedObject instanceof Orb orb)
+				ra = orb.getRespawnArea();
+			if (ra != null)
+				shape.rect(ra.x, ra.y, ra.width, ra.height);
 			Gdx.gl.glLineWidth(1f);
 			shape.end();
 		}
 
 		// Linking preview: when in link mode, show possible link targets
 		if (linkingMode) {
-			// Draw world-space lines from the selected source to all doors (possible targets)
+			// Draw world-space lines from the selected source to all doors (possible
+			// targets)
 			shape.setProjectionMatrix(camera.combined);
 			// If we have picked a source already, draw lines to doors
 			if (linkStage == LinkStage.PICK_DOORS && linkSourceType != ObjectType.NONE) {
@@ -1362,11 +1474,15 @@ public class LevelMakerScreen implements Screen {
 			font.setColor(Color.YELLOW);
 			String type = selectedObject instanceof Box ? "Box" : "Orb";
 			Rectangle ra = null;
-			if (selectedObject instanceof Box box) ra = box.getRespawnArea();
-			else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+			if (selectedObject instanceof Box box)
+				ra = box.getRespawnArea();
+			else if (selectedObject instanceof Orb orb)
+				ra = orb.getRespawnArea();
 			if (ra != null) {
-				font.draw(batch, String.format("Selected %s - Area: %.0fx%.0f ([ ] width, - = height)", type, ra.width, ra.height),
-					uiCamera.position.x - 380, uiCamera.position.y + 95);
+				font.draw(batch,
+						String.format("Selected %s - Area: %.0fx%.0f ([ ] width, - = height)", type, ra.width,
+								ra.height),
+						uiCamera.position.x - 380, uiCamera.position.y + 95);
 			}
 		}
 		// placement toast (screen-fixed)
@@ -1431,25 +1547,30 @@ public class LevelMakerScreen implements Screen {
 		if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
 			changeLevel("levels/bossroom.json");
 		}
-		// Resize respawn area with independent width/height controls when placing Box or Orb OR editing selected object
+		// Resize respawn area with independent width/height controls when placing Box
+		// or Orb OR editing selected object
 		// [ ] for width, - = for height
 		if (selectedType == ObjectType.BOX || selectedType == ObjectType.ORB || selectedObject != null) {
 			float step = 200f;
-			
+
 			// WIDTH CONTROLS: [ ]
 			if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT_BRACKET)) {
 				if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
 					// Decrease width of selected object's respawn area
 					Rectangle ra = null;
-					if (selectedObject instanceof Box box) ra = box.getRespawnArea();
-					else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+					if (selectedObject instanceof Box box)
+						ra = box.getRespawnArea();
+					else if (selectedObject instanceof Orb orb)
+						ra = orb.getRespawnArea();
 					if (ra != null) {
 						float newW = Math.max(200f, ra.width - step);
 						Rectangle bounds = selectedObject.getBounds();
 						float cx = bounds.x + bounds.width / 2f;
 						float cy = bounds.y + bounds.height / 2f;
-						if (selectedObject instanceof Box box) box.setRespawnArea(new Rectangle(cx - newW/2f, cy - ra.height/2f, newW, ra.height));
-						else if (selectedObject instanceof Orb orb) orb.setRespawnArea(new Rectangle(cx - newW/2f, cy - ra.height/2f, newW, ra.height));
+						if (selectedObject instanceof Box box)
+							box.setRespawnArea(new Rectangle(cx - newW / 2f, cy - ra.height / 2f, newW, ra.height));
+						else if (selectedObject instanceof Orb orb)
+							orb.setRespawnArea(new Rectangle(cx - newW / 2f, cy - ra.height / 2f, newW, ra.height));
 						updateRespawnAreaInState(selectedObject, newW, ra.height);
 					}
 				} else if (selectedType == ObjectType.BOX) {
@@ -1462,15 +1583,19 @@ public class LevelMakerScreen implements Screen {
 				if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
 					// Increase width of selected object's respawn area
 					Rectangle ra = null;
-					if (selectedObject instanceof Box box) ra = box.getRespawnArea();
-					else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+					if (selectedObject instanceof Box box)
+						ra = box.getRespawnArea();
+					else if (selectedObject instanceof Orb orb)
+						ra = orb.getRespawnArea();
 					if (ra != null) {
 						float newW = Math.min(5000f, ra.width + step);
 						Rectangle bounds = selectedObject.getBounds();
 						float cx = bounds.x + bounds.width / 2f;
 						float cy = bounds.y + bounds.height / 2f;
-						if (selectedObject instanceof Box box) box.setRespawnArea(new Rectangle(cx - newW/2f, cy - ra.height/2f, newW, ra.height));
-						else if (selectedObject instanceof Orb orb) orb.setRespawnArea(new Rectangle(cx - newW/2f, cy - ra.height/2f, newW, ra.height));
+						if (selectedObject instanceof Box box)
+							box.setRespawnArea(new Rectangle(cx - newW / 2f, cy - ra.height / 2f, newW, ra.height));
+						else if (selectedObject instanceof Orb orb)
+							orb.setRespawnArea(new Rectangle(cx - newW / 2f, cy - ra.height / 2f, newW, ra.height));
 						updateRespawnAreaInState(selectedObject, newW, ra.height);
 					}
 				} else if (selectedType == ObjectType.BOX) {
@@ -1479,21 +1604,25 @@ public class LevelMakerScreen implements Screen {
 					selectedOrbAreaW = Math.min(5000f, selectedOrbAreaW + step);
 				}
 			}
-			
+
 			// HEIGHT CONTROLS: - =
 			if (Gdx.input.isKeyJustPressed(Input.Keys.MINUS)) {
 				if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
 					// Decrease height of selected object's respawn area
 					Rectangle ra = null;
-					if (selectedObject instanceof Box box) ra = box.getRespawnArea();
-					else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+					if (selectedObject instanceof Box box)
+						ra = box.getRespawnArea();
+					else if (selectedObject instanceof Orb orb)
+						ra = orb.getRespawnArea();
 					if (ra != null) {
 						float newH = Math.max(200f, ra.height - step);
 						Rectangle bounds = selectedObject.getBounds();
 						float cx = bounds.x + bounds.width / 2f;
 						float cy = bounds.y + bounds.height / 2f;
-						if (selectedObject instanceof Box box) box.setRespawnArea(new Rectangle(cx - ra.width/2f, cy - newH/2f, ra.width, newH));
-						else if (selectedObject instanceof Orb orb) orb.setRespawnArea(new Rectangle(cx - ra.width/2f, cy - newH/2f, ra.width, newH));
+						if (selectedObject instanceof Box box)
+							box.setRespawnArea(new Rectangle(cx - ra.width / 2f, cy - newH / 2f, ra.width, newH));
+						else if (selectedObject instanceof Orb orb)
+							orb.setRespawnArea(new Rectangle(cx - ra.width / 2f, cy - newH / 2f, ra.width, newH));
 						updateRespawnAreaInState(selectedObject, ra.width, newH);
 					}
 				} else if (selectedType == ObjectType.BOX) {
@@ -1506,15 +1635,19 @@ public class LevelMakerScreen implements Screen {
 				if (selectedObject != null && (selectedObject instanceof Box || selectedObject instanceof Orb)) {
 					// Increase height of selected object's respawn area
 					Rectangle ra = null;
-					if (selectedObject instanceof Box box) ra = box.getRespawnArea();
-					else if (selectedObject instanceof Orb orb) ra = orb.getRespawnArea();
+					if (selectedObject instanceof Box box)
+						ra = box.getRespawnArea();
+					else if (selectedObject instanceof Orb orb)
+						ra = orb.getRespawnArea();
 					if (ra != null) {
 						float newH = Math.min(5000f, ra.height + step);
 						Rectangle bounds = selectedObject.getBounds();
 						float cx = bounds.x + bounds.width / 2f;
 						float cy = bounds.y + bounds.height / 2f;
-						if (selectedObject instanceof Box box) box.setRespawnArea(new Rectangle(cx - ra.width/2f, cy - newH/2f, ra.width, newH));
-						else if (selectedObject instanceof Orb orb) orb.setRespawnArea(new Rectangle(cx - ra.width/2f, cy - newH/2f, ra.width, newH));
+						if (selectedObject instanceof Box box)
+							box.setRespawnArea(new Rectangle(cx - ra.width / 2f, cy - newH / 2f, ra.width, newH));
+						else if (selectedObject instanceof Orb orb)
+							orb.setRespawnArea(new Rectangle(cx - ra.width / 2f, cy - newH / 2f, ra.width, newH));
 						updateRespawnAreaInState(selectedObject, ra.width, newH);
 					}
 				} else if (selectedType == ObjectType.BOX) {
@@ -1883,7 +2016,8 @@ public class LevelMakerScreen implements Screen {
 			placeAt(wx, wy);
 		}
 
-		// RIGHT CLICK: finish linking (if in linking mode), or select box/orb for editing
+		// RIGHT CLICK: finish linking (if in linking mode), or select box/orb for
+		// editing
 		if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
 			if (linkingMode) {
 				linkingMode = false;
@@ -1899,7 +2033,8 @@ public class LevelMakerScreen implements Screen {
 				Interactable clicked = null;
 				for (int i = interactableInstances.size - 1; i >= 0; --i) {
 					Interactable it = interactableInstances.get(i);
-					if ((it instanceof Box || it instanceof Orb) && it.getBounds().contains(worldClick.x, worldClick.y)) {
+					if ((it instanceof Box || it instanceof Orb)
+							&& it.getBounds().contains(worldClick.x, worldClick.y)) {
 						clicked = it;
 						break;
 					}
@@ -2382,18 +2517,33 @@ public class LevelMakerScreen implements Screen {
 				// apply color
 				com.badlogic.gdx.graphics.Color base = com.badlogic.gdx.graphics.Color.CYAN;
 				switch (selectedBoxColor.toUpperCase()) {
-					case "RED": base = com.badlogic.gdx.graphics.Color.RED; break;
-					case "BLUE": base = com.badlogic.gdx.graphics.Color.BLUE; break;
-					case "GREEN": base = com.badlogic.gdx.graphics.Color.GREEN; break;
-					case "YELLOW": base = com.badlogic.gdx.graphics.Color.YELLOW; break;
-					case "PURPLE": base = com.badlogic.gdx.graphics.Color.PURPLE; break;
-					default: base = com.badlogic.gdx.graphics.Color.CYAN; break;
+					case "RED":
+						base = com.badlogic.gdx.graphics.Color.RED;
+						break;
+					case "BLUE":
+						base = com.badlogic.gdx.graphics.Color.BLUE;
+						break;
+					case "GREEN":
+						base = com.badlogic.gdx.graphics.Color.GREEN;
+						break;
+					case "YELLOW":
+						base = com.badlogic.gdx.graphics.Color.YELLOW;
+						break;
+					case "PURPLE":
+						base = com.badlogic.gdx.graphics.Color.PURPLE;
+						break;
+					default:
+						base = com.badlogic.gdx.graphics.Color.CYAN;
+						break;
 				}
 				try {
 					box.setColor(base);
 				} catch (Throwable ignored) {
 				}
-				try { box.setRespawnArea(new Rectangle(bd.x - bd.areaW/2f, bd.y - bd.areaH/2f, bd.areaW, bd.areaH)); } catch (Throwable ignored) {}
+				try {
+					box.setRespawnArea(new Rectangle(bd.x - bd.areaW / 2f, bd.y - bd.areaH / 2f, bd.areaW, bd.areaH));
+				} catch (Throwable ignored) {
+				}
 				interactableInstances.add(box);
 				placements.add(new Placement(ObjectType.BOX, gx, gy, 1, 1, null));
 				placed = true;
@@ -2408,7 +2558,10 @@ public class LevelMakerScreen implements Screen {
 				od.areaH = selectedOrbAreaH;
 				state.orbs.add(od);
 				Orb orb = new Orb(od.x, od.y, new Array<>());
-				try { orb.setRespawnArea(new Rectangle(od.x - od.areaW/2f, od.y - od.areaH/2f, od.areaW, od.areaH)); } catch (Throwable ignored) {}
+				try {
+					orb.setRespawnArea(new Rectangle(od.x - od.areaW / 2f, od.y - od.areaH / 2f, od.areaW, od.areaH));
+				} catch (Throwable ignored) {
+				}
 				interactableInstances.add(orb);
 				placements.add(new Placement(ObjectType.ORB, gx, gy, 1, 1, null));
 				placed = true;
@@ -2515,16 +2668,50 @@ public class LevelMakerScreen implements Screen {
 				state.glasses.add(gd);
 				com.badlogic.gdx.graphics.Color base;
 				switch (selectedGlassColor.toUpperCase()) {
-					case "RED": base = com.badlogic.gdx.graphics.Color.RED; break;
-					case "BLUE": base = com.badlogic.gdx.graphics.Color.BLUE; break;
-					case "GREEN": base = com.badlogic.gdx.graphics.Color.GREEN; break;
-					case "YELLOW": base = com.badlogic.gdx.graphics.Color.YELLOW; break;
-					case "PURPLE": base = com.badlogic.gdx.graphics.Color.PURPLE; break;
-					default: base = com.badlogic.gdx.graphics.Color.CYAN; break;
+					case "RED":
+						base = com.badlogic.gdx.graphics.Color.RED;
+						break;
+					case "BLUE":
+						base = com.badlogic.gdx.graphics.Color.BLUE;
+						break;
+					case "GREEN":
+						base = com.badlogic.gdx.graphics.Color.GREEN;
+						break;
+					case "YELLOW":
+						base = com.badlogic.gdx.graphics.Color.YELLOW;
+						break;
+					case "PURPLE":
+						base = com.badlogic.gdx.graphics.Color.PURPLE;
+						break;
+					default:
+						base = com.badlogic.gdx.graphics.Color.CYAN;
+						break;
 				}
 				Glass glass = new Glass(gd.x, gd.y, gd.width, gd.height, base, true, 1f, gd.rainbow);
 				interactableInstances.add(glass);
 				placements.add(new Placement(ObjectType.GLASS, (int) gd.x, (int) gd.y, 1, 1, null));
+				placed = true;
+				break;
+			}
+			case DIAMOND: {
+				LevelIO.LevelState.DiamondData dd = new LevelIO.LevelState.DiamondData();
+				dd.x = gx;
+				dd.y = gy;
+				state.diamonds.add(dd);
+				// Note: Diamond is a collectible, not an Interactable, so we don't add to interactableInstances
+				// It will be loaded separately by the level loader
+				placements.add(new Placement(ObjectType.DIAMOND, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
+			case SHOP: {
+				LevelIO.LevelState.ShopData sd = new LevelIO.LevelState.ShopData();
+				sd.x = gx;
+				sd.y = gy;
+				state.shops.add(sd);
+				// Note: Shop will be instantiated by the level loader with proper context
+				// For preview purposes, we'll skip adding it to interactableInstances
+				placements.add(new Placement(ObjectType.SHOP, gx, gy, 1, 1, null));
 				placed = true;
 				break;
 			}
@@ -2550,7 +2737,8 @@ public class LevelMakerScreen implements Screen {
 	 * Update the respawn area dimensions in the level state for a given box/orb.
 	 */
 	private void updateRespawnAreaInState(Interactable obj, float newW, float newH) {
-		if (state == null) return;
+		if (state == null)
+			return;
 		Rectangle bounds = obj.getBounds();
 		float cx = bounds.x + bounds.width / 2f;
 		float cy = bounds.y + bounds.height / 2f;
@@ -2573,7 +2761,8 @@ public class LevelMakerScreen implements Screen {
 		}
 		try {
 			LevelIO.save(currentLevelPath, state);
-		} catch (Exception ignored) {}
+		} catch (Exception ignored) {
+		}
 	}
 
 	/**
@@ -2586,6 +2775,7 @@ public class LevelMakerScreen implements Screen {
 			this.walls = r.walls;
 			this.solids = r.solids;
 			this.interactableInstances = r.interactables;
+			this.collectibleInstances = r.collectibles;
 			this.bossInstance = r.boss;
 			// Build spawn preview from state
 			if (state != null && state.spawn != null) {
@@ -2639,6 +2829,7 @@ public class LevelMakerScreen implements Screen {
 		walls.clear();
 		solids.clear();
 		interactableInstances.clear();
+		collectibleInstances.clear();
 		doorRecords.clear();
 		placements.clear();
 		bossInstance = null;
@@ -2679,6 +2870,7 @@ public class LevelMakerScreen implements Screen {
 		this.walls = loaded.walls;
 		this.solids = loaded.solids;
 		this.interactableInstances = loaded.interactables;
+		this.collectibleInstances = loaded.collectibles;
 		this.bossInstance = loaded.boss;
 		// Spawn preview
 		if (state != null && state.spawn != null) {
@@ -2756,7 +2948,7 @@ public class LevelMakerScreen implements Screen {
 		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + 46f, speedW, speedH);
 		doorCloseMinusRect = new Rectangle(speedStartX, optionY + 46f - (speedH + 6f), speedW, speedH);
 		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + 46f - (speedH + 6f), speedW,
-			speedH);
+				speedH);
 
 		// launchpad direction buttons (rebuild above LAUNCHPAD toolbar button)
 		launchpadDirRects.clear();
@@ -3140,6 +3332,28 @@ public class LevelMakerScreen implements Screen {
 				for (int i = interactableInstances.size - 1; i >= 0; --i)
 					if (interactableInstances.get(i) instanceof Glass)
 						interactableInstances.removeIndex(i);
+				break;
+			case DIAMOND:
+				if (state.diamonds != null) {
+					for (int i = 0; i < state.diamonds.size; ++i) {
+						LevelIO.LevelState.DiamondData dd = state.diamonds.get(i);
+						if (dd.x == p.x && dd.y == p.y) {
+							state.diamonds.removeIndex(i);
+							break;
+						}
+					}
+				}
+				break;
+			case SHOP:
+				if (state.shops != null) {
+					for (int i = 0; i < state.shops.size; ++i) {
+						LevelIO.LevelState.ShopData sd = state.shops.get(i);
+						if (sd.x == p.x && sd.y == p.y) {
+							state.shops.removeIndex(i);
+							break;
+						}
+					}
+				}
 				break;
 			case NONE:
 				break;

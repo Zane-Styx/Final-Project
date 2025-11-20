@@ -1,0 +1,30 @@
+Diamond Asset Required
+======================
+
+Please create or add a diamond.png sprite sheet with the following specifications:
+
+Filename: diamond.png
+Location: assets/environment/diamond.png
+Dimensions: 192x32 pixels (6 frames of 32x32 each)
+Format: PNG with transparency
+Layout: 1 row, 6 columns (horizontal sprite sheet)
+
+Frame layout:
+- Frame 0 (0-31px): Diamond frame 1
+- Frame 1 (32-63px): Diamond frame 2
+- Frame 2 (64-95px): Diamond frame 3
+- Frame 3 (96-127px): Diamond frame 4
+- Frame 4 (128-159px): Diamond frame 5
+- Frame 5 (160-191px): Diamond frame 6
+
+The animation should show a spinning/glowing diamond effect.
+
+Suggested design:
+- Cyan/blue colored diamond shape
+- Slight rotation or glow effect between frames
+- Clear silhouette against dark backgrounds
+- Transparent background
+
+Temporary workaround: 
+If no sprite sheet is available, the Diamond class will log an error but won't crash.
+The collectible will still function, just won't be visible.
