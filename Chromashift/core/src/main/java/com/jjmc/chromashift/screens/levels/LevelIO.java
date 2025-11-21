@@ -26,6 +26,7 @@ public class LevelIO {
         public Array<GlassData> glasses;
         public Array<DiamondData> diamonds;
         public Array<ShopData> shops;
+        public Array<TentacleData> tentacles;
         public BossData boss;
 
         public static class Meta {
@@ -114,6 +115,11 @@ public class LevelIO {
 
         public static class ShopData {
             public float x, y;
+        }
+
+        public static class TentacleData {
+            public float x, y;
+            public int segments = 30; // Default segment count
         }
 
         public static class BossData {
@@ -381,6 +387,7 @@ public class LevelIO {
         if (s.glasses == null) s.glasses = new Array<>();
         if (s.diamonds == null) s.diamonds = new Array<>();
         if (s.shops == null) s.shops = new Array<>();
+        if (s.tentacles == null) s.tentacles = new Array<>();
     }
 
     /**

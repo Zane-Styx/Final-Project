@@ -1,5 +1,665 @@
 package com.jjmc.chromashift.environment.enemy;
 
-public class Tentacle {
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
+
+/**
+ * A smooth, flexible 2D tentacle driven by spring physics.
+ * The root is anchored; segments follow spring forces + tip attraction to mouse
+ * cursor.
+ */
+public class Tentacle implements Enemy {
+    // ===== Enemy interface implementation (capture vs total health) =====
+    private int maxTentacleHealth = 6;          // Total health (resets only on respawn/rebuild)
+    private int currentTentacleHealth = 6;      // Remaining health
+    private int captureHitCounter = 0;          // Hits during current capture (release after 3)
+    private boolean dead = false;               // True once health depleted
+    private boolean staticMode = false;         // LevelMaker static rendering (no physics/capture)
+    private com.badlogic.gdx.utils.Array<com.jjmc.chromashift.environment.collectible.Collectible> dropTarget; // where to spawn diamonds
+    private final Rectangle bounds = new Rectangle();
+    // ===== Segment configuration =====
+    private final int segments;
+    private final float segmentLength = 12f;
+
+    // ===== State arrays (allocate once) =====
+    private final Vector2 anchor; // fixed root position
+    private final Vector2[] pos; // current segment positions
+    private final Vector2[] vel; // current segment velocities
+    private final float[] thickness; // visual thickness: thick at base → thin at tip
+    private final float[] suctionScale; // oscillating suction cup size per segment
+
+    // ===== Physics parameters (tweak these!) =====
+    private float springStiffness = 10f; // Hooke's law spring constant (higher = stiffer)
+    private float springDamping = 8f; // velocity damping between segments (higher = less bouncy)
+    private float globalDamping = 0.992f; // per-frame energy bleed (< 1.0 to slowly dissipate motion)
+    private float targetAttract = 100f; // force magnitude pulling tip toward mouse (higher so it visibly moves)
+    private float maxVelocity = 800f; // safety clamp to prevent physics explosion
+
+    // ===== Animation timing =====
+    private float time = 0f;
+    private float suctionWaveSpeed = 3f; // frequency of suction cup oscillation
+    private float suctionWaveOffset = 0.35f; // phase shift per segment (creates traveling wave)
+    // Idle lateral wave parameters (adds motion even if cursor still)
+    // Base amplitude applies near root, scaled down toward tip by waveTipFactor.
+    private float waveBaseAmplitude = 200f; // amplitude at root
+    private float waveTipFactor = 3f; // relative amplitude at tip (0 = none, 1 = same as base)
+    private float idleWaveFrequency = 1.4f; // cycles per second
+    private float idleWavePropagation = 0.25f; // phase advance per segment
+    // Tip follow smoothing (lerp factor per frame)
+    private float tipFollowLerp = 0.18f; // increase for snappier following
+    // Mouse attraction priority (wave first, mouse blended after constraints)
+    private float mouseInfluence = 0.3f; // 0 = ignore mouse, 1 = full follow
+    private float mouseDistanceThreshold = 140f; // ramp-in distance for influence
+    // Life-like motion parameters
+    private float lifeTwitchAmplitude = 8f; // small twitch magnitude
+    private float lifeTwitchFrequency = 2.2f; // twitch speed
+    private float stiffnessModAmplitude = 0.12f; // stiffness modulation depth (fraction)
+    private float stiffnessModFrequency = 0.5f; // stiffness modulation speed
+    private float neighborVelocityBlend = 0.08f; // blend velocities with neighbors for smoothness
+    private final Vector2 prevMouse = new Vector2(); // used to detect quick mouse motion
+
+    // Reusable temp vectors to avoid allocations in update()
+    private final Vector2 tempDiff = new Vector2();
+    private final Vector2 tempDir = new Vector2();
+    private final Vector2 tempForce = new Vector2();
+    private final Vector2 tempTarget = new Vector2();
+
+    /**
+     * Create a new Tentacle anchored at (x, y) with default segment count (30).
+     */
+    public Tentacle(float x, float y) {
+        this(x, y, 30);
+    }
+
+    /**
+     * Create a new Tentacle anchored at (x, y) with specified segment count.
+     * @param x The x coordinate of the anchor point
+     * @param y The y coordinate of the anchor point
+     * @param segmentCount The number of segments (10-50 recommended)
+     */
+    public Tentacle(float x, float y, int segmentCount) {
+        this.segments = Math.max(10, Math.min(50, segmentCount)); // Clamp between 10-50
+        anchor = new Vector2(x, y);
+
+        pos = new Vector2[segments];
+        vel = new Vector2[segments];
+        thickness = new float[segments];
+        suctionScale = new float[segments];
+
+        // Initialize all segments hanging downward
+        segmentHitboxes = new com.badlogic.gdx.math.Circle[segments];
+        for (int i = 0; i < segments; i++) {
+            pos[i] = new Vector2(anchor.x, anchor.y - i * segmentLength);
+            vel[i] = new Vector2();
+
+            // Thickness: thick at base (i=0) → thin at tip (i=segments-1)
+            float t = 1f - (i / (float) segments);
+            thickness[i] = 6f + t * 16f;
+
+            suctionScale[i] = 1f; // default scale
+            
+            // Create hitbox for each segment
+            segmentHitboxes[i] = new com.badlogic.gdx.math.Circle(pos[i].x, pos[i].y, thickness[i] / 2f);
+        }
+    }
+
+    /**
+     * Update physics: spring forces, tip attraction, velocity integration,
+     * constraint pass.
+     */
+    // ===== Capture State =====
+    private boolean isPlayerCaptured = false;
+    private float curlRadius = 60f; // Radius of the curl trap
+    private boolean hasCapturedThisCurl = false; // Prevent re-capture in same curl
+    private boolean wasCurledLastFrame = false; // Track curl state changes
     
+    // ===== Segment Hitboxes =====
+    private final com.badlogic.gdx.math.Circle[] segmentHitboxes; // Per-segment collision circles
+    
+    // ===== Curl Detection State =====
+    private final Vector2 curlCenter = new Vector2();
+    private boolean isCurledCached = false;
+    private boolean hasFullCurlCached = false;
+    private float curlDetectionThreshold = 0.6f; // How "closed" the loop needs to be (0-1)
+
+    /**
+     * Update physics: spring forces, tip attraction, velocity integration,
+     * constraint pass.
+     */
+    public void update(float delta, float targetX, float targetY) {
+        // Skip all logic if dead or in static editor mode
+        if (dead || staticMode) {
+            // Still keep hitboxes positioned in static mode (already initialized)
+            return;
+        }
+        time += delta;
+
+        // Set target to provided coordinates (Player position)
+        tempTarget.set(targetX, targetY);
+
+        // ===== Pin root segment =====
+        pos[0].set(anchor);
+        vel[0].setZero();
+
+        // ===== Apply spring forces between consecutive segments + idle lateral wave
+        // =====
+        for (int i = 1; i < segments; i++) {
+            Vector2 pPrev = pos[i - 1];
+            Vector2 p = pos[i];
+
+            // Difference vector: from previous to current
+            tempDiff.set(p).sub(pPrev);
+            float dist = tempDiff.len();
+            if (dist < 1e-6f)
+                continue; // avoid division by zero
+
+            // Normalized direction
+            tempDir.set(tempDiff).scl(1f / dist);
+
+            // Stretch = how much the spring is extended beyond rest length
+            float stretch = dist - segmentLength;
+
+            // Relative velocity along spring direction (for damping term)
+            float relVelAlong = vel[i].dot(tempDir) - vel[i - 1].dot(tempDir);
+
+            // Local stiffness modulation (gives breathing / alive feeling)
+            float localStiff = springStiffness
+                    * (1f + stiffnessModAmplitude * (float) Math.sin(time * stiffnessModFrequency + i * 0.1f));
+
+            // Hooke's law + damping: F = -k*x - c*v_rel
+            float forceMag = -localStiff * stretch - springDamping * relVelAlong;
+
+            // Apply force to current segment (assuming unit mass)
+            tempForce.set(tempDir).scl(forceMag * delta);
+            vel[i].add(tempForce);
+
+            // ---- Idle lateral wave force (perpendicular to spring direction) ----
+            // Compute perpendicular (rotate +90 deg): (x,y)->(-y,x)
+            float perpX = -tempDir.y;
+            float perpY = tempDir.x;
+            float wavePhase = time * idleWaveFrequency * (float) Math.PI * 2f + i * idleWavePropagation;
+            // Amplitude taper: root -> tip using linear interpolation to waveTipFactor
+            float normalized = i / (float) (segments - 1); // 0 at root, ~1 at tip
+            float amp = waveBaseAmplitude * ((1f - normalized) + waveTipFactor * normalized);
+            float waveForceMag = amp * (float) Math.sin(wavePhase);
+            vel[i].x += perpX * waveForceMag * delta;
+            vel[i].y += perpY * waveForceMag * delta;
+
+            // ---- Small life twitch (along perpendicular + slight along-axis), smaller
+            // toward tip ----
+            float twitchPhase = time * lifeTwitchFrequency + i * 0.27f;
+            float twitch = lifeTwitchAmplitude * (1f - normalized) * (float) Math.sin(twitchPhase);
+            // Add along-perp twitch
+            vel[i].x += perpX * twitch * delta;
+            vel[i].y += perpY * twitch * delta;
+            // Add tiny along-axis twitch
+            vel[i].x += tempDir.x * (twitch * 0.12f) * delta;
+            vel[i].y += tempDir.y * (twitch * 0.12f) * delta;
+        }
+
+        // Defer mouse attraction to after constraints so wave motion has priority.
+        Vector2 tip = pos[segments - 1];
+        tempDiff.set(tempTarget).sub(tip);
+        float distToTarget = tempDiff.len();
+
+        // ===== Integrate positions & apply global damping =====
+        for (int i = 1; i < segments; i++) {
+            // Clamp velocity to prevent instability
+            float vLen = vel[i].len();
+            if (vLen > maxVelocity) {
+                vel[i].scl(maxVelocity / vLen);
+            }
+
+            // Euler integration: position += velocity * dt
+            pos[i].x += vel[i].x * delta;
+            pos[i].y += vel[i].y * delta;
+
+            // Apply global damping (energy bleed)
+            vel[i].scl(globalDamping);
+        }
+
+        // ===== Mouse quick-move impulse (gives reactive life when player moves fast)
+        // =====
+        // reuse tempDiff: mouse delta = currentMouse - prevMouse
+        tempDiff.set(tempTarget).sub(prevMouse);
+        float mouseDeltaLen = tempDiff.len();
+        if (mouseDeltaLen > 12f) {
+            // small impulse proportional to mouse movement, mostly perpendicular to tip
+            // direction
+            tempDir.set(tempDiff);
+            if (tempDir.len() > 1e-6f)
+                tempDir.nor();
+            float px = -tempDir.y, py = tempDir.x;
+            vel[segments - 1].x += px * (mouseDeltaLen * 0.06f);
+            vel[segments - 1].y += py * (mouseDeltaLen * 0.06f);
+            // small forward kick
+            vel[segments - 1].x += tempDir.x * (mouseDeltaLen * 0.02f);
+            vel[segments - 1].y += tempDir.y * (mouseDeltaLen * 0.02f);
+        }
+
+        // ===== Tip positional lerp (direct positional attraction) =====
+        // This ensures visible pursuit even if velocity force small.
+        if (distToTarget > 1e-3f) {
+            // Lerp the tip directly toward target (not modifying velocity yet)
+            tip.lerp(tempTarget, tipFollowLerp);
+        }
+
+        // ===== FABRIK-style constraint passes =====
+        // Backward pass: keep distances starting from tip going to root
+        for (int i = segments - 2; i >= 0; i--) {
+            if (i == 0)
+                break; // leave root for forward anchoring
+            tempDiff.set(pos[i]).sub(pos[i + 1]);
+            float d = tempDiff.len();
+            if (d > 1e-6f) {
+                pos[i].set(pos[i + 1]).add(tempDiff.scl(segmentLength / d));
+            }
+        }
+        // Anchor root explicitly
+        pos[0].set(anchor);
+        // Forward pass: rebuild chain outward from root to tip maintaining lengths
+        for (int i = 1; i < segments; i++) {
+            tempDiff.set(pos[i]).sub(pos[i - 1]);
+            float d = tempDiff.len();
+            if (d > 1e-6f) {
+                pos[i].set(pos[i - 1]).add(tempDiff.scl(segmentLength / d));
+            }
+        }
+
+        // ===== Mouse attraction AFTER wave + constraint =====
+        if (distToTarget > 1e-3f) {
+            // Influence scales up beyond threshold distance
+            float influenceScale = mouseInfluence;
+            if (distToTarget < mouseDistanceThreshold) {
+                influenceScale *= (distToTarget / mouseDistanceThreshold);
+            }
+            tempDir.set(tempDiff).nor();
+            // Velocity nudge (subtle compared to wave)
+            tempForce.set(tempDir).scl(targetAttract * influenceScale * delta);
+            vel[segments - 1].add(tempForce);
+            // Positional blend for immediate visual response
+            tip.lerp(tempTarget, tipFollowLerp * influenceScale);
+        }
+        // ===== Recompute velocities from positional changes (optional for coherence)
+        // =====
+        // We approximate new velocities after positional constraints to avoid jitter.
+        // (Could store previous positions; here we damp to avoid large snaps.)
+        for (int i = 1; i < segments; i++) {
+            vel[i].scl(globalDamping); // additional light damping post solve
+        }
+
+        // ===== Neighbor velocity blending for smooth, organic motion =====
+        for (int i = 1; i < segments - 1; i++) {
+            float avgX = (vel[i - 1].x + vel[i + 1].x) * 0.5f;
+            float avgY = (vel[i - 1].y + vel[i + 1].y) * 0.5f;
+            vel[i].x += (avgX - vel[i].x) * neighborVelocityBlend;
+            vel[i].y += (avgY - vel[i].y) * neighborVelocityBlend;
+        }
+
+        // ===== Update suction cup animation (traveling sine wave) =====
+        for (int i = 1; i < segments; i++) {
+            suctionScale[i] = 0.8f + 0.2f * (float) Math.sin(time * suctionWaveSpeed + i * suctionWaveOffset);
+        }
+        // store mouse for next-frame delta
+        prevMouse.set(tempTarget);
+        
+        // ===== Update segment hitboxes =====
+        for (int i = 0; i < segments; i++) {
+            segmentHitboxes[i].setPosition(pos[i].x, pos[i].y);
+            segmentHitboxes[i].setRadius(thickness[i] / 2f);
+        }
+        
+        // ===== Update curl detection =====
+        updateCurlDetection();
+        
+        // ===== Handle curl state changes (reset capture flag when uncurling) =====
+        boolean nowCurled = isCurled();
+        if (wasCurledLastFrame && !nowCurled) {
+            hasCapturedThisCurl = false; // allow capture again after uncurl
+        }
+        wasCurledLastFrame = nowCurled;
+    }
+
+    /**
+     * Render the tentacle using ShapeRenderer.
+     */
+    public void draw(ShapeRenderer sr) {
+        // 1. Draw Outline (Darker, slightly thicker)
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        sr.setColor(0.1f, 0.05f, 0.15f, 1f); // Dark purple/black outline
+        for (int i = 0; i < segments - 1; i++) {
+            float lineThickness = thickness[i + 1] + 4f; // Outline thickness
+            sr.rectLine(pos[i], pos[i + 1], lineThickness);
+        }
+        sr.end();
+
+        // 2. Draw Main Body (Gradient)
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        for (int i = 0; i < segments - 1; i++) {
+            float t = i / (float) segments;
+            // Gradient from dark purple to lighter magenta
+            sr.setColor(0.3f + t * 0.4f, 0.1f, 0.4f + t * 0.2f, 1f);
+
+            float lineThickness = thickness[i + 1];
+            sr.rectLine(pos[i], pos[i + 1], lineThickness);
+
+            // Draw suction cup circle at segment i
+            // Make cups slightly lighter
+            sr.setColor(0.5f + t * 0.3f, 0.2f, 0.6f + t * 0.2f, 1f);
+            float cupSize = lineThickness * 0.4f * suctionScale[i];
+            sr.circle(pos[i].x, pos[i].y, cupSize);
+        }
+
+        // Draw final suction cup at tip
+        sr.setColor(0.9f, 0.3f, 0.8f, 1f); // Bright tip
+        float tipCupSize = thickness[segments - 1] * 0.4f * suctionScale[segments - 1];
+        sr.circle(pos[segments - 1].x, pos[segments - 1].y, tipCupSize);
+
+        sr.end();
+    }
+
+    // ===== Convenience Methods =====
+
+    public void setTargetPoint(float x, float y) {
+        // This is now handled in update(delta, x, y) but kept for compatibility if
+        // needed
+        // or we can remove it. For now, let's just update the tempTarget.
+        tempTarget.set(x, y);
+    }
+
+    /**
+     * Update curl detection state. This computes whether the tentacle has formed
+     * a closed loop by checking if the tip is close to earlier segments.
+     */
+    private void updateCurlDetection() {
+        // To detect a "closed curl", we check if the tip is close to any segment
+        // in the middle portion of the tentacle (not the base, not the very tip)
+        isCurledCached = false;
+        hasFullCurlCached = false;
+        
+        if (segments < 10) {
+            return; // Too few segments to form a meaningful curl
+        }
+        
+        Vector2 tip = pos[segments - 1];
+        
+        // Check if tip has curled back toward middle segments
+        int checkStart = segments / 3; // Start checking from 1/3 of the way
+        int checkEnd = (2 * segments) / 3; // Check up to 2/3 of the way
+        
+        float closestDist = Float.MAX_VALUE;
+        int closestSegment = -1;
+        
+        for (int i = checkStart; i < checkEnd; i++) {
+            float dist = tip.dst(pos[i]);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestSegment = i;
+            }
+        }
+        
+        // If tip is close enough to a middle segment, we have a curl
+        float curlThresholdDist = segmentLength * 3f; // Within 3 segment lengths
+        if (closestDist < curlThresholdDist && closestSegment > 0) {
+            isCurledCached = true;
+            
+            // Calculate curl center as midpoint between tip and closest segment
+            curlCenter.set(pos[closestSegment]).add(tip).scl(0.5f);
+            
+            // Calculate radius as distance from center to tip plus margin
+            curlRadius = curlCenter.dst(tip) + segmentLength * 2f;
+            
+            // Check if we have a "full curl" by seeing how closed the loop is
+            // Count how many segments are within the curl radius
+            int segmentsInCurl = 0;
+            for (int i = closestSegment; i < segments; i++) {
+                if (curlCenter.dst(pos[i]) < curlRadius) {
+                    segmentsInCurl++;
+                }
+            }
+            
+            // Full curl if majority of the tail segments are in the loop
+            float curlCompleteness = segmentsInCurl / (float)(segments - closestSegment);
+            hasFullCurlCached = curlCompleteness >= curlDetectionThreshold;
+        } else {
+            // No curl detected
+            curlCenter.set(tip);
+            curlRadius = 40f;
+        }
+    }
+
+    public Vector2 getCurlCenter() {
+        return curlCenter;
+    }
+
+    public float getCurlRadius() {
+        return curlRadius;
+    }
+
+    public boolean isCurled() {
+        return isCurledCached;
+    }
+
+    public boolean hasFullCurl() {
+        return hasFullCurlCached;
+    }
+
+    public boolean isPlayerCaptured() {
+        return isPlayerCaptured;
+    }
+
+    public void setPlayerCaptured(boolean captured) {
+        if (dead || staticMode) return;
+        this.isPlayerCaptured = captured;
+        if (captured) {
+            captureHitCounter = 0;           // reset 3‑hit release counter only
+            hasCapturedThisCurl = true;
+        }
+    }
+    
+    /**
+     * Release the player from capture.
+     */
+    public void releasePlayer() {
+        isPlayerCaptured = false;
+        captureHitCounter = 0; // reset per-capture count
+    }
+    
+    /**
+     * Check if this tentacle can capture the player right now.
+     * Returns false if already captured or already captured this curl cycle.
+     */
+    public boolean canCapture() {
+        return !isPlayerCaptured && !hasCapturedThisCurl && hasFullCurl();
+    }
+    
+    /**
+     * Get the number of hits taken during current capture.
+     */
+    public int getHitsThisCapture() { return captureHitCounter; }
+
+    /** Set static mode (LevelMaker). */
+    public void setStaticMode(boolean staticMode) { this.staticMode = staticMode; }
+    public boolean isStaticMode() { return staticMode; }
+
+    /** Provide target array for diamond drops on death. */
+    public void setDropTarget(com.badlogic.gdx.utils.Array<com.jjmc.chromashift.environment.collectible.Collectible> target) {
+        this.dropTarget = target;
+    }
+
+    /** Respawn/reset full health (editor rebuild or game respawn). */
+    public void respawn() {
+        currentTentacleHealth = maxTentacleHealth;
+        dead = false;
+        isPlayerCaptured = false;
+        captureHitCounter = 0;
+        hasCapturedThisCurl = false;
+    }
+
+    // ===== Getters for tweaking parameters at runtime (optional) =====
+    public void setSpringStiffness(float stiffness) {
+        this.springStiffness = stiffness;
+    }
+
+    public void setSpringDamping(float damping) {
+        this.springDamping = damping;
+    }
+
+    public void setGlobalDamping(float damping) {
+        this.globalDamping = damping;
+    }
+
+    public void setTargetAttract(float attract) {
+        this.targetAttract = attract;
+    }
+
+    public void setMaxVelocity(float maxVel) {
+        this.maxVelocity = maxVel;
+    }
+
+    public void setSuctionWaveSpeed(float speed) {
+        this.suctionWaveSpeed = speed;
+    }
+
+    public void setSuctionWaveOffset(float offset) {
+        this.suctionWaveOffset = offset;
+    }
+
+    public void setTipFollowLerp(float lerp) {
+        this.tipFollowLerp = lerp;
+    }
+
+    public void setWaveBaseAmplitude(float a) {
+        this.waveBaseAmplitude = a;
+    }
+
+    public void setWaveTipFactor(float f) {
+        this.waveTipFactor = f;
+    }
+
+    public void setIdleWaveFrequency(float freq) {
+        this.idleWaveFrequency = freq;
+    }
+
+    public void setIdleWavePropagation(float prop) {
+        this.idleWavePropagation = prop;
+    }
+
+    public void setMouseInfluence(float influence) {
+        this.mouseInfluence = influence;
+    }
+
+    public void setMouseDistanceThreshold(float threshold) {
+        this.mouseDistanceThreshold = threshold;
+    }
+
+    // ===== Enemy Interface Implementation =====
+
+    @Override
+    public void takeDamage(int damage) {
+        if (dead) return;
+        currentTentacleHealth -= damage;
+        if (currentTentacleHealth < 0) currentTentacleHealth = 0;
+        if (isPlayerCaptured) {
+            captureHitCounter += damage; // Per-capture release counter
+            if (captureHitCounter >= 3) {
+                releasePlayer();
+            }
+        }
+        if (currentTentacleHealth <= 0) {
+            die();
+        }
+    }
+    
+    /**
+     * Apply damage to a specific segment of the tentacle.
+     * @param damage Amount of damage to apply
+     * @param segmentIndex Index of the segment that was hit
+     */
+    public void applyDamage(int damage, int segmentIndex) {
+        if (segmentIndex < 0 || segmentIndex >= segments || dead) return;
+        takeDamage(damage);
+    }
+    
+    /**
+     * Get segment hitbox for collision detection.
+     */
+    public com.badlogic.gdx.math.Circle getSegmentHitbox(int index) {
+        if (index < 0 || index >= segments) return null;
+        return segmentHitboxes[index];
+    }
+    
+    /**
+     * Get all segment hitboxes.
+     */
+    public com.badlogic.gdx.math.Circle[] getSegmentHitboxes() {
+        return segmentHitboxes;
+    }
+
+    @Override
+    public int getHealth() { return currentTentacleHealth; }
+
+    @Override
+    public boolean isAlive() { return !dead; }
+
+    @Override
+    public Rectangle getBounds() {
+        // Calculate bounds encompassing all segments
+        if (segments == 0) {
+            bounds.set(anchor.x, anchor.y, 0, 0);
+            return bounds;
+        }
+
+        float minX = pos[0].x;
+        float maxX = pos[0].x;
+        float minY = pos[0].y;
+        float maxY = pos[0].y;
+
+        for (int i = 1; i < segments; i++) {
+            if (pos[i].x < minX) minX = pos[i].x;
+            if (pos[i].x > maxX) maxX = pos[i].x;
+            if (pos[i].y < minY) minY = pos[i].y;
+            if (pos[i].y > maxY) maxY = pos[i].y;
+        }
+
+        // Add padding for thickness
+        float maxThickness = thickness[0];
+        bounds.set(minX - maxThickness, minY - maxThickness, 
+                   (maxX - minX) + maxThickness * 2, (maxY - minY) + maxThickness * 2);
+        return bounds;
+    }
+
+    /**
+     * Reset tentacle to full health.
+     */
+    public void resetHealth() { respawn(); }
+
+    private void die() {
+        releasePlayer();
+        dead = true;
+        // Spawn diamond drops (3–5) around the TIP (visual reward where fight ended)
+        if (dropTarget != null) {
+            int count = 3 + (int)(Math.random() * 3); // 3,4,5
+            float tipX = pos[segments - 1].x;
+            float tipY = pos[segments - 1].y;
+            float spread = 28f; // radius of scatter
+            for (int i = 0; i < count; i++) {
+                float ox = tipX + (float)(Math.random() * spread - spread/2f);
+                float oy = tipY + (float)(Math.random() * spread - spread/2f);
+                dropTarget.add(new com.jjmc.chromashift.environment.collectible.Diamond(ox, oy));
+            }
+        }
+    }
+
+    /**
+     * Get the segment count of this tentacle.
+     * @return Number of segments
+     */
+    public int getSegmentCount() { return segments; }
+
+    /** Convenience: tip X */
+    public float getTipX() { return pos[segments - 1].x; }
+    /** Convenience: tip Y */
+    public float getTipY() { return pos[segments - 1].y; }
 }

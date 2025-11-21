@@ -63,7 +63,7 @@ public class LevelMakerScreen implements Screen {
 	private boolean levelSelected = false;
 
 	private enum ObjectType {
-		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, NONE
+		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, NONE
 	}
 
 	private ObjectType selectedType = ObjectType.NONE;
@@ -207,6 +207,8 @@ public class LevelMakerScreen implements Screen {
 	private boolean selectedLeverHorizontal = false;
 	private Rectangle leverOrientRect;
 	private Rectangle linkToggleRect;
+	private Rectangle tentacleSegmentMinusRect, tentacleSegmentPlusRect;
+	private int selectedTentacleSegments = 30; // Default segment count
 	private boolean linkingMode = false;
 
 	private enum LinkStage {
@@ -276,8 +278,8 @@ public class LevelMakerScreen implements Screen {
 
 		// build UI buttons at BOTTOM center (Minecraft inventory style)
 		float bw = 60f, bh = 28f, gap = 8f;
-		// Added Diamond, Shop, laser types + Link + Delete (16 buttons total)
-		float totalWidth = 16 * bw + 15 * gap;
+		// Added Diamond, Shop, Tentacle, laser types + Link + Delete (17 buttons total)
+		float totalWidth = 17 * bw + 16 * gap;
 		float bx = (uiCamera.viewportWidth - totalWidth) / 2f;
 		float by = 20f; // 20px from bottom
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.WALL, "Wall"));
@@ -307,6 +309,8 @@ public class LevelMakerScreen implements Screen {
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.DIAMOND, "Diamond"));
 		bx += bw + gap;
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.SHOP, "Shop"));
+		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.TENTACLE, "Tentacle"));
 		bx += bw + gap;
 		// Linking mode toggle button (works for Button/Lever)
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.NONE, "Link"));
@@ -373,6 +377,20 @@ public class LevelMakerScreen implements Screen {
 				(leverBtnRect != null) ? (leverBtnRect.x + (leverBtnRect.width - 80f) / 2f)
 						: ((uiCamera.viewportWidth - 80f) / 2f),
 				(leverBtnRect != null) ? (leverBtnRect.y + leverBtnRect.height + 8f) : optionY, 80f, sh);
+
+		// Tentacle segment count controls (shown only when Tentacle selected)
+		Rectangle tentacleBtnRect = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.TENTACLE) {
+				tentacleBtnRect = ub.rect;
+				break;
+			}
+		float tentacleControlW = 28f, tentacleControlH = 24f, tentacleGap = 6f;
+		float tentacleControlX = (tentacleBtnRect != null) ? (tentacleBtnRect.x + (tentacleBtnRect.width - (2 * tentacleControlW + tentacleGap)) / 2f)
+				: ((uiCamera.viewportWidth - (2 * tentacleControlW + tentacleGap)) / 2f);
+		float tentacleControlY = (tentacleBtnRect != null) ? (tentacleBtnRect.y + tentacleBtnRect.height + 8f) : optionY;
+		tentacleSegmentMinusRect = new Rectangle(tentacleControlX, tentacleControlY, tentacleControlW, tentacleControlH);
+		tentacleSegmentPlusRect = new Rectangle(tentacleControlX + tentacleControlW + tentacleGap, tentacleControlY, tentacleControlW, tentacleControlH);
 
 		// Launchpad direction buttons (shown only when Launchpad selected)
 		// 3 directions: UP, LEFT, RIGHT
@@ -877,6 +895,33 @@ public class LevelMakerScreen implements Screen {
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
 			// (Link toggle moved to dedicated 'Link' button in main bar)
+		} else if (selectedType == ObjectType.TENTACLE) {
+			// tentacle segment count controls
+			if (tentacleSegmentMinusRect != null && tentacleSegmentPlusRect != null) {
+				// Draw minus button
+				shape.setColor(new Color(0.2f, 0.2f, 0.25f, 0.9f));
+				shape.rect(tentacleSegmentMinusRect.x, tentacleSegmentMinusRect.y, 
+					tentacleSegmentMinusRect.width, tentacleSegmentMinusRect.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(Color.WHITE);
+				shape.rect(tentacleSegmentMinusRect.x, tentacleSegmentMinusRect.y, 
+					tentacleSegmentMinusRect.width, tentacleSegmentMinusRect.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+
+				// Draw plus button
+				shape.setColor(new Color(0.2f, 0.2f, 0.25f, 0.9f));
+				shape.rect(tentacleSegmentPlusRect.x, tentacleSegmentPlusRect.y, 
+					tentacleSegmentPlusRect.width, tentacleSegmentPlusRect.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(Color.WHITE);
+				shape.rect(tentacleSegmentPlusRect.x, tentacleSegmentPlusRect.y, 
+					tentacleSegmentPlusRect.width, tentacleSegmentPlusRect.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+			}
 		} else if (selectedType == ObjectType.LAUNCHPAD) {
 			// launchpad direction buttons
 			com.jjmc.chromashift.environment.Launchpad.LaunchDirection[] dirs = com.jjmc.chromashift.environment.Launchpad.LaunchDirection
@@ -1078,6 +1123,17 @@ public class LevelMakerScreen implements Screen {
 				font.draw(batch, selectedLeverHorizontal ? "Horizontal" : "Vertical", leverOrientRect.x + 8,
 						leverOrientRect.y + leverOrientRect.height - 6);
 			}
+		} else if (selectedType == ObjectType.TENTACLE) {
+			// tentacle segment count controls
+			if (tentacleSegmentMinusRect != null && tentacleSegmentPlusRect != null) {
+				font.setColor(Color.WHITE);
+				font.draw(batch, "-", tentacleSegmentMinusRect.x + 10, tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height - 6);
+				font.draw(batch, "+", tentacleSegmentPlusRect.x + 10, tentacleSegmentPlusRect.y + tentacleSegmentPlusRect.height - 6);
+				// Draw segment count between buttons
+				font.draw(batch, "Seg: " + selectedTentacleSegments, 
+					(tentacleSegmentMinusRect.x + tentacleSegmentPlusRect.x + tentacleSegmentPlusRect.width) / 2f - 20,
+					tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height + 16);
+			}
 		} else if (selectedType == ObjectType.LASER) {
 			// laser type labels
 			for (int i = 0; i < laserTypeRects.size; i++) {
@@ -1258,6 +1314,17 @@ public class LevelMakerScreen implements Screen {
 		} else if (selectedType == ObjectType.SHOP) {
 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.GOLD);
 			shape.rect(screenGx, screenGy, 64f, 64f);
+		} else if (selectedType == ObjectType.TENTACLE) {
+			shape.setColor(previewBlocked ? Color.FIREBRICK : new Color(0.6f, 0.1f, 0.6f, 0.7f));
+			// Draw tentacle anchor point (larger circle)
+			shape.circle(screenGx + 16, screenGy + 16, 16);
+			// Draw segment count indicator
+			shape.end();
+			shape.begin(ShapeRenderer.ShapeType.Line);
+			shape.setColor(Color.MAGENTA);
+			shape.circle(screenGx + 16, screenGy + 16, 16);
+			shape.end();
+			shape.begin(ShapeRenderer.ShapeType.Filled);
 		} else if (selectedType == ObjectType.ORB) {
 			// Orb area label (reuse first box rect if available or fallback near preview)
 			font.setColor(Color.WHITE);
@@ -1783,6 +1850,16 @@ public class LevelMakerScreen implements Screen {
 			} else if (selectedType == ObjectType.LEVER) {
 				if (leverOrientRect != null && leverOrientRect.contains(ux, uy)) {
 					selectedLeverHorizontal = !selectedLeverHorizontal;
+					return;
+				}
+			} else if (selectedType == ObjectType.TENTACLE) {
+				// Handle tentacle segment count buttons
+				if (tentacleSegmentMinusRect != null && tentacleSegmentMinusRect.contains(ux, uy)) {
+					selectedTentacleSegments = Math.max(10, selectedTentacleSegments - 5);
+					return;
+				}
+				if (tentacleSegmentPlusRect != null && tentacleSegmentPlusRect.contains(ux, uy)) {
+					selectedTentacleSegments = Math.min(50, selectedTentacleSegments + 5);
 					return;
 				}
 			} else if (selectedType == ObjectType.LAUNCHPAD) {
@@ -2715,6 +2792,16 @@ public class LevelMakerScreen implements Screen {
 				placed = true;
 				break;
 			}
+			case TENTACLE: {
+				LevelIO.LevelState.TentacleData td = new LevelIO.LevelState.TentacleData();
+				td.x = gx;
+				td.y = gy;
+				td.segments = selectedTentacleSegments;
+				state.tentacles.add(td);
+				placements.add(new Placement(ObjectType.TENTACLE, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
 			case NONE:
 			default: {
 				break;
@@ -3350,6 +3437,17 @@ public class LevelMakerScreen implements Screen {
 						LevelIO.LevelState.ShopData sd = state.shops.get(i);
 						if (sd.x == p.x && sd.y == p.y) {
 							state.shops.removeIndex(i);
+							break;
+						}
+					}
+				}
+				break;
+			case TENTACLE:
+				if (state.tentacles != null) {
+					for (int i = 0; i < state.tentacles.size; ++i) {
+						LevelIO.LevelState.TentacleData td = state.tentacles.get(i);
+						if (td.x == p.x && td.y == p.y) {
+							state.tentacles.removeIndex(i);
 							break;
 						}
 					}

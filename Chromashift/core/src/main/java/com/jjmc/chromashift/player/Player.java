@@ -88,6 +88,16 @@ public class Player {
     // Shield / Armor
     private int shield = 0;
 
+    // Enemy tracking for melee attacks
+    private Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies = new Array<>();
+    private AttackHitbox attackHitbox;
+    
+    // Animation state tracking to prevent resetting animations every frame
+    private String lastAnimationName = null;
+    private Boolean lastFlipX = null; // track last horizontal flip state
+    // Capture state (tentacle) allowing attacks while immobilized
+    private boolean capturedByTentacle = false;
+
     public Player(float startX, float startY,
             int keyLeft, int keyRight, int keyJump, int keyAttack,
             PlayerType type,
@@ -131,6 +141,9 @@ public class Player {
         // Respawn defaults to initial spawn
         this.respawnX = startX;
         this.respawnY = startY;
+        
+        // Initialize attack hitbox
+        this.attackHitbox = new AttackHitbox(this);
 
         // Initialize health system with shield logic
         this.health = new HealthSystem(200f) {
@@ -205,13 +218,13 @@ public class Player {
             }
         }
 
-        // Don't update movement if stunned
+        // Don't update movement if stunned (respawn stun only)
         if (!isStunned) {
             update(delta, groundY, walls, null);
         } else {
-            // Still update animation while stunned
+            // Still update animation while stunned (respawn only)
             anim.update(delta);
-            anim.play("idle", facingLeft);
+            setAnimation("idle", facingLeft);
         }
     }
 
@@ -260,17 +273,27 @@ public class Player {
             }
         }
 
-        // Only allow input-based movement when not stunned
-        if (!isStunned) {
+        // Movement & jump only when not stunned or captured
+        if (!isStunned && !capturedByTentacle) {
             PlayerLogic.handleGroundMovement(this, delta, walls, solids);
             PlayerLogic.handleJump(this);
+        }
+        // Allow facing direction changes while captured (so attacks can aim)
+        if (capturedByTentacle && !isStunned) {
+            boolean inputLeft = Gdx.input.isKeyPressed(keyLeft);
+            boolean inputRight = Gdx.input.isKeyPressed(keyRight);
+            if (inputLeft && !inputRight) facingLeft = true;
+            else if (inputRight && !inputLeft) facingLeft = false;
+        }
+        // Allow attacking when not stunned (including when captured)
+        if (!isStunned) {
             PlayerLogic.handleAttack(this, delta);
         }
 
-        if (!isStunned && Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
+        if (!isStunned && !capturedByTentacle && Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
             dashing = true;
             dashTimer = config.dashTime;
-            anim.play("dash", facingLeft);
+            setAnimation("dash", facingLeft);
             canJump = true;
             velocityY = 0f;
             // Cancel horizontal launch momentum if dashing in the opposite direction
@@ -329,10 +352,15 @@ public class Player {
         if (onGround || onWall || wallSliding)
             dashUsed = false;
 
+        // Update attack hitbox
+        if (attackHitbox != null) {
+            attackHitbox.update(delta);
+            attackHitbox.checkEnemyCollisions(enemies);
+        }
+        
         anim.update(delta);
         if (isStunned) {
-            // Show idle animation when stunned
-            anim.play("idle", facingLeft);
+            setAnimation("idle", facingLeft);
         } else {
             PlayerLogic.handleAnimationState(this);
         }
@@ -448,6 +476,54 @@ public class Player {
                 }
             }
         }
+
+        // Check for enemy hits when attacking
+        if (isAttacking() && anim.getCurrentFrameIndex() == 3) { // Hit frame at frame 3
+            PlayerLogic.checkEnemyHits(this, enemies);
+        }
+    }
+
+    /**
+     * Set the enemies array for melee combat.
+     * @param enemies Array of Enemy objects to track for attacks
+     */
+    public void setEnemies(Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies) {
+        this.enemies = enemies;
+    }
+    
+    /**
+     * Helper to set animation only when it changes (prevents resetting stateTime).
+     */
+    public void setAnimation(String name, boolean flip) {
+        if (!name.equals(lastAnimationName) || lastFlipX == null || flip != lastFlipX) {
+            anim.play(name, flip);
+            lastAnimationName = name;
+            lastFlipX = flip;
+        }
+    }
+    
+    /**
+     * Perform a melee attack. Spawns attack hitbox that damages enemies.
+     */
+    public void attack() {
+        if (attackHitbox != null) {
+            attackHitbox.activate();
+        }
+    }
+    
+    /**
+     * Get the attack hitbox for debug drawing.
+     */
+    public AttackHitbox getAttackHitbox() {
+        return attackHitbox;
+    }
+
+    // Tentacle capture state accessors
+    public boolean isCapturedByTentacle() {
+        return capturedByTentacle;
+    }
+    public void setCapturedByTentacle(boolean captured) {
+        this.capturedByTentacle = captured;
     }
 
     protected void updateWallSensor() {

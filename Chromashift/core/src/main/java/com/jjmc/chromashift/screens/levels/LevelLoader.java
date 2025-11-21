@@ -26,6 +26,8 @@ public final class LevelLoader {
         public final Array<com.jjmc.chromashift.environment.collectible.Collectible> collectibles = new Array<>();
         // Shop position data (shops need Player and Stage, so they're instantiated by screens)
         public final Array<LevelIO.LevelState.ShopData> shopDataList = new Array<>();
+        // Tentacle instances
+        public final Array<com.jjmc.chromashift.environment.enemy.Tentacle> tentacles = new Array<>();
         public BossInstance boss; // optional
         public float spawnX;
         public float spawnY;
@@ -371,6 +373,15 @@ public final class LevelLoader {
         if (state.shops != null) {
             for (LevelIO.LevelState.ShopData sd : state.shops) {
                 out.shopDataList.add(sd);
+            }
+        }
+
+        // Tentacles
+        if (state.tentacles != null) {
+            for (LevelIO.LevelState.TentacleData td : state.tentacles) {
+                com.jjmc.chromashift.environment.enemy.Tentacle tentacle = 
+                    new com.jjmc.chromashift.environment.enemy.Tentacle(td.x, td.y, td.segments);
+                out.tentacles.add(tentacle);
             }
         }
 

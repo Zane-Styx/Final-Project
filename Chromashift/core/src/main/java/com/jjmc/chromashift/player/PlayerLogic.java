@@ -70,7 +70,7 @@ public class PlayerLogic {
 
         player.setVelocityY(0f);
         player.canJump = true; // Enable jumping during dash
-        player.getAnim().play("dash", player.isFacingLeft());
+        player.setAnimation("dash", player.isFacingLeft());
 
         if (player.dashTimer <= 0f) {
             player.setDashing(false);
@@ -164,8 +164,11 @@ public class PlayerLogic {
             player.attackCooldownTimer <= 0f) {
             
             player.setAttacking(true);
-            player.getAnim().play("attack", player.isFacingLeft());
+            player.setAnimation("attack", player.isFacingLeft());
             player.attackCooldownTimer = player.getConfig().attackCooldown;
+            
+            // Activate the attack hitbox
+            player.attack();
             
             if (!player.isOnGround()) {
                 player.airAttacking = true;
@@ -173,6 +176,42 @@ public class PlayerLogic {
                 player.setVelocityY(0f);
                 float d = player.isFacingLeft() ? -1f : 1f;
                 player.setX(player.getX() + d * player.getConfig().airAttackLungeSpeed * delta);
+            }
+        }
+    }
+
+    /**
+     * Check for enemy hits when player attacks.
+     * Call this method when the attack animation reaches its peak frame.
+     * @param player The player performing the attack
+     * @param enemies Array of Enemy objects to check for hits
+     */
+    public static void checkEnemyHits(Player player, Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies) {
+        if (!player.isAttacking() || enemies == null) return;
+
+        // Create attack hitbox in front of player
+        Rectangle hitbox = player.getHitboxRect();
+        float attackRange = 40f; // Range of melee attack
+        float attackWidth = 50f; // Width of attack hitbox
+        float attackHeight = hitbox.height;
+        
+        float attackX;
+        if (player.isFacingLeft()) {
+            attackX = hitbox.x - attackRange;
+        } else {
+            attackX = hitbox.x + hitbox.width;
+        }
+        float attackY = hitbox.y;
+        
+        Rectangle attackBox = new Rectangle(attackX, attackY, attackRange + attackWidth, attackHeight);
+        
+        // Check for overlaps with enemy bounds
+        for (com.jjmc.chromashift.environment.enemy.Enemy enemy : enemies) {
+            if (enemy == null || !enemy.isAlive()) continue;
+            
+            Rectangle enemyBounds = enemy.getBounds();
+            if (enemyBounds != null && attackBox.overlaps(enemyBounds)) {
+                enemy.takeDamage(1); // Deal 1 damage per hit
             }
         }
     }
@@ -344,7 +383,7 @@ public class PlayerLogic {
             player.setVelocityY(player.getConfig().jumpForce);
             player.setX(player.getX() + (player.isFacingLeft() ? 
                        player.getConfig().wallJumpForceX : -player.getConfig().wallJumpForceX) * 0.016f);
-            player.getAnim().play("jump", player.isFacingLeft());
+            player.setAnimation("jump", player.isFacingLeft());
         }
     }
 
@@ -355,19 +394,17 @@ public class PlayerLogic {
         }
         
         if (player.isAttacking()) {
-            if (!"attack".equals(player.getAnim().getCurrentAnimationName())) {
-                player.getAnim().play("attack", player.isFacingLeft());
-            }
+            player.setAnimation("attack", player.isFacingLeft());
             return;
         }
         
         if (player.isWallSliding()) {
-            player.getAnim().play("wallslide", !player.isFacingLeft());
+            player.setAnimation("wallslide", !player.isFacingLeft());
         } else if (player.isOnGround()) {
-            player.getAnim().play(player.isMoving() ? "run" : "idle", player.isFacingLeft());
+            player.setAnimation(player.isMoving() ? "run" : "idle", player.isFacingLeft());
         } else {
             float velocityY = player.getVelocityY();
-            player.getAnim().play(Math.abs(velocityY) > 1f ? 
+            player.setAnimation(Math.abs(velocityY) > 1f ? 
                                 (velocityY > 0f ? "jump" : "fall") : "fall", 
                                 player.isFacingLeft());
         }
