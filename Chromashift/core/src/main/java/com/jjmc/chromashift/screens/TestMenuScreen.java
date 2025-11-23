@@ -15,6 +15,72 @@ import com.chromashift.helper.UIHelper;
 /**
  * Simple test menu to choose quick screens during development.
  * Now uses UIHelper to demonstrate Scene2D UI components.
+ * 
+ * ===== UIHELPER TUTORIAL =====
+ * 
+ * UIHelper provides factory methods for creating common Scene2D UI components with consistent styling.
+ * All methods accept a Skin and ChangeListener/ClickListener for event handling.
+ * 
+ * 1. BUTTONS (TextButton):
+ *    TextButton btn = UIHelper.createButton("Label", skin, new ClickListener() {
+ *        @Override
+ *        public void clicked(InputEvent event, float x, float y) {
+ *            // Handle click
+ *        }
+ *    });
+ *    - Returns styled TextButton with specified label
+ *    - Use ClickListener for click events (simpler than ChangeListener)
+ *    - Set size: rootTable.add(btn).width(200).height(48)
+ * 
+ * 2. SLIDERS (Slider):
+ *    Slider slider = UIHelper.createSlider(min, max, stepSize, vertical, skin, new ChangeListener() {
+ *        @Override
+ *        public void changed(ChangeEvent event, Actor actor) {
+ *            float value = ((Slider) actor).getValue();
+ *            // Handle value change
+ *        }
+ *    });
+ *    - min/max: range bounds (e.g., 0-100)
+ *    - stepSize: increment size (e.g., 1 for integers, 0.1 for decimals)
+ *    - vertical: false = horizontal, true = vertical
+ *    - Set initial value: slider.setValue(50)
+ *    - Get current value: slider.getValue()
+ * 
+ * 3. TOGGLES/CHECKBOXES (CheckBox):
+ *    CheckBox toggle = UIHelper.createToggle(initialState, skin, new ChangeListener() {
+ *        @Override
+ *        public void changed(ChangeEvent event, Actor actor) {
+ *            boolean checked = ((CheckBox) actor).isChecked();
+ *            // Handle toggle state change
+ *        }
+ *    });
+ *    - initialState: true = checked, false = unchecked
+ *    - Returns CheckBox without label (add label separately in layout)
+ *    - Check state: toggle.isChecked()
+ *    - Set state: toggle.setChecked(true/false)
+ * 
+ * LAYOUT TIPS:
+ * - Use Table for grid-based layouts (Scene2D's layout container)
+ * - Chain methods: table.add(widget).width(200).padRight(10).row()
+ * - .row() moves to next row
+ * - .colspan(n) spans multiple columns
+ * - Use nested Tables for complex layouts (e.g., slider + value label)
+ * 
+ * COMMON PATTERNS:
+ * - Label + Widget Row:
+ *   table.add(new Label("Text:", skin)).right().padRight(10);
+ *   table.add(widget).left().row();
+ * 
+ * - Widget + Value Display:
+ *   Table row = new Table();
+ *   row.add(slider).width(200).padRight(10);
+ *   row.add(valueLabel).width(50);
+ *   table.add(row).row();
+ * 
+ * - Centered Button:
+ *   table.add(button).colspan(2).width(200).height(48).row();
+ * 
+ * See buildUI() method below for complete examples.
  */
 public class TestMenuScreen implements Screen {
     private Stage stage;
