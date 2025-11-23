@@ -27,6 +27,8 @@ public class LevelIO {
         public Array<DiamondData> diamonds;
         public Array<ShopData> shops;
         public Array<TentacleData> tentacles;
+            public Array<KeyData> keys;
+            public Array<LockedDoorData> lockedDoors;
         public BossData boss;
 
         public static class Meta {
@@ -120,6 +122,14 @@ public class LevelIO {
         public static class TentacleData {
             public float x, y;
             public int segments = 30; // Default segment count
+        }
+
+        public static class KeyData {
+            public float x, y;
+        }
+
+        public static class LockedDoorData {
+            public float x, y;
         }
 
         public static class BossData {
@@ -230,6 +240,9 @@ public class LevelIO {
         s.diamonds = new Array<>();
         s.shops = new Array<>();
         s.boss = null;
+        s.tentacles = new Array<>();
+        s.keys = new Array<>();
+        s.lockedDoors = new Array<>();
         return s;
     }
 
@@ -388,6 +401,9 @@ public class LevelIO {
         if (s.diamonds == null) s.diamonds = new Array<>();
         if (s.shops == null) s.shops = new Array<>();
         if (s.tentacles == null) s.tentacles = new Array<>();
+        // New collectible/interactable arrays
+        if (s.keys == null) s.keys = new Array<>();
+        if (s.lockedDoors == null) s.lockedDoors = new Array<>();
     }
 
     /**

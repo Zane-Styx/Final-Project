@@ -206,18 +206,26 @@ public class Shop implements Interactable {
     }
     
     private void purchaseItem(ShopItem item, Dialog dialog, Label diamondLabel) {
-        if (player.getDiamonds() >= item.cost) {
-            player.addDiamonds(-item.cost);
-            item.onPurchase.run();
-            
-            // Update diamond display
-            diamondLabel.setText("Your Diamonds: " + player.getDiamonds());
-            
-            // Show purchase success feedback
-            Gdx.app.log("Shop", "Successfully purchased " + item.name);
-        } else {
-            Gdx.app.log("Shop", "Not enough diamonds! Need " + item.cost + ", have " + player.getDiamonds());
+        if (player == null) return;
+        // Shield cap enforcement before any deduction
+        if ("Shield".equalsIgnoreCase(item.name) && player.getShield() >= player.getMaxShield()) {
+            // Feedback: log + optional error sound
+            Gdx.app.log("Shop", "Shield purchase blocked: already at cap (" + player.getMaxShield() + ")");
+            try { com.chromashift.helper.SoundManager.play("Error"); } catch (Throwable ignored) {}
+            // Optional: future UI flash hook (shield UI could animate)
+            return;
         }
+        if (player.getDiamonds() < item.cost) {
+            Gdx.app.log("Shop", "Not enough diamonds! Need " + item.cost + ", have " + player.getDiamonds());
+            try { com.chromashift.helper.SoundManager.play("Error"); } catch (Throwable ignored) {}
+            return;
+        }
+        // Deduct and execute purchase
+        player.addDiamonds(-item.cost);
+        item.onPurchase.run();
+        // Update diamond display
+        diamondLabel.setText("Your Diamonds: " + player.getDiamonds());
+        Gdx.app.log("Shop", "Successfully purchased " + item.name);
     }
     
     private void disablePlayerMovement() {

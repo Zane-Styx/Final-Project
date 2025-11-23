@@ -3,6 +3,8 @@ package com.jjmc.chromashift.environment.enemy;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.jjmc.chromashift.helper.PerformanceProfiler;
+import com.jjmc.chromashift.helper.VisibilityCuller;
 
 /**
  * A smooth, flexible 2D tentacle driven by spring physics.
@@ -57,7 +59,8 @@ public class Tentacle implements Enemy {
     private float stiffnessModAmplitude = 0.12f; // stiffness modulation depth (fraction)
     private float stiffnessModFrequency = 0.5f; // stiffness modulation speed
     private float neighborVelocityBlend = 0.08f; // blend velocities with neighbors for smoothness
-    private final Vector2 prevMouse = new Vector2(); // used to detect quick mouse motion
+    private final Vector2 prevMouse = new Vector2();
+    private boolean sleeping = false; // sleep when far offscreen
 
     // Reusable temp vectors to avoid allocations in update()
     private final Vector2 tempDiff = new Vector2();
@@ -78,6 +81,24 @@ public class Tentacle implements Enemy {
      * @param y The y coordinate of the anchor point
      * @param segmentCount The number of segments (10-50 recommended)
      */
+    // LUT for fast sin
+    private static final int SIN_LUT_SIZE = 2048;
+    private static final float TWO_PI = (float) (Math.PI * 2.0);
+    private static final float INV_TWO_PI = 1f / TWO_PI;
+    private static final float[] SIN_LUT = new float[SIN_LUT_SIZE];
+    static {
+        for (int i = 0; i < SIN_LUT_SIZE; i++) {
+            SIN_LUT[i] = (float) Math.sin(TWO_PI * i / SIN_LUT_SIZE);
+        }
+    }
+    private static float fastSin(float angle) {
+        float a = angle * INV_TWO_PI; // normalize
+        a -= (int) a;
+        if (a < 0) a += 1f;
+        int idx = (int) (a * SIN_LUT_SIZE) & (SIN_LUT_SIZE - 1);
+        return SIN_LUT[idx];
+    }
+
     public Tentacle(float x, float y, int segmentCount) {
         this.segments = Math.max(10, Math.min(50, segmentCount)); // Clamp between 10-50
         anchor = new Vector2(x, y);
@@ -128,11 +149,12 @@ public class Tentacle implements Enemy {
      * constraint pass.
      */
     public void update(float delta, float targetX, float targetY) {
-        // Skip all logic if dead or in static editor mode
-        if (dead || staticMode) {
-            // Still keep hitboxes positioned in static mode (already initialized)
-            return;
-        }
+        if (dead || staticMode) return;
+        PerformanceProfiler.start("tentacle_update");
+        // visibility based sleep
+        boolean visible = VisibilityCuller.isVisible(getBounds(), 96f);
+        if (!visible) sleeping = true; else sleeping = false;
+        if (sleeping) { time += delta; PerformanceProfiler.stop("tentacle_update"); return; }
         time += delta;
 
         // Set target to provided coordinates (Player position)
@@ -164,8 +186,7 @@ public class Tentacle implements Enemy {
             float relVelAlong = vel[i].dot(tempDir) - vel[i - 1].dot(tempDir);
 
             // Local stiffness modulation (gives breathing / alive feeling)
-            float localStiff = springStiffness
-                    * (1f + stiffnessModAmplitude * (float) Math.sin(time * stiffnessModFrequency + i * 0.1f));
+                float localStiff = springStiffness * (1f + stiffnessModAmplitude * fastSin(time * stiffnessModFrequency + i * 0.1f));
 
             // Hooke's law + damping: F = -k*x - c*v_rel
             float forceMag = -localStiff * stretch - springDamping * relVelAlong;
@@ -182,14 +203,14 @@ public class Tentacle implements Enemy {
             // Amplitude taper: root -> tip using linear interpolation to waveTipFactor
             float normalized = i / (float) (segments - 1); // 0 at root, ~1 at tip
             float amp = waveBaseAmplitude * ((1f - normalized) + waveTipFactor * normalized);
-            float waveForceMag = amp * (float) Math.sin(wavePhase);
+            float waveForceMag = amp * fastSin(wavePhase);
             vel[i].x += perpX * waveForceMag * delta;
             vel[i].y += perpY * waveForceMag * delta;
 
             // ---- Small life twitch (along perpendicular + slight along-axis), smaller
             // toward tip ----
             float twitchPhase = time * lifeTwitchFrequency + i * 0.27f;
-            float twitch = lifeTwitchAmplitude * (1f - normalized) * (float) Math.sin(twitchPhase);
+            float twitch = lifeTwitchAmplitude * (1f - normalized) * fastSin(twitchPhase);
             // Add along-perp twitch
             vel[i].x += perpX * twitch * delta;
             vel[i].y += perpY * twitch * delta;
@@ -299,7 +320,7 @@ public class Tentacle implements Enemy {
 
         // ===== Update suction cup animation (traveling sine wave) =====
         for (int i = 1; i < segments; i++) {
-            suctionScale[i] = 0.8f + 0.2f * (float) Math.sin(time * suctionWaveSpeed + i * suctionWaveOffset);
+            suctionScale[i] = 0.8f + 0.2f * fastSin(time * suctionWaveSpeed + i * suctionWaveOffset);
         }
         // store mouse for next-frame delta
         prevMouse.set(tempTarget);
@@ -319,12 +340,14 @@ public class Tentacle implements Enemy {
             hasCapturedThisCurl = false; // allow capture again after uncurl
         }
         wasCurledLastFrame = nowCurled;
+        PerformanceProfiler.stop("tentacle_update");
     }
 
     /**
      * Render the tentacle using ShapeRenderer.
      */
     public void draw(ShapeRenderer sr) {
+        if (sleeping) return; // cull render
         // 1. Draw Outline (Darker, slightly thicker)
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setColor(0.1f, 0.05f, 0.15f, 1f); // Dark purple/black outline
@@ -657,6 +680,7 @@ public class Tentacle implements Enemy {
      * @return Number of segments
      */
     public int getSegmentCount() { return segments; }
+    public boolean isSleeping() { return sleeping; }
 
     /** Convenience: tip X */
     public float getTipX() { return pos[segments - 1].x; }

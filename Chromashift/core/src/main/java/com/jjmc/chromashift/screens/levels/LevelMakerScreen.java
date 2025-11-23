@@ -20,6 +20,7 @@ import com.jjmc.chromashift.environment.interactable.Button;
 import com.jjmc.chromashift.environment.interactable.Door;
 import com.jjmc.chromashift.environment.interactable.Lever;
 import com.jjmc.chromashift.environment.interactable.Interactable;
+import com.jjmc.chromashift.environment.interactable.Target;
 import com.jjmc.chromashift.environment.interactable.Box;
 import com.jjmc.chromashift.environment.interactable.Orb;
 import com.jjmc.chromashift.environment.interactable.Laser;
@@ -63,7 +64,7 @@ public class LevelMakerScreen implements Screen {
 	private boolean levelSelected = false;
 
 	private enum ObjectType {
-		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, NONE
+		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, TARGET, KEY, LOCKED_DOOR, NONE
 	}
 
 	private ObjectType selectedType = ObjectType.NONE;
@@ -195,6 +196,9 @@ public class LevelMakerScreen implements Screen {
 	// Glass color selection
 	private Array<Rectangle> glassColorRects = new Array<>();
 	private String selectedGlassColor = "CYAN"; // default
+	// Target color selection (same as Button colors)
+	private Array<Rectangle> targetColorRects = new Array<>();
+	private Button.ButtonColor selectedTargetColor = Button.ButtonColor.RED;
 	// Box color selection (same palette as Glass)
 	private Array<Rectangle> boxColorRects = new Array<>();
 	private String selectedBoxColor = "CYAN";
@@ -209,6 +213,7 @@ public class LevelMakerScreen implements Screen {
 	private Rectangle linkToggleRect;
 	private Rectangle tentacleSegmentMinusRect, tentacleSegmentPlusRect;
 	private int selectedTentacleSegments = 30; // Default segment count
+	private int selectedTentacleRootIndex = -1; // Selected existing tentacle root
 	private boolean linkingMode = false;
 
 	private enum LinkStage {
@@ -257,6 +262,10 @@ public class LevelMakerScreen implements Screen {
 
 	@Override
 	public void show() {
+		// Detach any previous screen Stage (e.g., TestMenuScreen) so its UI stops receiving input
+		try { Gdx.input.setInputProcessor(null); } catch (Throwable ignored) {}
+		// Ensure culling disabled in editor so off-screen objects remain visible
+		try { com.jjmc.chromashift.helper.VisibilityCuller.setEnabled(false); } catch (Throwable ignored) {}
 		// Initialize editor mode flags to false (will be set true only when delete mode
 		// active)
 		com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;
@@ -278,8 +287,8 @@ public class LevelMakerScreen implements Screen {
 
 		// build UI buttons at BOTTOM center (Minecraft inventory style)
 		float bw = 60f, bh = 28f, gap = 8f;
-		// Added Diamond, Shop, Tentacle, laser types + Link + Delete (17 buttons total)
-		float totalWidth = 17 * bw + 16 * gap;
+		// Added Diamond, Shop, Tentacle, Target, Key, LockedDoor, laser types + Link + Delete (20 buttons total)
+		float totalWidth = 20 * bw + 19 * gap;
 		float bx = (uiCamera.viewportWidth - totalWidth) / 2f;
 		float by = 20f; // 20px from bottom
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.WALL, "Wall"));
@@ -311,6 +320,12 @@ public class LevelMakerScreen implements Screen {
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.SHOP, "Shop"));
 		bx += bw + gap;
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.TENTACLE, "Tentacle"));
+		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.TARGET, "Target"));
+		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.KEY, "Key"));
+		bx += bw + gap;
+		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.LOCKED_DOOR, "LockDoor"));
 		bx += bw + gap;
 		// Linking mode toggle button (works for Button/Lever)
 		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.NONE, "Link"));
@@ -386,11 +401,15 @@ public class LevelMakerScreen implements Screen {
 				break;
 			}
 		float tentacleControlW = 28f, tentacleControlH = 24f, tentacleGap = 6f;
-		float tentacleControlX = (tentacleBtnRect != null) ? (tentacleBtnRect.x + (tentacleBtnRect.width - (2 * tentacleControlW + tentacleGap)) / 2f)
+		float tentacleControlX = (tentacleBtnRect != null)
+				? (tentacleBtnRect.x + (tentacleBtnRect.width - (2 * tentacleControlW + tentacleGap)) / 2f)
 				: ((uiCamera.viewportWidth - (2 * tentacleControlW + tentacleGap)) / 2f);
-		float tentacleControlY = (tentacleBtnRect != null) ? (tentacleBtnRect.y + tentacleBtnRect.height + 8f) : optionY;
-		tentacleSegmentMinusRect = new Rectangle(tentacleControlX, tentacleControlY, tentacleControlW, tentacleControlH);
-		tentacleSegmentPlusRect = new Rectangle(tentacleControlX + tentacleControlW + tentacleGap, tentacleControlY, tentacleControlW, tentacleControlH);
+		float tentacleControlY = (tentacleBtnRect != null) ? (tentacleBtnRect.y + tentacleBtnRect.height + 8f)
+				: optionY;
+		tentacleSegmentMinusRect = new Rectangle(tentacleControlX, tentacleControlY, tentacleControlW,
+				tentacleControlH);
+		tentacleSegmentPlusRect = new Rectangle(tentacleControlX + tentacleControlW + tentacleGap, tentacleControlY,
+				tentacleControlW, tentacleControlH);
 
 		// Launchpad direction buttons (shown only when Launchpad selected)
 		// 3 directions: UP, LEFT, RIGHT
@@ -501,6 +520,22 @@ public class LevelMakerScreen implements Screen {
 		for (int i = 0; i < gcolors.length; i++) {
 			boxColorRects.add(new Rectangle(bcx + i * (gcw + gcgap),
 					(boxBtnRect != null) ? (boxBtnRect.y + boxBtnRect.height + 8f) : optionY - 32f, gcw, gch));
+		}
+
+		// Target color swatches (same palette, position above TARGET toolbar button)
+		targetColorRects.clear();
+		float ttotal = cols.length * sw + (cols.length - 1) * sg;
+		Rectangle targetBtnRect = null;
+		for (UIButton ub : uiButtons)
+			if (ub.type == ObjectType.TARGET) {
+				targetBtnRect = ub.rect;
+				break;
+			}
+		float targetCx = (targetBtnRect != null) ? (targetBtnRect.x + (targetBtnRect.width - ttotal) / 2f)
+				: (uiCamera.viewportWidth - ttotal) / 2f;
+		for (int i = 0; i < cols.length; i++) {
+			targetColorRects.add(new Rectangle(targetCx + i * (sw + sg),
+					(targetBtnRect != null) ? (targetBtnRect.y + targetBtnRect.height + 8f) : optionY, sw, sh));
 		}
 
 		// list available level files from internal assets/levels
@@ -655,6 +690,11 @@ public class LevelMakerScreen implements Screen {
 			} catch (Throwable ignored) {
 			}
 		}
+		// Finalize Target activation state after all lasers have been updated
+		try {
+			Target.finalizeFrame();
+		} catch (Throwable ignored) {
+		}
 		batch.begin();
 		for (Wall w : walls)
 			w.render(batch);
@@ -673,6 +713,39 @@ public class LevelMakerScreen implements Screen {
 			bossInstance.render(batch);
 		batch.end(); // preview of the current object under mouse (drawn in UI space so it stays
 						// under cursor)
+
+		// Render tentacle roots (static indicator only, no physics in editor)
+		if (state.tentacles != null && state.tentacles.size > 0) {
+			shape.setProjectionMatrix(camera.combined);
+			shape.begin(ShapeRenderer.ShapeType.Filled);
+			shape.setColor(0.6f, 0.1f, 0.6f, 0.7f);
+			for (int i = 0; i < state.tentacles.size; i++) {
+				LevelIO.LevelState.TentacleData td = state.tentacles.get(i);
+				shape.circle(td.x + 16f, td.y + 16f, 16f);
+			}
+			shape.end();
+			shape.begin(ShapeRenderer.ShapeType.Line);
+			shape.setColor(Color.MAGENTA);
+			for (int i = 0; i < state.tentacles.size; i++) {
+				LevelIO.LevelState.TentacleData td = state.tentacles.get(i);
+				// Highlight selected root
+				if (i == selectedTentacleRootIndex) {
+					shape.setColor(Color.GOLD);
+					shape.circle(td.x + 16f, td.y + 16f, 18f);
+					shape.setColor(Color.MAGENTA);
+				}
+				shape.circle(td.x + 16f, td.y + 16f, 16f);
+			}
+			shape.end();
+			// Segment count label for selected root
+			if (selectedTentacleRootIndex >= 0 && selectedTentacleRootIndex < state.tentacles.size) {
+				batch.begin();
+				LevelIO.LevelState.TentacleData td = state.tentacles.get(selectedTentacleRootIndex);
+				font.setColor(Color.WHITE);
+				font.draw(batch, "Segments: " + td.segments, td.x, td.y + 48f);
+				batch.end();
+			}
+		}
 
 		// draw placement flashes in world space
 		if (placementFlashes.size > 0) {
@@ -715,8 +788,24 @@ public class LevelMakerScreen implements Screen {
 				previewH = 24f;
 				break;
 			}
+				case TENTACLE: {
+					// Tentacle root occupies a 32x32 cell
+					previewW = 32f;
+					previewH = 32f;
+					break;
+				}
 			case BOSS: {
 				previewW = 96f;
+				previewH = 96f;
+				break;
+			}
+			case KEY: {
+				previewW = 32f;
+				previewH = 32f;
+				break;
+			}
+			case LOCKED_DOOR: {
+				previewW = 48f;
 				previewH = 96f;
 				break;
 			}
@@ -762,6 +851,12 @@ public class LevelMakerScreen implements Screen {
 				// Shop is 64x64
 				previewW = 64f;
 				previewH = 64f;
+				break;
+			}
+			case TARGET: {
+				// Target is 32x32
+				previewW = 32f;
+				previewH = 32f;
 				break;
 			}
 			case NONE:
@@ -900,25 +995,25 @@ public class LevelMakerScreen implements Screen {
 			if (tentacleSegmentMinusRect != null && tentacleSegmentPlusRect != null) {
 				// Draw minus button
 				shape.setColor(new Color(0.2f, 0.2f, 0.25f, 0.9f));
-				shape.rect(tentacleSegmentMinusRect.x, tentacleSegmentMinusRect.y, 
-					tentacleSegmentMinusRect.width, tentacleSegmentMinusRect.height);
+				shape.rect(tentacleSegmentMinusRect.x, tentacleSegmentMinusRect.y,
+						tentacleSegmentMinusRect.width, tentacleSegmentMinusRect.height);
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Line);
 				shape.setColor(Color.WHITE);
-				shape.rect(tentacleSegmentMinusRect.x, tentacleSegmentMinusRect.y, 
-					tentacleSegmentMinusRect.width, tentacleSegmentMinusRect.height);
+				shape.rect(tentacleSegmentMinusRect.x, tentacleSegmentMinusRect.y,
+						tentacleSegmentMinusRect.width, tentacleSegmentMinusRect.height);
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 
 				// Draw plus button
 				shape.setColor(new Color(0.2f, 0.2f, 0.25f, 0.9f));
-				shape.rect(tentacleSegmentPlusRect.x, tentacleSegmentPlusRect.y, 
-					tentacleSegmentPlusRect.width, tentacleSegmentPlusRect.height);
+				shape.rect(tentacleSegmentPlusRect.x, tentacleSegmentPlusRect.y,
+						tentacleSegmentPlusRect.width, tentacleSegmentPlusRect.height);
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Line);
 				shape.setColor(Color.WHITE);
-				shape.rect(tentacleSegmentPlusRect.x, tentacleSegmentPlusRect.y, 
-					tentacleSegmentPlusRect.width, tentacleSegmentPlusRect.height);
+				shape.rect(tentacleSegmentPlusRect.x, tentacleSegmentPlusRect.y,
+						tentacleSegmentPlusRect.width, tentacleSegmentPlusRect.height);
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
@@ -1074,6 +1169,45 @@ public class LevelMakerScreen implements Screen {
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
+		} else if (selectedType == ObjectType.TARGET) {
+			// Target color swatches (same as button colors)
+			for (int i = 0; i < targetColorRects.size; i++) {
+				Rectangle r = targetColorRects.get(i);
+				Button.ButtonColor tc = Button.ButtonColor.values()[i];
+				Color c = Color.WHITE;
+				switch (tc) {
+					case RED:
+						c = Color.RED;
+						break;
+					case BLUE:
+						c = Color.BLUE;
+						break;
+					case GREEN:
+						c = Color.GREEN;
+						break;
+					case YELLOW:
+						c = Color.YELLOW;
+						break;
+					case PURPLE:
+						c = Color.PURPLE;
+						break;
+					default:
+						break;
+				}
+				shape.setColor(c);
+				shape.rect(r.x, r.y, r.width, r.height);
+				// highlight selected with border
+				if (tc == selectedTargetColor) {
+					shape.end();
+					shape.begin(ShapeRenderer.ShapeType.Line);
+					Gdx.gl.glLineWidth(3f);
+					shape.setColor(Color.WHITE);
+					shape.rect(r.x - 2, r.y - 2, r.width + 4, r.height + 4);
+					Gdx.gl.glLineWidth(1f);
+					shape.end();
+					shape.begin(ShapeRenderer.ShapeType.Filled);
+				}
+			}
 		}
 		// level list background
 		for (Rectangle lr : levelRects) {
@@ -1127,12 +1261,15 @@ public class LevelMakerScreen implements Screen {
 			// tentacle segment count controls
 			if (tentacleSegmentMinusRect != null && tentacleSegmentPlusRect != null) {
 				font.setColor(Color.WHITE);
-				font.draw(batch, "-", tentacleSegmentMinusRect.x + 10, tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height - 6);
-				font.draw(batch, "+", tentacleSegmentPlusRect.x + 10, tentacleSegmentPlusRect.y + tentacleSegmentPlusRect.height - 6);
+				font.draw(batch, "-", tentacleSegmentMinusRect.x + 10,
+						tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height - 6);
+				font.draw(batch, "+", tentacleSegmentPlusRect.x + 10,
+						tentacleSegmentPlusRect.y + tentacleSegmentPlusRect.height - 6);
 				// Draw segment count between buttons
-				font.draw(batch, "Seg: " + selectedTentacleSegments, 
-					(tentacleSegmentMinusRect.x + tentacleSegmentPlusRect.x + tentacleSegmentPlusRect.width) / 2f - 20,
-					tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height + 16);
+				font.draw(batch, "Seg: " + selectedTentacleSegments,
+						(tentacleSegmentMinusRect.x + tentacleSegmentPlusRect.x + tentacleSegmentPlusRect.width) / 2f
+								- 20,
+						tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height + 16);
 			}
 		} else if (selectedType == ObjectType.LASER) {
 			// laser type labels
@@ -1194,6 +1331,13 @@ public class LevelMakerScreen implements Screen {
 				font.draw(batch,
 						String.format("Area %.0fx%.0f ([ ] width, - = height)", selectedBoxAreaW, selectedBoxAreaH),
 						first.x, first.y - 12);
+			}
+		} else if (selectedType == ObjectType.TARGET) {
+			// target color labels (first letter)
+			for (int i = 0; i < targetColorRects.size; i++) {
+				Rectangle r = targetColorRects.get(i);
+				font.setColor(Color.BLACK);
+				font.draw(batch, Button.ButtonColor.values()[i].name().substring(0, 1), r.x + 16, r.y + r.height - 6);
 			}
 		}
 		// draw level list labels
@@ -1325,6 +1469,30 @@ public class LevelMakerScreen implements Screen {
 			shape.circle(screenGx + 16, screenGy + 16, 16);
 			shape.end();
 			shape.begin(ShapeRenderer.ShapeType.Filled);
+		} else if (selectedType == ObjectType.TARGET) {
+			// Draw colored target preview (32x32)
+			Color tc = Color.RED;
+			switch (selectedTargetColor) {
+				case RED:
+					tc = Color.RED;
+					break;
+				case BLUE:
+					tc = Color.BLUE;
+					break;
+				case GREEN:
+					tc = Color.GREEN;
+					break;
+				case YELLOW:
+					tc = Color.YELLOW;
+					break;
+				case PURPLE:
+					tc = Color.PURPLE;
+					break;
+				default:
+					break;
+			}
+			shape.setColor(previewBlocked ? Color.FIREBRICK : tc);
+			shape.rect(screenGx, screenGy, 32f, 32f);
 		} else if (selectedType == ObjectType.ORB) {
 			// Orb area label (reuse first box rect if available or fallback near preview)
 			font.setColor(Color.WHITE);
@@ -1563,6 +1731,11 @@ public class LevelMakerScreen implements Screen {
 	}
 
 	private void handleInput(float delta) {
+		// Tentacle root selection/move support
+		// Maintain selected tentacle root index
+		if (selectedTentacleRootIndex >= state.tentacles.size) {
+			selectedTentacleRootIndex = -1;
+		}
 		// camera movement (WASD)
 		if (Gdx.input.isKeyPressed(Input.Keys.W))
 			camera.translate(0, camSpeed * delta);
@@ -1766,6 +1939,23 @@ public class LevelMakerScreen implements Screen {
 			if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
 				previewRows++;
 			}
+		} else if (selectedType == ObjectType.TENTACLE && selectedTentacleRootIndex >= 0) {
+			// Move selected tentacle root in grid increments
+			LevelIO.LevelState.TentacleData td = state.tentacles.get(selectedTentacleRootIndex);
+			float moveX = 0f, moveY = 0f;
+			if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) moveX = -32f;
+			if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) moveX = 32f;
+			if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) moveY = -32f;
+			if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) moveY = 32f;
+			if (moveX != 0f || moveY != 0f) {
+				Rectangle newPos = new Rectangle(td.x + moveX, td.y + moveY, 32f, 32f);
+				if (isAreaFree(newPos)) {
+					td.x += moveX; td.y += moveY;
+					toastText = "Tentacle root moved"; toastTimer = 1.0f;
+				} else {
+					toastText = "Blocked"; toastTimer = 0.6f;
+				}
+			}
 		} else {
 			previewCols = 1;
 			previewRows = 1;
@@ -1855,11 +2045,21 @@ public class LevelMakerScreen implements Screen {
 			} else if (selectedType == ObjectType.TENTACLE) {
 				// Handle tentacle segment count buttons
 				if (tentacleSegmentMinusRect != null && tentacleSegmentMinusRect.contains(ux, uy)) {
-					selectedTentacleSegments = Math.max(10, selectedTentacleSegments - 5);
+					if (selectedTentacleRootIndex >= 0) {
+						LevelIO.LevelState.TentacleData td = state.tentacles.get(selectedTentacleRootIndex);
+						td.segments = Math.max(10, td.segments - 5);
+					} else {
+						selectedTentacleSegments = Math.max(10, selectedTentacleSegments - 5);
+					}
 					return;
 				}
 				if (tentacleSegmentPlusRect != null && tentacleSegmentPlusRect.contains(ux, uy)) {
-					selectedTentacleSegments = Math.min(50, selectedTentacleSegments + 5);
+					if (selectedTentacleRootIndex >= 0) {
+						LevelIO.LevelState.TentacleData td = state.tentacles.get(selectedTentacleRootIndex);
+						td.segments = Math.min(50, td.segments + 5);
+					} else {
+						selectedTentacleSegments = Math.min(50, selectedTentacleSegments + 5);
+					}
 					return;
 				}
 			} else if (selectedType == ObjectType.LAUNCHPAD) {
@@ -1917,6 +2117,32 @@ public class LevelMakerScreen implements Screen {
 						return;
 					}
 				}
+			} else if (selectedType == ObjectType.TARGET) {
+				// Target color swatch click
+				for (int i = 0; i < targetColorRects.size; i++) {
+					if (targetColorRects.get(i).contains(ux, uy)) {
+						selectedTargetColor = Button.ButtonColor.values()[i];
+						return;
+					}
+				}
+			}
+			// Tentacle root click selection (outside UI controls)
+			if (!deleteMode && !linkingMode && selectedType == ObjectType.TENTACLE) {
+				// Convert click to world space to test against roots
+				com.badlogic.gdx.math.Vector3 worldVec = new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+				camera.unproject(worldVec);
+				float wx = worldVec.x; float wy = worldVec.y;
+				selectedTentacleRootIndex = -1;
+				for (int i = 0; i < state.tentacles.size; i++) {
+					LevelIO.LevelState.TentacleData td = state.tentacles.get(i);
+					Rectangle r = new Rectangle(td.x, td.y, 32f, 32f);
+					if (r.contains(wx, wy)) {
+						selectedTentacleRootIndex = i;
+						toastText = "Tentacle root selected";
+						toastTimer = 1.0f;
+						break;
+					}
+				}
 			}
 			// handle clicks on door speed controls
 			if (doorOpenMinusRect != null && doorOpenMinusRect.contains(ux, uy)) {
@@ -1971,21 +2197,27 @@ public class LevelMakerScreen implements Screen {
 			// New two-stage linking flow
 			if (linkingMode) {
 				if (linkStage == LinkStage.PICK_SOURCE) {
-					// Find a Button or Lever under click in runtime instances
+					// Find a Button, Lever, or Target under click in runtime instances
 					Interactable hit = null;
 					for (int i = interactableInstances.size - 1; i >= 0; --i) {
 						Interactable it = interactableInstances.get(i);
-						if ((it instanceof Button || it instanceof Lever) && it.getBounds().contains(wx, wy)) {
+						if ((it instanceof Button || it instanceof Lever || it instanceof Target) && it.getBounds().contains(wx, wy)) {
 							hit = it;
 							break;
 						}
 					}
 					if (hit == null) {
-						toastText = "Pick a Button/Lever first";
+						toastText = "Pick a Button/Lever/Target first";
 						toastTimer = 1.2f;
 						return;
 					}
-					linkSourceType = (hit instanceof Button) ? ObjectType.BUTTON : ObjectType.LEVER;
+					if (hit instanceof Button) {
+						linkSourceType = ObjectType.BUTTON;
+					} else if (hit instanceof Lever) {
+						linkSourceType = ObjectType.LEVER;
+					} else {
+						linkSourceType = ObjectType.TARGET;
+					}
 					linkSourceX = (int) hit.getBounds().x;
 					linkSourceY = (int) hit.getBounds().y;
 					// Preload any existing target ids
@@ -2215,6 +2447,56 @@ public class LevelMakerScreen implements Screen {
 				deleted = true;
 			}
 		}
+		// Diamonds (collectibles)
+		if (state.diamonds != null) {
+			for (int i = state.diamonds.size - 1; i >= 0; --i) {
+				LevelIO.LevelState.DiamondData dd = state.diamonds.get(i);
+				Rectangle db = new Rectangle(dd.x, dd.y, 32f, 32f);
+				if (db.overlaps(area)) {
+					state.diamonds.removeIndex(i);
+					// remove live diamond instance
+					for (int k = collectibleInstances.size - 1; k >= 0; --k) {
+						com.jjmc.chromashift.environment.collectible.Collectible c = collectibleInstances.get(k);
+						Rectangle cb = new Rectangle(c.getX(), c.getY(), c.getWidth(), c.getHeight());
+						if (cb.overlaps(db)) {
+							collectibleInstances.removeIndex(k);
+							break;
+						}
+					}
+					deleted = true;
+				}
+			}
+		}
+		// Keys (collectibles)
+		if (state.keys != null) {
+			for (int i = state.keys.size - 1; i >= 0; --i) {
+				LevelIO.LevelState.KeyData kd = state.keys.get(i);
+				Rectangle kb = new Rectangle(kd.x, kd.y, 32f, 32f);
+				if (kb.overlaps(area)) {
+					state.keys.removeIndex(i);
+					for (int k = collectibleInstances.size - 1; k >= 0; --k) {
+						com.jjmc.chromashift.environment.collectible.Collectible c = collectibleInstances.get(k);
+						Rectangle cb = new Rectangle(c.getX(), c.getY(), c.getWidth(), c.getHeight());
+						if (cb.overlaps(kb)) {
+							collectibleInstances.removeIndex(k);
+							break;
+						}
+					}
+					deleted = true;
+				}
+			}
+		}
+		// Tentacle roots
+		if (state.tentacles != null) {
+			for (int i = state.tentacles.size - 1; i >= 0; --i) {
+				LevelIO.LevelState.TentacleData td = state.tentacles.get(i);
+				Rectangle rt = new Rectangle(td.x, td.y, 32f, 32f);
+				if (rt.overlaps(area)) {
+					state.tentacles.removeIndex(i);
+					deleted = true;
+				}
+			}
+		}
 		// Interactables and others
 		for (int i = interactableInstances.size - 1; i >= 0; --i) {
 			Interactable it = interactableInstances.get(i);
@@ -2248,6 +2530,15 @@ public class LevelMakerScreen implements Screen {
 					for (int j = 0; j < state.interactables.size; ++j) {
 						LevelIO.LevelState.InteractableData idd = state.interactables.get(j);
 						if (idd != null && "lever".equalsIgnoreCase(String.valueOf(idd.type))
+								&& Math.abs(idd.x - ob.x) < 5f && Math.abs(idd.y - ob.y) < 5f) {
+							state.interactables.removeIndex(j);
+							break;
+						}
+					}
+				} else if (it instanceof Target) {
+					for (int j = 0; j < state.interactables.size; ++j) {
+						LevelIO.LevelState.InteractableData idd = state.interactables.get(j);
+						if (idd != null && "target".equalsIgnoreCase(String.valueOf(idd.type))
 								&& Math.abs(idd.x - ob.x) < 5f && Math.abs(idd.y - ob.y) < 5f) {
 							state.interactables.removeIndex(j);
 							break;
@@ -2314,6 +2605,16 @@ public class LevelMakerScreen implements Screen {
 							LevelIO.LevelState.GlassData gd = state.glasses.get(j);
 							if (Math.abs(gd.x - ob.x) < 5f && Math.abs(gd.y - ob.y) < 5f) {
 								state.glasses.removeIndex(j);
+								break;
+							}
+						}
+					}
+				} else if (it instanceof com.jjmc.chromashift.environment.interactable.LockedDoor) {
+					if (state.lockedDoors != null) {
+						for (int j = 0; j < state.lockedDoors.size; ++j) {
+							LevelIO.LevelState.LockedDoorData ld = state.lockedDoors.get(j);
+							if (Math.abs(ld.x - ob.x) < 5f && Math.abs(ld.y - ob.y) < 5f) {
+								state.lockedDoors.removeIndex(j);
 								break;
 							}
 						}
@@ -2418,6 +2719,16 @@ public class LevelMakerScreen implements Screen {
 			case SPAWN: {
 				areaW = 16f;
 				areaH = 32f;
+				break;
+			}
+			case KEY: {
+				areaW = 32f;
+				areaH = 32f;
+				break;
+			}
+			case LOCKED_DOOR: {
+				areaW = 48f;
+				areaH = 96f;
 				break;
 			}
 			case LAUNCHPAD: {
@@ -2733,6 +3044,33 @@ public class LevelMakerScreen implements Screen {
 				placed = true;
 				break;
 			}
+			case KEY: {
+				LevelIO.LevelState.KeyData kd = new LevelIO.LevelState.KeyData();
+				kd.x = gx;
+				kd.y = gy;
+				state.keys.add(kd);
+				// Instantiate Key now for immediate preview
+				try { collectibleInstances.add(new com.jjmc.chromashift.environment.collectible.Key(gx, gy)); } catch (Throwable ignored) {}
+				placements.add(new Placement(ObjectType.KEY, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
+			case LOCKED_DOOR: {
+				LevelIO.LevelState.LockedDoorData ld = new LevelIO.LevelState.LockedDoorData();
+				ld.x = gx;
+				ld.y = gy;
+				state.lockedDoors.add(ld);
+				// Instantiate LockedDoor now for immediate preview
+				try { 
+					com.jjmc.chromashift.environment.interactable.LockedDoor door = new com.jjmc.chromashift.environment.interactable.LockedDoor(gx, gy);
+					interactableInstances.add(door);
+					solids.add(door);
+				} catch (Throwable ignored) {}
+				placements.add(new Placement(ObjectType.LOCKED_DOOR, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
+				
 			case GLASS: {
 				LevelIO.LevelState.GlassData gd = new LevelIO.LevelState.GlassData();
 				gd.x = gx + 8f; // center 16x16 in 32x32 cell
@@ -2775,8 +3113,8 @@ public class LevelMakerScreen implements Screen {
 				dd.x = gx;
 				dd.y = gy;
 				state.diamonds.add(dd);
-				// Note: Diamond is a collectible, not an Interactable, so we don't add to interactableInstances
-				// It will be loaded separately by the level loader
+				// Instantiate Diamond now for immediate preview & deletion consistency
+				try { collectibleInstances.add(new com.jjmc.chromashift.environment.collectible.Diamond(gx, gy)); } catch (Throwable ignored) {}
 				placements.add(new Placement(ObjectType.DIAMOND, gx, gy, 1, 1, null));
 				placed = true;
 				break;
@@ -2799,6 +3137,40 @@ public class LevelMakerScreen implements Screen {
 				td.segments = selectedTentacleSegments;
 				state.tentacles.add(td);
 				placements.add(new Placement(ObjectType.TENTACLE, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
+			case TARGET: {
+				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
+				idd.type = "target";
+				idd.x = gx;
+				idd.y = gy;
+				idd.color = selectedTargetColor.name();
+				// assign a unique id for target (similar to Button/Lever pattern)
+				int targetCount = 0;
+				for (LevelIO.LevelState.InteractableData e : state.interactables)
+					if (e != null && "target".equalsIgnoreCase(String.valueOf(e.type)))
+						targetCount++;
+				idd.id = "target_" + (targetCount + 1);
+				// Optional: Auto-link to nearby door (same as Button does) or leave null
+				String foundDoor = null;
+				for (DoorRecord dr : doorRecords) {
+					if (Math.abs((int) dr.x - gx) <= 32 && Math.abs((int) dr.y - gy) <= 32) {
+						foundDoor = dr.id;
+						break;
+					}
+				}
+				idd.targetId = foundDoor;
+				state.interactables.add(idd);
+				// Create runtime Target instance for immediate preview
+				Target tObj = new Target(gx, gy, selectedTargetColor);
+				if (foundDoor != null) {
+					Door dd = findDoorById(foundDoor);
+					if (dd != null) tObj.addLinkedDoor(dd);
+				}
+				interactableInstances.add(tObj);
+				solids.add(tObj);
+				placements.add(new Placement(ObjectType.TARGET, gx, gy, 1, 1, null));
 				placed = true;
 				break;
 			}
@@ -2952,6 +3324,14 @@ public class LevelMakerScreen implements Screen {
 			state.interactables = new Array<>();
 		if (state.spawn == null)
 			state.spawn = new LevelIO.LevelState.SpawnData();
+		if (state.diamonds == null)
+			state.diamonds = new Array<>();
+		if (state.tentacles == null)
+			state.tentacles = new Array<>();
+		if (state.keys == null)
+			state.keys = new Array<>();
+		if (state.lockedDoors == null)
+			state.lockedDoors = new Array<>();
 
 		// Adopt loaded runtime objects for preview rendering
 		this.walls = loaded.walls;

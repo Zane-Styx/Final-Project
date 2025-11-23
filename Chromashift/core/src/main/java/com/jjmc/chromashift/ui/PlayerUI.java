@@ -27,6 +27,9 @@ public class PlayerUI {
     private Texture diamondTexture;
     private TextureRegion diamondRegion;
     private BitmapFont font;
+    // Key UI
+    private Texture keyIconTexture;
+    private TextureRegion keyIconRegion;
 
     // Regions for player icon variations
     private final TextureRegion[] iconRegions;
@@ -167,6 +170,19 @@ public class PlayerUI {
                 font.draw(batch, "x " + player.getDiamonds(), diamondX + diamondSize + 5 * scale,
                         diamondY + diamondSize / 1.5f);
             }
+            // Keys below diamonds
+            ensureKeyIcon();
+            if (keyIconRegion != null) {
+                float keySize = 28f * scale;
+                float keyX = diamondX;
+                float keyY = diamondY - keySize - 6 * scale;
+                batch.draw(keyIconRegion, keyX, keyY, keySize, keySize);
+                if (font != null) {
+                    font.getData().setScale(scale * 2f);
+                    font.draw(batch, "x " + player.getKeys(), keyX + keySize + 5 * scale,
+                            keyY + keySize / 1.5f);
+                }
+            }
         }
     }
 
@@ -207,11 +223,20 @@ public class PlayerUI {
         dashCdTexture.dispose();
         if (diamondTexture != null)
             diamondTexture.dispose();
+        if (keyIconTexture != null) keyIconTexture.dispose();
     }
 
     public void setViewport(Viewport viewport) {
         if (viewport != null) {
             this.viewport = viewport;
         }
+    }
+
+    private void ensureKeyIcon() {
+        if (keyIconTexture != null) return;
+        try {
+            keyIconTexture = new Texture(Gdx.files.internal("environment/key_icon.png"));
+            keyIconRegion = new TextureRegion(keyIconTexture, 0, 0, keyIconTexture.getWidth(), keyIconTexture.getHeight());
+        } catch (Exception ignored) {}
     }
 }

@@ -20,6 +20,7 @@ import com.jjmc.chromashift.environment.Wall;
 import com.jjmc.chromashift.environment.interactable.Button;
 import com.jjmc.chromashift.environment.interactable.Interactable;
 import com.jjmc.chromashift.environment.interactable.Box;
+import com.jjmc.chromashift.environment.interactable.Target;
 import com.jjmc.chromashift.environment.interactable.Orb;
 import com.jjmc.chromashift.environment.Spawn;
 import com.jjmc.chromashift.player.Player;
@@ -74,9 +75,13 @@ public class TestSceneScreen implements Screen {
 
     @Override
     public void show() {
+        // Detach any previous UI Stage (e.g., menu) so its actors stop receiving input
+        try { Gdx.input.setInputProcessor(null); } catch (Throwable ignored) {}
         // Reset editor flags when entering game mode
         com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;
         com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = false;
+        // Enable gameplay-only visibility culling
+        try { com.jjmc.chromashift.helper.VisibilityCuller.setEnabled(true); } catch (Throwable ignored) {}
 
         // Use Initialize helper to create common systems
         ctx = Initialize.createCommon(500, 180, null);
@@ -141,6 +146,13 @@ public class TestSceneScreen implements Screen {
                     sd.x, sd.y, player, uiStage);
             shops.add(shop);
             interactables.add(shop); // Add to interactables for collision/interaction
+        }
+        // Assign player to any LockedDoor instances so they can check keys
+        for (int i = 0; i < interactables.size; i++) {
+            com.jjmc.chromashift.environment.interactable.Interactable it = interactables.get(i);
+            if (it instanceof com.jjmc.chromashift.environment.interactable.LockedDoor ld) {
+                ld.setPlayer(player);
+            }
         }
 
         // Initialize Tentacle System from loaded data
@@ -208,6 +220,12 @@ public class TestSceneScreen implements Screen {
             if (!(interactable instanceof Button)) {
                 interactable.update(delta);
             }
+        }
+
+        // Finalize target states after all laser updates
+        try {
+            Target.finalizeFrame();
+        } catch (Throwable ignored) {
         }
 
         // Then update buttons with collected bounds
@@ -583,6 +601,8 @@ public class TestSceneScreen implements Screen {
 
     @Override
     public void hide() {
+        // Disable culling when leaving gameplay (e.g., to editor/menu)
+        try { com.jjmc.chromashift.helper.VisibilityCuller.setEnabled(false); } catch (Throwable ignored) {}
     }
 
     @Override

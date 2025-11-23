@@ -87,6 +87,9 @@ public class Player {
 
     // Shield / Armor
     private int shield = 0;
+    private final int maxShield = 3;
+    // Keys
+    private int keyCount = 0;
 
     // Enemy tracking for melee attacks
     private Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies = new Array<>();
@@ -775,8 +778,15 @@ public class Player {
 
     public void addShield(int amount) {
         this.shield += amount;
-        if (this.shield > 3) this.shield = 3; // Cap at 3 shields
+        if (this.shield > maxShield) this.shield = maxShield; // enforce cap
     }
+
+    public int getMaxShield() { return maxShield; }
+
+    // Key API
+    public int getKeyCount() { return keyCount; }
+    public void addKey(int amount) { keyCount = Math.max(0, keyCount + amount); }
+    public boolean consumeKey() { if (keyCount > 0) { keyCount--; return true; } return false; }
 
     public boolean isStunned() {
         return isStunned;
@@ -890,4 +900,7 @@ public class Player {
     public boolean getCanJump() {
         return canJump;
     }
+
+    // Expose key count to UI without granting mutation
+    public int getKeys() { return keyCount; }
 }

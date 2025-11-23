@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.chromashift.helper.SpriteAnimator;
 import com.jjmc.chromashift.player.Player;
 import com.chromashift.helper.SoundManager;
+import com.jjmc.chromashift.helper.VisibilityCuller;
 
 /**
  * Diamond collectible that animates and can be collected by the player.
@@ -31,16 +32,17 @@ public class Diamond extends Collectible {
 
     @Override
     public void update(float delta) {
-        if (!collected && animator != null) {
-            animator.update(delta);
-        }
+        if (collected || animator == null) return;
+        // Skip culling when disabled (editor)
+        if (VisibilityCuller.isEnabled() && !VisibilityCuller.isVisible(getBounds(), 64f)) return;
+        animator.update(delta);
     }
 
     @Override
     public void render(SpriteBatch batch) {
-        if (!collected && animator != null) {
-            animator.render(batch, x, y, width, height);
-        }
+        if (collected || animator == null) return;
+        if (VisibilityCuller.isEnabled() && !VisibilityCuller.isVisible(getBounds(), 64f)) return;
+        animator.render(batch, x, y, width, height);
     }
 
     @Override
