@@ -479,8 +479,12 @@ public final class LevelLoader {
         // Locked Doors (interactables)
         if (state.lockedDoors != null) {
             for (LevelIO.LevelState.LockedDoorData ld : state.lockedDoors) {
-                com.jjmc.chromashift.environment.interactable.LockedDoor door = new com.jjmc.chromashift.environment.interactable.LockedDoor(
-                        ld.x, ld.y);
+                com.jjmc.chromashift.environment.interactable.LockedDoor.Orientation orient =
+                        "HORIZONTAL".equalsIgnoreCase(ld.orientation)
+                                ? com.jjmc.chromashift.environment.interactable.LockedDoor.Orientation.HORIZONTAL
+                                : com.jjmc.chromashift.environment.interactable.LockedDoor.Orientation.VERTICAL;
+                com.jjmc.chromashift.environment.interactable.LockedDoor door =
+                        new com.jjmc.chromashift.environment.interactable.LockedDoor(ld.x, ld.y, orient);
                 out.interactables.add(door);
                 out.solids.add(door); // treat as solid until opened
             }

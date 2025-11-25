@@ -2,6 +2,7 @@ package com.jjmc.chromashift.screens.levels;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -26,6 +27,7 @@ import com.jjmc.chromashift.environment.interactable.Orb;
 import com.jjmc.chromashift.environment.interactable.Laser;
 import com.jjmc.chromashift.environment.interactable.Mirror;
 import com.jjmc.chromashift.environment.interactable.Glass;
+import com.jjmc.chromashift.environment.interactable.LockedDoor;
 import com.jjmc.chromashift.screens.Initialize;
 import com.jjmc.chromashift.entity.boss.BossInstance;
 
@@ -210,11 +212,25 @@ public class LevelMakerScreen implements Screen {
 	// lever orientation UI and preview
 	private boolean selectedLeverHorizontal = false;
 	private Rectangle leverOrientRect;
+	private Rectangle lockedDoorOrientRect;
+	private boolean selectedLockedDoorHorizontal = false;
+	private static final float LOCKED_DOOR_VERTICAL_WIDTH = 32f;
+	private static final float LOCKED_DOOR_VERTICAL_HEIGHT = 64f;
+	private static final float LOCKED_DOOR_HORIZONTAL_WIDTH = 64f;
+	private static final float LOCKED_DOOR_HORIZONTAL_HEIGHT = 32f;
 	private Rectangle linkToggleRect;
 	private Rectangle tentacleSegmentMinusRect, tentacleSegmentPlusRect;
 	private int selectedTentacleSegments = 30; // Default segment count
 	private int selectedTentacleRootIndex = -1; // Selected existing tentacle root
 	private boolean linkingMode = false;
+
+	private float lockedDoorWidth() {
+		return selectedLockedDoorHorizontal ? LOCKED_DOOR_HORIZONTAL_WIDTH : LOCKED_DOOR_VERTICAL_WIDTH;
+	}
+
+	private float lockedDoorHeight() {
+		return selectedLockedDoorHorizontal ? LOCKED_DOOR_HORIZONTAL_HEIGHT : LOCKED_DOOR_VERTICAL_HEIGHT;
+	}
 
 	private enum LinkStage {
 		PICK_SOURCE, PICK_DOORS
@@ -244,12 +260,13 @@ public class LevelMakerScreen implements Screen {
 
 	// UI buttons
 	private static class UIButton {
-		Rectangle rect;
+		final Rectangle rect = new Rectangle();
 		ObjectType type;
 		String label;
+		float baseX;
+		float baseY;
 
-		UIButton(Rectangle r, ObjectType t, String l) {
-			rect = r;
+		UIButton(ObjectType t, String l) {
 			type = t;
 			label = l;
 		}
@@ -260,10 +277,32 @@ public class LevelMakerScreen implements Screen {
 	private final String[] doorDirections = new String[] { "UP", "DOWN", "LEFT", "RIGHT" };
 	private int selectedDoorDirIndex = 0;
 
+	private static final float TOOLBOX_BUTTON_WIDTH = 72f;
+	private static final float TOOLBOX_BUTTON_HEIGHT = 32f;
+	private static final float TOOLBOX_BUTTON_GAP_X = 8f;
+	private static final float TOOLBOX_BUTTON_GAP_Y = 10f;
+	private static final float TOOLBOX_MARGIN_X = 20f;
+	private static final float TOOLBOX_MARGIN_BOTTOM = 20f;
+	private static final float TOOLBOX_MARGIN_TOP = 20f;
+	private float toolboxScrollOffset = 0f;
+	private float toolboxScrollMin = 0f;
+	private float toolboxScrollMax = 0f;
+	private float toolboxContentHeight = 0f;
+	private final Rectangle toolboxViewportRect = new Rectangle();
+	private final InputAdapter toolboxScrollInput = new InputAdapter() {
+		@Override
+		public boolean scrolled(float amountX, float amountY) {
+			return handleToolboxScroll(amountY);
+		}
+	};
+
 	@Override
 	public void show() {
-		// Detach any previous screen Stage (e.g., TestMenuScreen) so its UI stops receiving input
-		try { Gdx.input.setInputProcessor(null); } catch (Throwable ignored) {}
+		// Ensure any previous Stage stops receiving input and route scroll events to the toolbox handler
+		try {
+			Gdx.input.setInputProcessor(toolboxScrollInput);
+		} catch (Throwable ignored) {
+		}
 		// Ensure culling disabled in editor so off-screen objects remain visible
 		try { com.jjmc.chromashift.helper.VisibilityCuller.setEnabled(false); } catch (Throwable ignored) {}
 		// Initialize editor mode flags to false (will be set true only when delete mode
@@ -285,171 +324,45 @@ public class LevelMakerScreen implements Screen {
 
 		loadLevel(currentLevelPath);
 
-		// build UI buttons at BOTTOM center (Minecraft inventory style)
-		float bw = 60f, bh = 28f, gap = 8f;
-		// Added Diamond, Shop, Tentacle, Target, Key, LockedDoor, laser types + Link + Delete (20 buttons total)
-		float totalWidth = 20 * bw + 19 * gap;
-		float bx = (uiCamera.viewportWidth - totalWidth) / 2f;
-		float by = 20f; // 20px from bottom
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.WALL, "Wall"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.DOOR, "Door"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.BUTTON, "Button"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.LEVER, "Lever"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.BOX, "Box"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.ORB, "Orb"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.BOSS, "Boss"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.SPAWN, "Spawn"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.LAUNCHPAD, "Launch"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.LASER, "Laser"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.MIRROR, "Mirror"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.GLASS, "Glass"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.DIAMOND, "Diamond"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.SHOP, "Shop"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.TENTACLE, "Tentacle"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.TARGET, "Target"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.KEY, "Key"));
-		bx += bw + gap;
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.LOCKED_DOOR, "LockDoor"));
-		bx += bw + gap;
-		// Linking mode toggle button (works for Button/Lever)
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.NONE, "Link"));
-		bx += bw + gap;
-		// Delete mode toggle button
-		uiButtons.add(new UIButton(new Rectangle(bx, by, bw, bh), ObjectType.NONE, "Delete"));
+		uiButtons.clear();
+		uiButtons.add(new UIButton(ObjectType.WALL, "Wall"));
+		uiButtons.add(new UIButton(ObjectType.DOOR, "Door"));
+		uiButtons.add(new UIButton(ObjectType.BUTTON, "Button"));
+		uiButtons.add(new UIButton(ObjectType.LEVER, "Lever"));
+		uiButtons.add(new UIButton(ObjectType.BOX, "Box"));
+		uiButtons.add(new UIButton(ObjectType.ORB, "Orb"));
+		uiButtons.add(new UIButton(ObjectType.BOSS, "Boss"));
+		uiButtons.add(new UIButton(ObjectType.SPAWN, "Spawn"));
+		uiButtons.add(new UIButton(ObjectType.LAUNCHPAD, "Launch"));
+		uiButtons.add(new UIButton(ObjectType.LASER, "Laser"));
+		uiButtons.add(new UIButton(ObjectType.MIRROR, "Mirror"));
+		uiButtons.add(new UIButton(ObjectType.GLASS, "Glass"));
+		uiButtons.add(new UIButton(ObjectType.DIAMOND, "Diamond"));
+		uiButtons.add(new UIButton(ObjectType.SHOP, "Shop"));
+		uiButtons.add(new UIButton(ObjectType.TENTACLE, "Tentacle"));
+		uiButtons.add(new UIButton(ObjectType.TARGET, "Target"));
+		uiButtons.add(new UIButton(ObjectType.KEY, "Key"));
+		uiButtons.add(new UIButton(ObjectType.LOCKED_DOOR, "LockDoor"));
+		uiButtons.add(new UIButton(ObjectType.NONE, "Link"));
+		uiButtons.add(new UIButton(ObjectType.NONE, "Delete"));
 
-		// Contextual option buttons - positioned above main buttons but only shown when
-		// relevant type selected
-		// door direction buttons (shown only when Door selected)
-		// Position contextual options above the matching main toolbar button so they
-		// don't overlap
-		Rectangle doorButtonRect = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.DOOR) {
-				doorButtonRect = ub.rect;
-				break;
+		// list available level files from internal assets/levels before positioning UI so levelRects match
+		levelFiles.clear();
+		levelRects.clear();
+		FileHandle dir = Gdx.files.internal("levels");
+		if (dir != null && dir.exists()) {
+			FileHandle[] files = dir.list();
+			float lx = uiCamera.position.x + uiCamera.viewportWidth / 2f - 180f;
+			float ly = uiCamera.position.y + uiCamera.viewportHeight / 2f - 32f;
+			float lh = 20f, lgap = 4f;
+			for (int i = 0; i < files.length; i++) {
+				levelFiles.add(files[i].name());
+				levelRects.add(new Rectangle(lx, ly - i * (lh + lgap), 170f, lh));
 			}
-		float optionY = (doorButtonRect != null) ? doorButtonRect.y + doorButtonRect.height + 8f : by + bh + 8f;
-		float optionX = (doorButtonRect != null) ? (doorButtonRect.x + (doorButtonRect.width - (4 * bw + 3 * gap)) / 2f)
-				: (uiCamera.viewportWidth - (4 * bw + 3 * gap)) / 2f;
-		for (int i = 0; i < doorDirections.length; i++) {
-			doorDirButtons.add(new Rectangle(optionX + i * (bw + gap), optionY, bw, bh));
 		}
 
-		// door speed controls (open/close) - small +/- boxes to the right of options
-		float speedW = 28f, speedH = 20f, speedGap = 6f;
-		float speedStartX = optionX + (4 * (bw + gap));
-		// Place the small +/- buttons above the slider, aligned with other door
-		// controls
-		float doorControlsBaseY = optionY + 46f;
-		doorOpenMinusRect = new Rectangle(speedStartX, doorControlsBaseY, speedW, speedH);
-		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, doorControlsBaseY, speedW, speedH);
-		doorCloseMinusRect = new Rectangle(speedStartX, doorControlsBaseY - (speedH + 4f), speedW, speedH);
-		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, doorControlsBaseY - (speedH + 4f),
-				speedW, speedH);
-
-		// Button color swatches (shown only when Button selected)
-		float sw = 40f, sh = 24f, sg = 6f;
-		Button.ButtonColor[] cols = Button.ButtonColor.values();
-		float colorsWidth = cols.length * sw + (cols.length - 1) * sg;
-		// position above the BUTTON toolbar button
-		Rectangle buttonBtnRect = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.BUTTON) {
-				buttonBtnRect = ub.rect;
-				break;
-			}
-		float buttonColorsX = (buttonBtnRect != null) ? (buttonBtnRect.x + (buttonBtnRect.width - colorsWidth) / 2f)
-				: (uiCamera.viewportWidth - colorsWidth) / 2f;
-		for (int i = 0; i < cols.length; i++) {
-			buttonColorRects.add(new Rectangle(buttonColorsX + i * (sw + sg),
-					(buttonBtnRect != null) ? (buttonBtnRect.y + buttonBtnRect.height + 8f) : optionY, sw, sh));
-		}
-
-		// Lever orientation toggle (shown only when Lever selected)
-		Rectangle leverBtnRect = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.LEVER) {
-				leverBtnRect = ub.rect;
-				break;
-			}
-		leverOrientRect = new Rectangle(
-				(leverBtnRect != null) ? (leverBtnRect.x + (leverBtnRect.width - 80f) / 2f)
-						: ((uiCamera.viewportWidth - 80f) / 2f),
-				(leverBtnRect != null) ? (leverBtnRect.y + leverBtnRect.height + 8f) : optionY, 80f, sh);
-
-		// Tentacle segment count controls (shown only when Tentacle selected)
-		Rectangle tentacleBtnRect = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.TENTACLE) {
-				tentacleBtnRect = ub.rect;
-				break;
-			}
-		float tentacleControlW = 28f, tentacleControlH = 24f, tentacleGap = 6f;
-		float tentacleControlX = (tentacleBtnRect != null)
-				? (tentacleBtnRect.x + (tentacleBtnRect.width - (2 * tentacleControlW + tentacleGap)) / 2f)
-				: ((uiCamera.viewportWidth - (2 * tentacleControlW + tentacleGap)) / 2f);
-		float tentacleControlY = (tentacleBtnRect != null) ? (tentacleBtnRect.y + tentacleBtnRect.height + 8f)
-				: optionY;
-		tentacleSegmentMinusRect = new Rectangle(tentacleControlX, tentacleControlY, tentacleControlW,
-				tentacleControlH);
-		tentacleSegmentPlusRect = new Rectangle(tentacleControlX + tentacleControlW + tentacleGap, tentacleControlY,
-				tentacleControlW, tentacleControlH);
-
-		// Launchpad direction buttons (shown only when Launchpad selected)
-		// 3 directions: UP, LEFT, RIGHT
-		launchpadDirRects.clear();
-		float lpDirW = 50f, lpDirH = 24f, lpDirGap = 4f;
-		float lpDirsWidth = 3 * lpDirW + 2 * lpDirGap;
-		float lpDirX = (uiCamera.viewportWidth - lpDirsWidth) / 2f;
-		for (int i = 0; i < 3; i++) {
-			launchpadDirRects.add(new Rectangle(lpDirX + i * (lpDirW + lpDirGap), optionY, lpDirW, lpDirH));
-		}
-
-		// Laser type buttons (shown only when Laser selected)
-		// 2 types: Normal (static) and Rotating (LaserRay)
-		laserTypeRects.clear();
-		float laserTypeW = 70f, laserTypeH = 24f, laserTypeGap = 4f;
-		float laserTypesWidth = 2 * laserTypeW + laserTypeGap;
-		float laserTypeX = (uiCamera.viewportWidth - laserTypesWidth) / 2f;
-		laserTypeRects.add(new Rectangle(laserTypeX, optionY, laserTypeW, laserTypeH)); // Normal
-		laserTypeRects.add(new Rectangle(laserTypeX + laserTypeW + laserTypeGap, optionY, laserTypeW, laserTypeH)); // Rotating
-
-		// Laser direction buttons (U, R, D, L) - row above the type buttons
-		laserDirRects.clear();
-		float ldirW = 36f, ldirH = 24f, ldirGap = 6f;
-		float ldirsWidth = 4 * ldirW + 3 * ldirGap;
-		float ldirX = (uiCamera.viewportWidth - ldirsWidth) / 2f;
-		float ldirY = optionY + laserTypeH + 8f;
-		for (int i = 0; i < 4; i++) {
-			laserDirRects.add(new Rectangle(ldirX + i * (ldirW + ldirGap), ldirY, ldirW, ldirH));
-		}
-
-		// Sliders for door open/close speed (raise further for clear separation)
-		float sliderW = 220f, sliderH = 14f;
-		float sliderX = (uiCamera.viewportWidth - sliderW) / 2f;
-		// Place sliders near the other door controls (aligned with +/- buttons)
-		float sliderY = optionY + 46f; // align with door +/- controls
-		openSpeedSliderRect = new Rectangle(sliderX, sliderY, sliderW, sliderH);
-		// close speed slider below open slider
-		closeSpeedSliderRect = new Rectangle(sliderX, sliderY - (sliderH + 10f), sliderW, sliderH);
-		// (Deprecated: link toggle rect replaced by global Link button)
-		linkToggleRect = null;
+		toolboxScrollOffset = 0f;
+		rebuildUIPositions();
 
 		// preview animator for buttons (reuse SpriteAnimator to draw actual image in UI
 		// preview)
@@ -474,84 +387,6 @@ public class LevelMakerScreen implements Screen {
 		} catch (Exception ignored) {
 		}
 
-		// Mirror rotate button (contextual option)
-		float optW = 110f, optH = 24f;
-		Rectangle mirrorBtnRect = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.MIRROR) {
-				mirrorBtnRect = ub.rect;
-				break;
-			}
-		float optX = (mirrorBtnRect != null) ? (mirrorBtnRect.x + (mirrorBtnRect.width - optW) / 2f)
-				: (uiCamera.viewportWidth - optW) / 2f;
-		mirrorRotateRect = new Rectangle(optX,
-				(mirrorBtnRect != null) ? (mirrorBtnRect.y + mirrorBtnRect.height + 8f) : optionY, optW, optH);
-
-		// Glass color swatches (red, blue, green, yellow, purple) shown when GLASS
-		// selected
-		glassColorRects.clear();
-		String[] gcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
-		float gcw = 40f, gch = 24f, gcgap = 6f;
-		float gtotal = gcolors.length * gcw + (gcolors.length - 1) * gcgap;
-		Rectangle glassBtnRect = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.GLASS) {
-				glassBtnRect = ub.rect;
-				break;
-			}
-		float gcx = (glassBtnRect != null) ? (glassBtnRect.x + (glassBtnRect.width - gtotal) / 2f)
-				: (uiCamera.viewportWidth - gtotal) / 2f;
-		for (int i = 0; i < gcolors.length; i++) {
-			glassColorRects.add(new Rectangle(gcx + i * (gcw + gcgap),
-					(glassBtnRect != null) ? (glassBtnRect.y + glassBtnRect.height + 8f) : optionY, gcw, gch));
-		}
-
-		// Box color swatches (same palette)
-		boxColorRects.clear();
-		float btotal = gcolors.length * gcw + (gcolors.length - 1) * gcgap;
-		Rectangle boxBtnRect = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.BOX) {
-				boxBtnRect = ub.rect;
-				break;
-			}
-		float bcx = (boxBtnRect != null) ? (boxBtnRect.x + (boxBtnRect.width - btotal) / 2f)
-				: (uiCamera.viewportWidth - btotal) / 2f;
-		for (int i = 0; i < gcolors.length; i++) {
-			boxColorRects.add(new Rectangle(bcx + i * (gcw + gcgap),
-					(boxBtnRect != null) ? (boxBtnRect.y + boxBtnRect.height + 8f) : optionY - 32f, gcw, gch));
-		}
-
-		// Target color swatches (same palette, position above TARGET toolbar button)
-		targetColorRects.clear();
-		float ttotal = cols.length * sw + (cols.length - 1) * sg;
-		Rectangle targetBtnRect = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.TARGET) {
-				targetBtnRect = ub.rect;
-				break;
-			}
-		float targetCx = (targetBtnRect != null) ? (targetBtnRect.x + (targetBtnRect.width - ttotal) / 2f)
-				: (uiCamera.viewportWidth - ttotal) / 2f;
-		for (int i = 0; i < cols.length; i++) {
-			targetColorRects.add(new Rectangle(targetCx + i * (sw + sg),
-					(targetBtnRect != null) ? (targetBtnRect.y + targetBtnRect.height + 8f) : optionY, sw, sh));
-		}
-
-		// list available level files from internal assets/levels
-		levelFiles.clear();
-		levelRects.clear();
-		FileHandle dir = Gdx.files.internal("levels");
-		if (dir != null && dir.exists()) {
-			FileHandle[] files = dir.list();
-			float lx = uiCamera.position.x + uiCamera.viewportWidth / 2f - 180f;
-			float ly = uiCamera.position.y + uiCamera.viewportHeight / 2f - 32f;
-			float lh = 20f, lgap = 4f;
-			for (int i = 0; i < files.length; i++) {
-				levelFiles.add(files[i].name());
-				levelRects.add(new Rectangle(lx, ly - i * (lh + lgap), 170f, lh));
-			}
-		}
 	}
 
 	private int snap32(float v) {
@@ -805,8 +640,8 @@ public class LevelMakerScreen implements Screen {
 				break;
 			}
 			case LOCKED_DOOR: {
-				previewW = 48f;
-				previewH = 96f;
+				previewW = lockedDoorWidth();
+				previewH = lockedDoorHeight();
 				break;
 			}
 			case SPAWN: {
@@ -990,6 +825,19 @@ public class LevelMakerScreen implements Screen {
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
 			// (Link toggle moved to dedicated 'Link' button in main bar)
+		} else if (selectedType == ObjectType.LOCKED_DOOR) {
+			if (lockedDoorOrientRect != null) {
+				shape.setColor(selectedLockedDoorHorizontal ? Color.GOLD : new Color(0.2f, 0.2f, 0.25f, 0.9f));
+				shape.rect(lockedDoorOrientRect.x, lockedDoorOrientRect.y, lockedDoorOrientRect.width,
+						lockedDoorOrientRect.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Line);
+				shape.setColor(Color.WHITE);
+				shape.rect(lockedDoorOrientRect.x, lockedDoorOrientRect.y, lockedDoorOrientRect.width,
+						lockedDoorOrientRect.height);
+				shape.end();
+				shape.begin(ShapeRenderer.ShapeType.Filled);
+			}
 		} else if (selectedType == ObjectType.TENTACLE) {
 			// tentacle segment count controls
 			if (tentacleSegmentMinusRect != null && tentacleSegmentPlusRect != null) {
@@ -1257,6 +1105,12 @@ public class LevelMakerScreen implements Screen {
 				font.draw(batch, selectedLeverHorizontal ? "Horizontal" : "Vertical", leverOrientRect.x + 8,
 						leverOrientRect.y + leverOrientRect.height - 6);
 			}
+		} else if (selectedType == ObjectType.LOCKED_DOOR) {
+			if (lockedDoorOrientRect != null) {
+				font.setColor(Color.WHITE);
+				font.draw(batch, selectedLockedDoorHorizontal ? "Horizontal" : "Vertical",
+						lockedDoorOrientRect.x + 8, lockedDoorOrientRect.y + lockedDoorOrientRect.height - 6);
+			}
 		} else if (selectedType == ObjectType.TENTACLE) {
 			// tentacle segment count controls
 			if (tentacleSegmentMinusRect != null && tentacleSegmentPlusRect != null) {
@@ -1431,6 +1285,11 @@ public class LevelMakerScreen implements Screen {
 		} else if (selectedType == ObjectType.BOSS) {
 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.PURPLE);
 			shape.rect(screenGx - 48, screenGy, 96, 96);
+		} else if (selectedType == ObjectType.LOCKED_DOOR) {
+			float doorW = lockedDoorWidth();
+			float doorH = lockedDoorHeight();
+			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.ORANGE);
+			shape.rect(screenGx, screenGy, doorW, doorH);
 		} else if (selectedType == ObjectType.SPAWN) {
 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.YELLOW);
 			shape.rect(screenGx, screenGy, 16, 32);
@@ -2042,6 +1901,11 @@ public class LevelMakerScreen implements Screen {
 					selectedLeverHorizontal = !selectedLeverHorizontal;
 					return;
 				}
+			} else if (selectedType == ObjectType.LOCKED_DOOR) {
+				if (lockedDoorOrientRect != null && lockedDoorOrientRect.contains(ux, uy)) {
+					selectedLockedDoorHorizontal = !selectedLockedDoorHorizontal;
+					return;
+				}
 			} else if (selectedType == ObjectType.TENTACLE) {
 				// Handle tentacle segment count buttons
 				if (tentacleSegmentMinusRect != null && tentacleSegmentMinusRect.contains(ux, uy)) {
@@ -2609,7 +2473,7 @@ public class LevelMakerScreen implements Screen {
 							}
 						}
 					}
-				} else if (it instanceof com.jjmc.chromashift.environment.interactable.LockedDoor) {
+				} else if (it instanceof LockedDoor) {
 					if (state.lockedDoors != null) {
 						for (int j = 0; j < state.lockedDoors.size; ++j) {
 							LevelIO.LevelState.LockedDoorData ld = state.lockedDoors.get(j);
@@ -2727,8 +2591,8 @@ public class LevelMakerScreen implements Screen {
 				break;
 			}
 			case LOCKED_DOOR: {
-				areaW = 48f;
-				areaH = 96f;
+				areaW = lockedDoorWidth();
+				areaH = lockedDoorHeight();
 				break;
 			}
 			case LAUNCHPAD: {
@@ -3059,14 +2923,20 @@ public class LevelMakerScreen implements Screen {
 				LevelIO.LevelState.LockedDoorData ld = new LevelIO.LevelState.LockedDoorData();
 				ld.x = gx;
 				ld.y = gy;
+				ld.orientation = selectedLockedDoorHorizontal ? "HORIZONTAL" : "VERTICAL";
 				state.lockedDoors.add(ld);
 				// Instantiate LockedDoor now for immediate preview
-				try { 
-					com.jjmc.chromashift.environment.interactable.LockedDoor door = new com.jjmc.chromashift.environment.interactable.LockedDoor(gx, gy);
+				try {
+					LockedDoor.Orientation orientEnum = selectedLockedDoorHorizontal
+							? LockedDoor.Orientation.HORIZONTAL
+							: LockedDoor.Orientation.VERTICAL;
+					LockedDoor door = new LockedDoor(gx, gy, orientEnum);
 					interactableInstances.add(door);
 					solids.add(door);
 				} catch (Throwable ignored) {}
-				placements.add(new Placement(ObjectType.LOCKED_DOOR, gx, gy, 1, 1, null));
+				int doorCols = Math.max(1, (int) (lockedDoorWidth() / 32f));
+				int doorRows = Math.max(1, (int) (lockedDoorHeight() / 32f));
+				placements.add(new Placement(ObjectType.LOCKED_DOOR, gx, gy, doorCols, doorRows, null));
 				placed = true;
 				break;
 			}
@@ -3378,174 +3248,185 @@ public class LevelMakerScreen implements Screen {
 	}
 
 	private void rebuildUIPositions() {
-		// reposition uiButtons at bottom center
-		float bw = 60f, bh = 28f, gap = 8f;
-		float totalWidth = uiButtons.size * bw + (uiButtons.size - 1) * gap;
-		float bx = (uiCamera.viewportWidth - totalWidth) / 2f;
-		float by = 20f;
-		for (int i = 0; i < uiButtons.size; i++) {
-			UIButton b = uiButtons.get(i);
-			b.rect = new Rectangle(bx, by, bw, bh);
-			bx += bw + gap;
-		}
+		if (uiCamera == null)
+			return;
 
-		// Compute a shared optionY baseline from the DOOR button (fallback to by + bh +
-		// 8f)
-		Rectangle doorBtn = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.DOOR) {
-				doorBtn = ub.rect;
-				break;
+		float bw = TOOLBOX_BUTTON_WIDTH;
+		float bh = TOOLBOX_BUTTON_HEIGHT;
+		float gapX = TOOLBOX_BUTTON_GAP_X;
+		float gapY = TOOLBOX_BUTTON_GAP_Y;
+		float marginX = TOOLBOX_MARGIN_X;
+		float marginBottom = TOOLBOX_MARGIN_BOTTOM;
+		float rightLimit = uiCamera.viewportWidth - marginX;
+
+		float x = marginX;
+		float y = marginBottom;
+		for (UIButton button : uiButtons) {
+			if (x > marginX && x + bw > rightLimit) {
+				x = marginX;
+				y += bh + gapY;
 			}
-		float optionY = (doorBtn != null) ? (doorBtn.y + doorBtn.height + 8f) : (by + bh + 8f);
-
-		// door dir buttons (position above the DOOR toolbar button)
-		doorDirButtons.clear();
-		float optionX = (doorBtn != null) ? (doorBtn.x + (doorBtn.width - (4 * bw + 3 * gap)) / 2f)
-				: (uiCamera.viewportWidth - (4 * bw + 3 * gap)) / 2f;
-		for (int i = 0; i < doorDirections.length; i++) {
-			doorDirButtons.add(new Rectangle(optionX + i * (bw + gap), optionY, bw, bh));
+			button.baseX = x;
+			button.baseY = y;
+			x += bw + gapX;
 		}
 
-		// door speed controls (placed to the right of the door options)
+		toolboxContentHeight = Math.max(bh, (y - marginBottom) + bh);
+		float availableHeight = Math.max(bh, uiCamera.viewportHeight - TOOLBOX_MARGIN_TOP - marginBottom);
+		toolboxScrollMin = (toolboxContentHeight <= availableHeight) ? 0f : (availableHeight - toolboxContentHeight);
+		toolboxScrollMax = 0f;
+		if (toolboxScrollOffset < toolboxScrollMin)
+			toolboxScrollOffset = toolboxScrollMin;
+		if (toolboxScrollOffset > toolboxScrollMax)
+			toolboxScrollOffset = toolboxScrollMax;
+
+		for (UIButton button : uiButtons) {
+			button.rect.set(button.baseX, button.baseY + toolboxScrollOffset, bw, bh);
+		}
+
+		float viewportHeight = Math.min(toolboxContentHeight, availableHeight);
+		toolboxViewportRect.set(marginX, marginBottom, uiCamera.viewportWidth - marginX * 2f,
+				Math.max(bh, viewportHeight));
+
+		float contextMinY = toolboxViewportRect.y + toolboxViewportRect.height + 12f;
+		float defaultOptionY = Math.max(marginBottom + bh + 8f, contextMinY);
+		Rectangle doorBtn = findButtonRect(ObjectType.DOOR);
+		float doorOptionCandidate = (doorBtn != null) ? (doorBtn.y + doorBtn.height + 8f) : defaultOptionY;
+		float optionY = Math.max(doorOptionCandidate, contextMinY);
+		float optionX = (doorBtn != null) ? (doorBtn.x + (doorBtn.width - (4 * bw + 3 * gapX)) / 2f)
+				: (uiCamera.viewportWidth - (4 * bw + 3 * gapX)) / 2f;
+
+		doorDirButtons.clear();
+		for (int i = 0; i < doorDirections.length; i++) {
+			doorDirButtons.add(new Rectangle(optionX + i * (bw + gapX), optionY, bw, bh));
+		}
+
 		float speedW = 28f, speedH = 20f, speedGap = 6f;
-		float speedStartX = optionX + (4 * (bw + gap));
-		// Move the controls higher so they don't overlap the main toolbar
-		doorOpenMinusRect = new Rectangle(speedStartX, optionY + 46f, speedW, speedH);
-		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + 46f, speedW, speedH);
-		doorCloseMinusRect = new Rectangle(speedStartX, optionY + 46f - (speedH + 6f), speedW, speedH);
-		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, optionY + 46f - (speedH + 6f), speedW,
+		float speedStartX = optionX + (4 * (bw + gapX));
+		float doorControlsBaseY = optionY + 46f;
+		doorOpenMinusRect = new Rectangle(speedStartX, doorControlsBaseY, speedW, speedH);
+		doorOpenPlusRect = new Rectangle(speedStartX + speedW + speedGap, doorControlsBaseY, speedW, speedH);
+		doorCloseMinusRect = new Rectangle(speedStartX, doorControlsBaseY - (speedH + 4f), speedW, speedH);
+		doorClosePlusRect = new Rectangle(speedStartX + speedW + speedGap, doorControlsBaseY - (speedH + 4f), speedW,
 				speedH);
 
-		// launchpad direction buttons (rebuild above LAUNCHPAD toolbar button)
-		launchpadDirRects.clear();
-		float lpDirW = 50f, lpDirH = 24f, lpDirGap = 4f;
-		Rectangle lpBtn = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.LAUNCHPAD) {
-				lpBtn = ub.rect;
-				break;
-			}
-		float lpDirsWidth = 3 * lpDirW + 2 * lpDirGap;
-		float lpDirX = (lpBtn != null) ? (lpBtn.x + (lpBtn.width - lpDirsWidth) / 2f)
-				: (uiCamera.viewportWidth - lpDirsWidth) / 2f;
-		for (int i = 0; i < 3; i++) {
-			launchpadDirRects.add(new Rectangle(lpDirX + i * (lpDirW + lpDirGap),
-					(lpBtn != null) ? (lpBtn.y + lpBtn.height + 8f) : optionY, lpDirW, lpDirH));
+		float sliderW = 220f, sliderH = 14f;
+		float sliderX = (doorBtn != null) ? (doorBtn.x + (doorBtn.width - sliderW) / 2f)
+				: (uiCamera.viewportWidth - sliderW) / 2f;
+		float sliderY = doorControlsBaseY + 10f;
+		openSpeedSliderRect = new Rectangle(sliderX, sliderY, sliderW, sliderH);
+		closeSpeedSliderRect = new Rectangle(sliderX, sliderY - (sliderH + 10f), sliderW, sliderH);
+		linkToggleRect = null;
+
+		Button.ButtonColor[] cols = Button.ButtonColor.values();
+		float sw = 40f, sh = 24f, sg = 6f;
+		float colorsWidth = cols.length * sw + (cols.length - 1) * sg;
+
+		buttonColorRects.clear();
+		Rectangle buttonBtn = findButtonRect(ObjectType.BUTTON);
+		float buttonColorsX = (buttonBtn != null) ? (buttonBtn.x + (buttonBtn.width - colorsWidth) / 2f)
+				: (uiCamera.viewportWidth - colorsWidth) / 2f;
+		float buttonColorsCandidate = (buttonBtn != null) ? (buttonBtn.y + buttonBtn.height + 8f) : optionY;
+		float buttonColorsY = Math.max(buttonColorsCandidate, contextMinY);
+		for (int i = 0; i < cols.length; i++) {
+			buttonColorRects.add(new Rectangle(buttonColorsX + i * (sw + sg), buttonColorsY, sw, sh));
 		}
 
-		// laser type buttons (rebuild on resize) - above LASER toolbar button
+		targetColorRects.clear();
+		Rectangle targetBtn = findButtonRect(ObjectType.TARGET);
+		float targetColorsX = (targetBtn != null) ? (targetBtn.x + (targetBtn.width - colorsWidth) / 2f)
+				: (uiCamera.viewportWidth - colorsWidth) / 2f;
+		float targetColorsCandidate = (targetBtn != null) ? (targetBtn.y + targetBtn.height + 8f) : optionY;
+		float targetColorsY = Math.max(targetColorsCandidate, contextMinY);
+		for (int i = 0; i < cols.length; i++) {
+			targetColorRects.add(new Rectangle(targetColorsX + i * (sw + sg), targetColorsY, sw, sh));
+		}
+
+		Rectangle leverBtn = findButtonRect(ObjectType.LEVER);
+		float leverY = Math.max((leverBtn != null) ? (leverBtn.y + leverBtn.height + 8f) : optionY, contextMinY);
+		leverOrientRect = new Rectangle(
+				(leverBtn != null) ? (leverBtn.x + (leverBtn.width - 80f) / 2f) : ((uiCamera.viewportWidth - 80f) / 2f),
+				leverY, 80f, sh);
+
+		Rectangle lockedDoorBtn = findButtonRect(ObjectType.LOCKED_DOOR);
+		float lockedDoorY = Math.max((lockedDoorBtn != null) ? (lockedDoorBtn.y + lockedDoorBtn.height + 8f) : optionY,
+				contextMinY);
+		lockedDoorOrientRect = new Rectangle(
+				(lockedDoorBtn != null) ? (lockedDoorBtn.x + (lockedDoorBtn.width - 90f) / 2f)
+						: ((uiCamera.viewportWidth - 90f) / 2f),
+				lockedDoorY, 90f, sh);
+
+		Rectangle tentacleBtn = findButtonRect(ObjectType.TENTACLE);
+		float tentacleControlW = 28f, tentacleControlH = 24f, tentacleGap = 6f;
+		float tentacleControlX = (tentacleBtn != null)
+				? (tentacleBtn.x + (tentacleBtn.width - (2 * tentacleControlW + tentacleGap)) / 2f)
+				: ((uiCamera.viewportWidth - (2 * tentacleControlW + tentacleGap)) / 2f);
+		float tentacleControlY = Math.max((tentacleBtn != null) ? (tentacleBtn.y + tentacleBtn.height + 8f) : optionY,
+				contextMinY);
+		tentacleSegmentMinusRect = new Rectangle(tentacleControlX, tentacleControlY, tentacleControlW,
+				tentacleControlH);
+		tentacleSegmentPlusRect = new Rectangle(tentacleControlX + tentacleControlW + tentacleGap, tentacleControlY,
+				tentacleControlW, tentacleControlH);
+
+		launchpadDirRects.clear();
+		Rectangle launchpadBtn = findButtonRect(ObjectType.LAUNCHPAD);
+		float lpDirW = 50f, lpDirH = 24f, lpDirGap = 4f;
+		float lpDirsWidth = 3 * lpDirW + 2 * lpDirGap;
+		float lpDirX = (launchpadBtn != null) ? (launchpadBtn.x + (launchpadBtn.width - lpDirsWidth) / 2f)
+				: (uiCamera.viewportWidth - lpDirsWidth) / 2f;
+		float lpDirY = Math.max((launchpadBtn != null) ? (launchpadBtn.y + launchpadBtn.height + 8f) : optionY,
+				contextMinY);
+		for (int i = 0; i < 3; i++) {
+			launchpadDirRects.add(new Rectangle(lpDirX + i * (lpDirW + lpDirGap), lpDirY, lpDirW, lpDirH));
+		}
+
 		laserTypeRects.clear();
+		Rectangle laserBtn = findButtonRect(ObjectType.LASER);
 		float laserTypeW = 70f, laserTypeH = 24f, laserTypeGap = 4f;
 		float laserTypesWidth = 2 * laserTypeW + laserTypeGap;
-		Rectangle laserBtn = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.LASER) {
-				laserBtn = ub.rect;
-				break;
-			}
 		float laserTypeX = (laserBtn != null) ? (laserBtn.x + (laserBtn.width - laserTypesWidth) / 2f)
 				: (uiCamera.viewportWidth - laserTypesWidth) / 2f;
-		laserTypeRects.add(new Rectangle(laserTypeX, (laserBtn != null) ? (laserBtn.y + laserBtn.height + 8f) : optionY,
-				laserTypeW, laserTypeH));
-		laserTypeRects.add(new Rectangle(laserTypeX + laserTypeW + laserTypeGap,
-				(laserBtn != null) ? (laserBtn.y + laserBtn.height + 8f) : optionY, laserTypeW, laserTypeH));
+		float laserTypeY = Math.max((laserBtn != null) ? (laserBtn.y + laserBtn.height + 8f) : optionY, contextMinY);
+		laserTypeRects.add(new Rectangle(laserTypeX, laserTypeY, laserTypeW, laserTypeH));
+		laserTypeRects.add(new Rectangle(laserTypeX + laserTypeW + laserTypeGap, laserTypeY, laserTypeW, laserTypeH));
 
-		// laser direction buttons (rebuild on resize) above type buttons
 		laserDirRects.clear();
 		float ldirW = 36f, ldirH = 24f, ldirGap = 6f;
 		float ldirsWidth = 4 * ldirW + 3 * ldirGap;
 		float ldirX = (laserBtn != null) ? (laserBtn.x + (laserBtn.width - ldirsWidth) / 2f)
 				: (uiCamera.viewportWidth - ldirsWidth) / 2f;
-		float ldirY = (laserBtn != null) ? (laserBtn.y + laserBtn.height + 8f + laserTypeH + 8f)
-				: optionY + laserTypeH + 8f;
+		float ldirY = laserTypeY + laserTypeH + 8f;
 		for (int i = 0; i < 4; i++) {
 			laserDirRects.add(new Rectangle(ldirX + i * (ldirW + ldirGap), ldirY, ldirW, ldirH));
 		}
 
-		// sliders positions (placed above the door options if available)
-		float sliderW = 220f, sliderH = 14f;
-		float sliderX = (doorBtn != null) ? (doorBtn.x + (doorBtn.width - sliderW) / 2f)
-				: (uiCamera.viewportWidth - sliderW) / 2f;
-		float sliderY = (doorBtn != null) ? (doorBtn.y + doorBtn.height + 8f + 40f) : (optionY + 70f);
-		openSpeedSliderRect = new Rectangle(sliderX, sliderY, sliderW, sliderH);
-		closeSpeedSliderRect = new Rectangle(sliderX, sliderY - (sliderH + 10f), sliderW, sliderH);
-
-		// Button color swatches (rebuild on resize) - placed above BUTTON toolbar
-		// button
-		buttonColorRects.clear();
-		float sw = 40f, sh = 24f, sg = 6f;
-		Button.ButtonColor[] cols = Button.ButtonColor.values();
-		float colorsWidth = cols.length * sw + (cols.length - 1) * sg;
-		Rectangle buttonBtn = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.BUTTON) {
-				buttonBtn = ub.rect;
-				break;
-			}
-		float bcx = (buttonBtn != null) ? (buttonBtn.x + (buttonBtn.width - colorsWidth) / 2f)
-				: (uiCamera.viewportWidth - colorsWidth) / 2f;
-		for (int i = 0; i < cols.length; i++) {
-			buttonColorRects.add(new Rectangle(bcx + i * (sw + sg),
-					(buttonBtn != null) ? (buttonBtn.y + buttonBtn.height + 8f) : optionY, sw, sh));
-		}
-
-		// lever orientation - above LEVER toolbar button
-		Rectangle leverBtn = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.LEVER) {
-				leverBtn = ub.rect;
-				break;
-			}
-		leverOrientRect = new Rectangle(
-				(leverBtn != null) ? (leverBtn.x + (leverBtn.width - 80f) / 2f) : ((uiCamera.viewportWidth - 80f) / 2f),
-				(leverBtn != null) ? (leverBtn.y + leverBtn.height + 8f) : optionY, 80f, sh);
-
-		// Mirror rotate - above MIRROR toolbar button
 		float optW = 110f, optH = 24f;
-		Rectangle mirrorBtn = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.MIRROR) {
-				mirrorBtn = ub.rect;
-				break;
-			}
+		Rectangle mirrorBtn = findButtonRect(ObjectType.MIRROR);
 		float optX = (mirrorBtn != null) ? (mirrorBtn.x + (mirrorBtn.width - optW) / 2f)
 				: (uiCamera.viewportWidth - optW) / 2f;
-		mirrorRotateRect = new Rectangle(optX, (mirrorBtn != null) ? (mirrorBtn.y + mirrorBtn.height + 8f) : optionY,
-				optW, optH);
+		float optY = Math.max((mirrorBtn != null) ? (mirrorBtn.y + mirrorBtn.height + 8f) : optionY, contextMinY);
+		mirrorRotateRect = new Rectangle(optX, optY, optW, optH);
 
-		// Glass color swatches
 		glassColorRects.clear();
 		String[] gcolors = { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE" };
 		float gcw = 40f, gch = 24f, gcgap = 6f;
 		float gtotal = gcolors.length * gcw + (gcolors.length - 1) * gcgap;
-		Rectangle glassBtn = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.GLASS) {
-				glassBtn = ub.rect;
-				break;
-			}
+		Rectangle glassBtn = findButtonRect(ObjectType.GLASS);
 		float gcx = (glassBtn != null) ? (glassBtn.x + (glassBtn.width - gtotal) / 2f)
 				: (uiCamera.viewportWidth - gtotal) / 2f;
+		float gcy = Math.max((glassBtn != null) ? (glassBtn.y + glassBtn.height + 8f) : optionY, contextMinY);
 		for (int i = 0; i < gcolors.length; i++) {
-			glassColorRects.add(new Rectangle(gcx + i * (gcw + gcgap),
-					(glassBtn != null) ? (glassBtn.y + glassBtn.height + 8f) : optionY, gcw, gch));
+			glassColorRects.add(new Rectangle(gcx + i * (gcw + gcgap), gcy, gcw, gch));
 		}
 
-		// Box color swatches
 		boxColorRects.clear();
-		float btotal = gcolors.length * gcw + (gcolors.length - 1) * gcgap;
-		Rectangle boxBtn = null;
-		for (UIButton ub : uiButtons)
-			if (ub.type == ObjectType.BOX) {
-				boxBtn = ub.rect;
-				break;
-			}
-		float boxCx = (boxBtn != null) ? (boxBtn.x + (boxBtn.width - btotal) / 2f)
-				: (uiCamera.viewportWidth - btotal) / 2f;
+		Rectangle boxBtn = findButtonRect(ObjectType.BOX);
+		float boxCx = (boxBtn != null) ? (boxBtn.x + (boxBtn.width - gtotal) / 2f)
+				: (uiCamera.viewportWidth - gtotal) / 2f;
+		float boxCyCandidate = (boxBtn != null) ? (boxBtn.y + boxBtn.height + 8f) : (optionY - 32f);
+		float boxCy = Math.max(boxCyCandidate, contextMinY);
 		for (int i = 0; i < gcolors.length; i++) {
-			boxColorRects.add(new Rectangle(boxCx + i * (gcw + gcgap),
-					(boxBtn != null) ? (boxBtn.y + boxBtn.height + 8f) : optionY, gcw, gch));
+			boxColorRects.add(new Rectangle(boxCx + i * (gcw + gcgap), boxCy, gcw, gch));
 		}
 
 		// recompute level rects
@@ -3556,6 +3437,33 @@ public class LevelMakerScreen implements Screen {
 		for (int i = 0; i < levelFiles.size; i++) {
 			levelRects.add(new Rectangle(lx, ly - i * (lh + lgap), 170f, lh));
 		}
+	}
+
+	private Rectangle findButtonRect(ObjectType type) {
+		for (UIButton button : uiButtons) {
+			if (button.type == type)
+				return button.rect;
+		}
+		return null;
+	}
+
+	private boolean handleToolboxScroll(float amountY) {
+		if (uiCamera == null)
+			return false;
+		if (toolboxScrollMin == toolboxScrollMax)
+			return false;
+		com.badlogic.gdx.math.Vector3 uiVec = new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0f);
+		uiCamera.unproject(uiVec);
+		if (!toolboxViewportRect.contains(uiVec.x, uiVec.y))
+			return false;
+		float scrollStep = (TOOLBOX_BUTTON_HEIGHT + TOOLBOX_BUTTON_GAP_Y) * 0.6f;
+		toolboxScrollOffset -= amountY * scrollStep;
+		if (toolboxScrollOffset < toolboxScrollMin)
+			toolboxScrollOffset = toolboxScrollMin;
+		if (toolboxScrollOffset > toolboxScrollMax)
+			toolboxScrollOffset = toolboxScrollMax;
+		rebuildUIPositions();
+		return true;
 	}
 
 	private Door findDoorById(String id) {
@@ -3886,7 +3794,12 @@ public class LevelMakerScreen implements Screen {
 
 	@Override
 	public void hide() {
-		// no-op
+		try {
+			if (Gdx.input.getInputProcessor() == toolboxScrollInput) {
+				Gdx.input.setInputProcessor(null);
+			}
+		} catch (Throwable ignored) {
+		}
 	}
 
 	@Override

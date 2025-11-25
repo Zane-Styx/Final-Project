@@ -16,22 +16,44 @@ import com.jjmc.chromashift.environment.Solid;
  * Implements both Interactable and Solid for collision participation until opened.
  */
 public class LockedDoor implements Interactable, Solid {
+    public enum Orientation { VERTICAL, HORIZONTAL }
+
     private final Rectangle bounds;
+    private final Orientation orientation;
     private SpriteAnimator animator;
     private boolean open = false;
-    private static final float WIDTH = 48f;
-    private static final float HEIGHT = 96f;
     private Player player; // set by screen after construction
 
+    private static final float VERTICAL_WIDTH = 32f;
+    private static final float VERTICAL_HEIGHT = 64f;
+    private static final float HORIZONTAL_WIDTH = 64f;
+    private static final float HORIZONTAL_HEIGHT = 32f;
+
+    private static final String VERTICAL_SPRITE = "environment/lockedDoorVertical.png";
+    private static final String HORIZONTAL_SPRITE = "environment/lockedDoorHorizontal.png";
+
     public LockedDoor(float x, float y) {
-        this.bounds = new Rectangle(x, y, WIDTH, HEIGHT);
+        this(x, y, Orientation.VERTICAL);
+    }
+
+    public LockedDoor(float x, float y, Orientation orientation) {
+        this.orientation = orientation == null ? Orientation.VERTICAL : orientation;
+        float width = this.orientation == Orientation.VERTICAL ? VERTICAL_WIDTH : HORIZONTAL_WIDTH;
+        float height = this.orientation == Orientation.VERTICAL ? VERTICAL_HEIGHT : HORIZONTAL_HEIGHT;
+        this.bounds = new Rectangle(x, y, width, height);
+        loadAnimator();
+    }
+
+    private void loadAnimator() {
+        String path = (orientation == Orientation.VERTICAL) ? VERTICAL_SPRITE : HORIZONTAL_SPRITE;
         try {
-            animator = new SpriteAnimator("environment/locked_door.png", 2, 1);
+            animator = new SpriteAnimator(path, 1, 2);
             animator.addAnimation("closed", 0, 0, 1, 1f, true);
-            animator.addAnimation("open", 1, 0, 1, 1f, true);
+            animator.addAnimation("open", 0, 1, 1, 1f, true);
             animator.play("closed", false);
         } catch (Exception e) {
-            Gdx.app.error("LockedDoor", "Failed to load door sprite: " + e.getMessage());
+            Gdx.app.error("LockedDoor", "Failed to load door sprite: " + e.getMessage(), e);
+            animator = null;
         }
     }
 
@@ -55,10 +77,12 @@ public class LockedDoor implements Interactable, Solid {
     public void render(SpriteBatch batch) {
         if (animator == null) return;
         if (VisibilityCuller.isEnabled() && !VisibilityCuller.isVisible(bounds, 128f)) return;
-        // Draw appropriate frame based on open state
-        animator.setFrame(open ? 1 : 0);
-        Rectangle drawRect = bounds;
-        animator.render(batch, drawRect.x, drawRect.y, drawRect.width, drawRect.height);
+        // Ensure the animator reflects the current open/closed state
+        String expectedAnim = open ? "open" : "closed";
+        if (!expectedAnim.equals(animator.getCurrentAnimationName())) {
+            animator.play(expectedAnim, false);
+        }
+        animator.render(batch, bounds.x, bounds.y, bounds.width, bounds.height);
     }
 
     @Override
@@ -82,6 +106,8 @@ public class LockedDoor implements Interactable, Solid {
     }
 
     public boolean isOpen() { return open; }
+
+    public Orientation getOrientation() { return orientation; }
 
     @Override
     public boolean canInteract() {

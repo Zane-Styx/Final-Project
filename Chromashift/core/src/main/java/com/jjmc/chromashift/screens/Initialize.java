@@ -110,7 +110,7 @@ public class Initialize {
             SoundManager.addSound("UISelect", "sounds/UISelect.wav");
             SoundManager.addSound("PickUpItem", "sounds/PickUpItem.wav");
             SoundManager.addLoopingSfx("Walking", "sounds/Walking.wav");
-
+            SoundManager.addSound("DoorOpen", "sounds/DoorOpen.wav");
             // Add ambient background music
             SoundManager.addMusic("ambience", "sounds/Ambience1.wav", false);
             SoundManager.addMusic("ambience", "sounds/Ambience2.wav", false);

@@ -130,6 +130,7 @@ public class LevelIO {
 
         public static class LockedDoorData {
             public float x, y;
+            public String orientation = "VERTICAL";
         }
 
         public static class BossData {
