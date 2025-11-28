@@ -136,6 +136,11 @@ public class TestSceneScreen implements Screen {
         player.setRespawnPoint(player.getX(), player.getY());
         playerSpawnX = player.getX();
         playerSpawnY = player.getY();
+
+        // Initialize player skills
+        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.DashSkill(player), 'Q');
+        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.JumpSkill(player), 'E');
+
         // Visible spawn marker (static frame by default)
         spawnMarker = new Spawn(playerSpawnX, playerSpawnY);
 
@@ -455,11 +460,11 @@ public class TestSceneScreen implements Screen {
             for (Interactable i : interactables)
                 i.debugDraw(shape);
             player.debugDrawHitbox(shape);
-            
+
             // Draw tentacle segment hitboxes and curl detection
             for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
                 if (!t.isAlive()) continue;
-                
+
                 // Draw segment hitboxes (cyan circles)
                 shape.setColor(new Color(0f, 1f, 1f, 0.5f));
                 com.badlogic.gdx.math.Circle[] hitboxes = t.getSegmentHitboxes();
@@ -470,22 +475,22 @@ public class TestSceneScreen implements Screen {
                         }
                     }
                 }
-                
+
                 // Draw curl center and radius if curled (yellow)
                 if (t.isCurled() && t.hasFullCurl()) {
                     com.badlogic.gdx.math.Vector2 center = t.getCurlCenter();
                     float radius = t.getCurlRadius();
-                    
+
                     // Draw curl circle
                     shape.setColor(new Color(1f, 1f, 0f, 0.6f));
                     shape.circle(center.x, center.y, radius, 32);
-                    
+
                     // Draw center crosshair
                     shape.setColor(new Color(1f, 0f, 0f, 0.8f));
                     float crossSize = 10f;
                     shape.line(center.x - crossSize, center.y, center.x + crossSize, center.y);
                     shape.line(center.x, center.y - crossSize, center.x, center.y + crossSize);
-                    
+
                     // Draw hit counter
                     shape.end();
                     batch.begin();
@@ -495,12 +500,12 @@ public class TestSceneScreen implements Screen {
                     shape.begin(ShapeRenderer.ShapeType.Line);
                 }
             }
-            
+
             // Draw player attack hitbox (red)
             if (player.getAttackHitbox() != null) {
                 player.getAttackHitbox().debugDraw(shape);
             }
-            
+
             // Draw respawn areas for boxes and orbs
             shape.setColor(new Color(0f, 0.5f, 1f, 0.25f));
             for (Interactable i : interactables) {

@@ -50,6 +50,8 @@ public class Player {
     protected float dashTimer = 0f;
     protected float dashCooldownTimer = 0f;
     protected boolean dashUsed = false;
+    // Short hover after skill-based dash to prevent instant gravity snap (seconds)
+    protected float dashHoverRemaining = 0f;
 
     public void setCamera(com.badlogic.gdx.graphics.Camera camera) {
         this.gameCamera = camera;
@@ -80,7 +82,10 @@ public class Player {
     // Config
     private final PlayerConfig config;
     protected final float baseWidth, baseHeight;
-    protected float hitboxOffsetX, hitboxOffsetY, hitboxWidth, hitboxHeight;
+    public float hitboxOffsetX;
+    public float hitboxOffsetY;
+    protected float hitboxWidth;
+    protected float hitboxHeight;
 
     protected boolean groundedBySolid = false;
     private PlayerType type;
@@ -102,11 +107,22 @@ public class Player {
     private Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies = new Array<>();
     private AttackHitbox attackHitbox;
     
+    // Solids tracking for skill collision detection
+    private Array<com.jjmc.chromashift.environment.Solid> solids;
+    
     // Animation state tracking to prevent resetting animations every frame
     private String lastAnimationName = null;
     private Boolean lastFlipX = null; // track last horizontal flip state
     // Capture state (tentacle) allowing attacks while immobilized
     private boolean capturedByTentacle = false;
+    
+    // Skill system
+    private com.jjmc.chromashift.player.skill.BaseSkill skillSlotQ;
+    private com.jjmc.chromashift.player.skill.BaseSkill skillSlotE;
+    private com.jjmc.chromashift.player.skill.BaseSkill activeSkill;
+    private boolean isInvulnerable = false;
+    private boolean isInvisible = false;
+    public Array<com.jjmc.chromashift.player.skill.Projectile> activeProjectiles = new Array<>();
 
     public Player(float startX, float startY,
             int keyLeft, int keyRight, int keyJump, int keyAttack,
@@ -158,6 +174,15 @@ public class Player {
         // Initialize SFX handler
         this.sfx = new PlayerSFX();
 
+        // Pointer animator for held-object throw direction indicator
+        try {
+            pointerAnimator = new com.chromashift.helper.SpriteAnimator("player/ui/ArrowPointer.png", 1, 5);
+            pointerAnimator.addAnimation("point", 0, 0, 5, 0.1f, true);
+            pointerAnimator.play("point", false);
+        } catch (Exception ignored) {
+            pointerAnimator = null;
+        }
+
         // Initialize health system with shield logic
         this.health = new HealthSystem(200f) {
             @Override
@@ -199,6 +224,9 @@ public class Player {
 
     // Currently held pickable
     private com.jjmc.chromashift.environment.interactable.Pickable heldObject = null;
+    // Pointer shown when holding an object (arrow sprite)
+    private com.chromashift.helper.SpriteAnimator pointerAnimator;
+    private float pointerOffsetY = 16f; // height above player to spawn pointer (adjustable)
 
     // Health system and respawn
     private final HealthSystem health;
@@ -242,6 +270,9 @@ public class Player {
     }
 
     public void update(float delta, float groundY, Array<Wall> walls, Array<Solid> solids) {
+        // Store solids reference for skill collision detection
+        this.solids = solids;
+        
         // update health (regen, timers)
         if (health != null)
             health.update(delta);
@@ -267,6 +298,57 @@ public class Player {
 
         PlayerLogic.handleAttackCooldown(this, delta);
 
+        // Tick cooldowns for equipped skills (even when not active)
+        if (skillSlotQ != null && skillSlotQ != activeSkill) skillSlotQ.update(delta);
+        if (skillSlotE != null && skillSlotE != activeSkill) skillSlotE.update(delta);
+
+        // Update active skill (if any)
+        boolean skillLock = false;
+        if (activeSkill != null) {
+            activeSkill.update(delta);
+
+            // Apply skill state overrides
+            if (activeSkill.isRequestingInvulnerability()) {
+                isInvulnerable = true;
+            }
+            if (activeSkill.isRequestingInvisibility()) {
+                isInvisible = true;
+            }
+
+            // Movement lock requested by skill
+            skillLock = activeSkill.isRequestingMovementLock();
+
+            // If the skill finished, clear reference and flags (BaseSkill.deactivate already ran)
+            if (!activeSkill.isActive()) {
+                activeSkill = null;
+                isInvulnerable = false;
+                isInvisible = false;
+            }
+        } else {
+            // Reset invulnerability/invisibility when no skill active
+            isInvulnerable = false;
+            isInvisible = false;
+        }
+        
+        // Update projectiles
+        if (activeProjectiles != null && !activeProjectiles.isEmpty()) {
+            for (int i = activeProjectiles.size - 1; i >= 0; i--) {
+                com.jjmc.chromashift.player.skill.Projectile proj = activeProjectiles.get(i);
+                proj.update(delta, solids, enemies);
+                if (proj.isFinished()) {
+                    activeProjectiles.removeIndex(i);
+                }
+            }
+        }
+        
+        // Handle skill key input (Q and E keys)
+        if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
+            castSkill('Q');
+        }
+        if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+            castSkill('E');
+        }
+
         if (dashing && !isStunned) {
             PlayerLogic.handleDash(this, delta, walls, solids);
             anim.update(delta);
@@ -286,8 +368,8 @@ public class Player {
             }
         }
 
-        // Movement & jump only when not stunned or captured
-        if (!isStunned && !capturedByTentacle) {
+        // Movement & jump only when not stunned, not captured, and not locked by a skill
+        if (!isStunned && !capturedByTentacle && !skillLock) {
             PlayerLogic.handleGroundMovement(this, delta, walls, solids);
             PlayerLogic.handleJump(this);
         }
@@ -303,7 +385,7 @@ public class Player {
             PlayerLogic.handleAttack(this, delta);
         }
 
-        if (!isStunned && !capturedByTentacle && Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
+        if (!isStunned && !capturedByTentacle && !skillLock && Gdx.input.isKeyJustPressed(keyDash) && !dashing && dashCooldownTimer <= 0f && !dashUsed) {
             dashing = true;
             dashTimer = config.dashTime;
             setAnimation("dash", facingLeft);
@@ -394,6 +476,9 @@ public class Player {
     }
 
     public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables, float x) {
+        // Store solids reference for skill collision detection
+        this.solids = solids;
+        
         Array<Wall> walls = new Array<>();
         for (Solid s : solids) {
             if (!s.isBlocking())
@@ -425,7 +510,7 @@ public class Player {
             }
         }
         // Pickup/throw with G key (only when not stunned)
-        if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+        if (!isStunned && com.badlogic.gdx.Gdx.input.isButtonJustPressed(com.badlogic.gdx.Input.Buttons.RIGHT)) {
             if (heldObject != null) {
                 // Get mouse position in world coordinates
                 com.badlogic.gdx.math.Vector3 mousePos = new com.badlogic.gdx.math.Vector3(
@@ -473,6 +558,9 @@ public class Player {
 
     public void update(float delta, float groundY, Array<Solid> solids, Array<Interactable> interactables,
             boolean dummy) {
+        // Store solids reference for skill collision detection
+        this.solids = solids;
+        
         Array<Wall> walls = new Array<>();
         for (Solid s : solids) {
             if (!s.isBlocking())
@@ -567,17 +655,68 @@ public class Player {
     }
 
     public void render(SpriteBatch batch) {
-        String cur = anim.getCurrentAnimationName();
-        float width = "attack".equals(cur) ? attackFrameW : baseWidth;
-        float height = baseHeight;
-        float drawX = x;
-        if ("attack".equals(cur) && facingLeft)
-            drawX = x - (width - baseWidth);
-        anim.render(batch, drawX, y, width, height);
+        // Skip player sprite if invisible from skill
+        if (!isInvisible) {
+            String cur = anim.getCurrentAnimationName();
+            float width = "attack".equals(cur) ? attackFrameW : baseWidth;
+            float height = baseHeight;
+            float drawX = x;
+            if ("attack".equals(cur) && facingLeft)
+                drawX = x - (width - baseWidth);
+            anim.render(batch, drawX, y, width, height);
+        }
+        
         // Render SFX on top of player layer
         if (sfx != null) {
             sfx.render(batch);
         }
+        
+        // Render active skill if present
+        if (activeSkill != null) {
+            activeSkill.render(batch);
+        }
+
+        // Render held-object pointer above player, rotating toward mouse
+        if (heldObject != null && pointerAnimator != null) {
+            try {
+                // Advance pointer animation
+                pointerAnimator.update(com.badlogic.gdx.Gdx.graphics.getDeltaTime());
+
+                // Compute world mouse position
+                com.badlogic.gdx.math.Vector3 mousePos = new com.badlogic.gdx.math.Vector3(
+                    Gdx.input.getX(), Gdx.input.getY(), 0f);
+                if (gameCamera != null) gameCamera.unproject(mousePos);
+                float mouseX = mousePos.x;
+                float mouseY = mousePos.y;
+
+                // Spawn pointer above player's hitbox center
+                float centerX = getHitboxX() + getHitboxWidth() / 2f;
+                float centerY = getHitboxY() + getHitboxHeight() / 2f + pointerOffsetY;
+
+                // Compute angle (degrees) where arrow default faces right
+                float angle = com.badlogic.gdx.math.MathUtils.atan2(mouseY - centerY, mouseX - centerX) * com.badlogic.gdx.math.MathUtils.radiansToDegrees;
+
+                com.badlogic.gdx.graphics.g2d.TextureRegion region = pointerAnimator.getCurrentFrameRegion();
+                if (region != null) {
+                    float pw = 32f;
+                    float ph = 32f;
+                    // Anchor at left-center of sprite
+                    float originX = 0f;
+                    float originY = ph / 2f;
+                    float drawX = centerX - originX;
+                    float drawY = centerY - originY;
+                    batch.draw(region, drawX, drawY, originX, originY, pw, ph, 1f, 1f, angle);
+                }
+            } catch (Exception ignored) {}
+        }
+        
+        // Render active projectiles
+        if (activeProjectiles != null && !activeProjectiles.isEmpty()) {
+            for (com.jjmc.chromashift.player.skill.Projectile proj : activeProjectiles) {
+                proj.render(batch);
+            }
+        }
+        
         // Render persistent UI overlay after player
         if (playerUI != null) {
             playerUI.render(batch);
@@ -703,6 +842,11 @@ public class Player {
     }
 
     public void setVelocityX(float velocityX) {
+        if (config != null) {
+            float max = Math.abs(config.maxHorizontalSpeed);
+            if (velocityX > max) velocityX = max;
+            if (velocityX < -max) velocityX = -max;
+        }
         this.velocityX = velocityX;
     }
 
@@ -730,12 +874,54 @@ public class Player {
         this.onGround = onGround;
     }
 
+    /**
+     * Set a short hover period where gravity is suppressed.
+     * @param seconds hover duration in seconds
+     */
+    public void setDashHover(float seconds) {
+        this.dashHoverRemaining = Math.max(0f, seconds);
+    }
+
     public void setOnWall(boolean onWall) {
         this.onWall = onWall;
     }
 
     public void setMoving(boolean moving) {
         this.moving = moving;
+    }
+    
+    // ============ SKILL SYSTEM ============
+    
+    public void equipSkillToSlot(com.jjmc.chromashift.player.skill.BaseSkill skill, char slot) {
+        if (slot == 'Q') {
+            skillSlotQ = skill;
+        } else if (slot == 'E') {
+            skillSlotE = skill;
+        }
+    }
+    
+    public void castSkill(char slot) {
+        com.jjmc.chromashift.player.skill.BaseSkill skill = (slot == 'Q') ? skillSlotQ : skillSlotE;
+        if (skill != null && skill.canCast() && activeSkill == null) {
+            activeSkill = skill;
+            skill.activate();
+        }
+    }
+
+    public com.jjmc.chromashift.player.skill.BaseSkill getActiveSkill() {
+        return activeSkill;
+    }
+    
+    public Array<com.jjmc.chromashift.environment.Solid> getSolids() {
+        return solids != null ? solids : new Array<>();
+    }
+    
+    public Array<com.jjmc.chromashift.environment.enemy.Enemy> getEnemies() {
+        return enemies;
+    }
+    
+    public void setCanJump(boolean canJump) {
+        this.canJump = canJump;
     }
 
     public void dispose() {
@@ -744,6 +930,20 @@ public class Player {
             playerUI.dispose();
         if (sfx != null)
             sfx.dispose();
+        // Dispose active skill if present
+        if (activeSkill != null) {
+            // BaseSkill doesn't have dispose, but we could add it if needed
+            activeSkill = null;
+        }
+        // Clear projectiles
+        if (activeProjectiles != null) {
+            activeProjectiles.clear();
+        }
+        // Dispose pointer animator
+        if (pointerAnimator != null) {
+            pointerAnimator.dispose();
+            pointerAnimator = null;
+        }
     }
 
     // --- Health / Respawn API ---

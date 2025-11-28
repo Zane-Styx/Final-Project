@@ -381,7 +381,12 @@ boxes: [
 		areaH: 400
 	}
 ]
-orbs: []
+orbs: [
+	{
+		x: 196
+		y: 324
+	}
+]
 launchpads: [
 	{
 		x: 1088
@@ -402,6 +407,11 @@ launchpads: [
 		x: 2368
 		y: 448
 		direction: UP
+	}
+	{
+		x: 1024
+		y: 576
+		direction: LEFT
 	}
 ]
 lasers: [
@@ -560,7 +570,18 @@ shops: [
 		y: 320
 	}
 ]
-tentacles: []
+tentacles: [
+	{
+		x: 224
+		y: 480
+		segments: 10
+	}
+	{
+		x: 224
+		y: 480
+		segments: 10
+	}
+]
 keys: [
 	{
 		x: 320

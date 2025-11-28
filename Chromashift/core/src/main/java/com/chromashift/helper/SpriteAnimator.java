@@ -138,6 +138,17 @@ public class SpriteAnimator {
         stateTime += delta;
     }
 
+    /**
+     * Return the current frame TextureRegion (without drawing). May return null.
+     */
+    public com.badlogic.gdx.graphics.g2d.TextureRegion getCurrentFrameRegion() {
+        if (currentName == null) return null;
+        Animation<TextureRegion> a = animations.get(currentName);
+        if (a == null) return null;
+        boolean loop = animLoop.getOrDefault(currentName, true);
+        return a.getKeyFrame(stateTime, loop);
+    }
+
     public void render(SpriteBatch batch, float x, float y, float width, float height) {
         if (currentName == null) return;
         Animation<TextureRegion> a = animations.get(currentName);

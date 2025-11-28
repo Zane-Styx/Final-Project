@@ -31,18 +31,51 @@ public class PlayerLogic {
 
         // Sub-step the dash movement to avoid tunneling through thin solids.
         float totalDx = dir * player.getConfig().dashSpeed * delta;
-    // choose dynamic sub-steps based on distance to make each step small
-    int steps = Math.max(1, (int)Math.ceil(Math.abs(totalDx) / 8f));
-    float stepDx = totalDx / steps;
+        int steps = Math.max(1, (int)Math.ceil(Math.abs(totalDx) / 8f));
+        float stepDx = totalDx / steps;
         boolean blocked = false;
 
         for (int i = 0; i < steps; i++) {
             Rectangle beforeStep = player.getHitboxRect();
-            // Apply one sub-step
-            player.setX(player.getX() + stepDx);
 
+            // Proactively check forward solids only (ignore solids behind the player)
+            if (solids != null) {
+                for (Solid s : solids) {
+                    if (!s.isBlocking()) continue;
+                    Rectangle sb = s.getCollisionBounds();
+                    if (sb == null) continue;
+                    // Vertical overlap check
+                    if (sb.y > beforeStep.y + beforeStep.height || sb.y + sb.height < beforeStep.y) continue;
+
+                    if (stepDx > 0f) {
+                        // moving right: consider solids whose left edge lies between current right and next right
+                        float currRight = beforeStep.x + beforeStep.width;
+                        float nextRight = currRight + stepDx;
+                        if (sb.x >= currRight && sb.x <= nextRight) {
+                            blocked = true;
+                            break;
+                        }
+                    } else if (stepDx < 0f) {
+                        // moving left: consider solids whose right edge lies between next left and current left
+                        float currLeft = beforeStep.x;
+                        float nextLeft = currLeft + stepDx;
+                        float sbRight = sb.x + sb.width;
+                        if (sbRight <= currLeft && sbRight >= nextLeft) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                }
+                if (blocked) break;
+            }
+
+            // Apply one sub-step (we still resolve walls after move)
+            player.setX(player.getX() + stepDx);
             Rectangle afterStep = player.getHitboxRect();
             PlayerCollision.resolveWallCollision(afterStep, walls);
+            // Note: we've already checked solids for forward blocking, so avoid resolving
+            // with solids here to prevent behind-solid interference. But still call solid
+            // resolution to keep consistency (it will only move if overlapping).
             if (solids != null) {
                 PlayerCollision.resolveSolidCollision(afterStep, solids);
             }
@@ -50,14 +83,6 @@ public class PlayerLogic {
             // Apply resolved offset for this step
             float applied = afterStep.x - beforeStep.x;
             player.setX(player.getX() + applied);
-
-            // If after resolution the hitbox X is different from the intended position,
-            // we've been constrained by a solid and should treat this as blocked.
-            float intendedHitboxX = beforeStep.x + stepDx;
-            if (Math.abs(afterStep.x - intendedHitboxX) > 0.001f) {
-                blocked = true;
-                break;
-            }
         }
 
         // If any sub-step was blocked, cancel the dash and set cooldown
@@ -135,20 +160,21 @@ public class PlayerLogic {
 
     public static void handleJump(Player player) {
         // Allow jumping when either on ground or canJump is true (during dash)
-        if (!player.isAttacking() && Gdx.input.isKeyJustPressed(player.getKeyJump()) && 
-            (player.isOnGround() || player.canJump)) {
-            player.setVelocityY(player.getConfig().jumpForce);
+        if (!player.isAttacking() && (Gdx.input.isKeyJustPressed(player.getKeyJump()) || Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE))
+            && (player.isOnGround() || player.canJump)) {
+            // Apply full jump force regardless of falling state (overwrite vertical velocity)
             player.setOnGround(false);
-            
+            player.setVelocityY(player.getConfig().jumpForce);
+
             // Play dash sound when jumping
             com.chromashift.helper.SoundManager.play("Dash");
-            
+
             // If we're dashing, end the dash
             if (player.isDashing()) {
                 player.setDashing(false);
                 player.dashTimer = 0f;
             }
-            
+
             player.canJump = false;
             player.setWallSliding(false);
             player.setOnWall(false);
@@ -158,7 +184,7 @@ public class PlayerLogic {
 
     public static void handleAttack(Player player, float delta) {
         if (!player.isAttacking() && 
-            Gdx.input.isKeyJustPressed(player.getKeyAttack()) && 
+            com.badlogic.gdx.Gdx.input.isButtonJustPressed(com.badlogic.gdx.Input.Buttons.LEFT) && 
             !player.isWallSliding() && 
             !player.isDashing() && 
             player.attackCooldownTimer <= 0f) {
@@ -221,6 +247,26 @@ public class PlayerLogic {
     }
 
     public static void handleVerticalMovement(Player player, float delta, Array<Wall> walls, Array<Solid> solids) {
+        // If dash hover timer or an active skill requests gravity disabled, keep the player suspended briefly
+        boolean suppressGravity = false;
+        if (player.dashHoverRemaining > 0f) {
+            player.dashHoverRemaining -= delta;
+            if (player.dashHoverRemaining < 0f) player.dashHoverRemaining = 0f;
+            suppressGravity = true;
+        }
+        // If a skill requests gravity disabled (e.g., dash skill or slash skill), suppress gravity
+        if (player.getActiveSkill() != null && player.getActiveSkill().isRequestingDisableGravity()) {
+            suppressGravity = true;
+        }
+        // Also suppress gravity while the built-in dash state is active
+        if (player.isDashing()) suppressGravity = true;
+
+        if (suppressGravity) {
+            // Keep player suspended: zero vertical velocity and mark airborne
+            player.setVelocityY(0f);
+            player.setOnGround(false);
+            return;
+        }
         boolean wasOnGround = player.isOnGround();
         boolean isOnPlatform = false;
 

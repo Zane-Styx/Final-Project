@@ -109,8 +109,11 @@ public class Initialize {
             SoundManager.addSound("Launchpad", "sounds/Launchpad.wav");
             SoundManager.addSound("UISelect", "sounds/UISelect.wav");
             SoundManager.addSound("PickUpItem", "sounds/PickUpItem.wav");
-            SoundManager.addLoopingSfx("Walking", "sounds/Walking.wav");
             SoundManager.addSound("DoorOpen", "sounds/DoorOpen.wav");
+            SoundManager.addSound("DashSkill", "sounds/DashSkill.wav");
+            SoundManager.addSound("JumpSkill", "sounds/JumpSkill.wav");
+            SoundManager.addSound("SlashSkill", "sounds/SlashSkill.wav");
+            SoundManager.addLoopingSfx("Walking", "sounds/Walking.wav");
             // Add ambient background music
             SoundManager.addMusic("ambience", "sounds/Ambience1.wav", false);
             SoundManager.addMusic("ambience", "sounds/Ambience2.wav", false);
