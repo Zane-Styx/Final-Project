@@ -30,6 +30,9 @@ public class PlayerUI {
     // Key UI
     private Texture keyIconTexture;
     private TextureRegion keyIconRegion;
+    // Potion UI
+    private Texture potionTexture;
+    private TextureRegion potionRegion;
 
     // Regions for player icon variations
     private final TextureRegion[] iconRegions;
@@ -162,6 +165,7 @@ public class PlayerUI {
             float diamondSize = 32f * scale;
             float diamondX = uiX + 20 * scale;
             float diamondY = dashY - diamondSize - 10 * scale;
+            float keyY = 0f;;
 
             batch.draw(diamondRegion, diamondX, diamondY, diamondSize, diamondSize);
 
@@ -175,12 +179,25 @@ public class PlayerUI {
             if (keyIconRegion != null) {
                 float keySize = 28f * scale;
                 float keyX = diamondX;
-                float keyY = diamondY - keySize - 6 * scale;
+                keyY = diamondY - keySize - 6 * scale;
                 batch.draw(keyIconRegion, keyX, keyY, keySize, keySize);
                 if (font != null) {
                     font.getData().setScale(scale * 2f);
                     font.draw(batch, "x " + player.getKeys(), keyX + keySize + 5 * scale,
                             keyY + keySize / 1.5f);
+                }
+            }
+            // Potions below keys
+            ensurePotionIcon();
+            if (potionRegion != null) {
+                float potionSize = 28f * scale;
+                float potionX = diamondX;
+                float potionY = keyY - potionSize - 6 * scale;
+                batch.draw(potionRegion, potionX, potionY, potionSize, potionSize);
+                if (font != null) {
+                    font.getData().setScale(scale * 2f);
+                    font.draw(batch, "x " + player.getPotionCount(), potionX + potionSize + 5 * scale,
+                            potionY + potionSize / 1.5f);
                 }
             }
         }
@@ -224,6 +241,7 @@ public class PlayerUI {
         if (diamondTexture != null)
             diamondTexture.dispose();
         if (keyIconTexture != null) keyIconTexture.dispose();
+        if (potionTexture != null) potionTexture.dispose();
     }
 
     public void setViewport(Viewport viewport) {
@@ -237,6 +255,14 @@ public class PlayerUI {
         try {
             keyIconTexture = new Texture(Gdx.files.internal("environment/key_icon.png"));
             keyIconRegion = new TextureRegion(keyIconTexture, 0, 0, keyIconTexture.getWidth(), keyIconTexture.getHeight());
+        } catch (Exception ignored) {}
+    }
+    
+    private void ensurePotionIcon() {
+        if (potionTexture != null) return;
+        try {
+            potionTexture = new Texture(Gdx.files.internal("player/ui/HealthPotion.png"));
+            potionRegion = new TextureRegion(potionTexture, 0, 0, potionTexture.getWidth(), potionTexture.getHeight());
         } catch (Exception ignored) {}
     }
 }

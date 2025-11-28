@@ -20,12 +20,14 @@ import com.jjmc.chromashift.environment.interactable.Pickable;
 import com.jjmc.chromashift.environment.Solid;
 import com.jjmc.chromashift.ui.PlayerUI;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.jjmc.chromashift.player.sfx.PlayerSFX;
 
 /**
  * Cleaned Player implementation — single, consistent class.
  */
 public class Player {
     private SpriteAnimator anim;
+    private PlayerSFX sfx;
 
     // Input keys
     private final int keyLeft, keyRight, keyJump, keyAttack;
@@ -90,6 +92,11 @@ public class Player {
     private final int maxShield = 3;
     // Keys
     private int keyCount = 0;
+    
+    // Potions
+    private int potionCount = 0;
+    private static final int POTION_HEAL_AMOUNT = 30;
+    private static final int MAX_POTIONS = 9;
 
     // Enemy tracking for melee attacks
     private Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies = new Array<>();
@@ -147,6 +154,9 @@ public class Player {
         
         // Initialize attack hitbox
         this.attackHitbox = new AttackHitbox(this);
+        
+        // Initialize SFX handler
+        this.sfx = new PlayerSFX();
 
         // Initialize health system with shield logic
         this.health = new HealthSystem(200f) {
@@ -307,6 +317,10 @@ public class Player {
             updateWallSensor();
             // Play dash sound
             SoundManager.play("Dash");
+            // Spawn dash SFX
+            if (sfx != null) {
+                sfx.spawnDashSFX(this);
+            }
             return;
         }
 
@@ -359,6 +373,16 @@ public class Player {
         if (attackHitbox != null) {
             attackHitbox.update(delta);
             attackHitbox.checkEnemyCollisions(enemies);
+        }
+        
+        // Update SFX
+        if (sfx != null) {
+            sfx.update(delta);
+        }
+        
+        // Handle potion usage (H key)
+        if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+            usePotion();
         }
         
         anim.update(delta);
@@ -550,6 +574,10 @@ public class Player {
         if ("attack".equals(cur) && facingLeft)
             drawX = x - (width - baseWidth);
         anim.render(batch, drawX, y, width, height);
+        // Render SFX on top of player layer
+        if (sfx != null) {
+            sfx.render(batch);
+        }
         // Render persistent UI overlay after player
         if (playerUI != null) {
             playerUI.render(batch);
@@ -714,6 +742,8 @@ public class Player {
         anim.dispose();
         if (playerUI != null)
             playerUI.dispose();
+        if (sfx != null)
+            sfx.dispose();
     }
 
     // --- Health / Respawn API ---
@@ -798,7 +828,7 @@ public class Player {
 
     // Collectibles
     private int diamondCount = 0;
-
+    
     public int getDiamonds() {
         return diamondCount;
     }
@@ -809,6 +839,72 @@ public class Player {
 
     public void setDiamonds(int amount) {
         this.diamondCount = amount;
+    }
+    
+    // Potion API
+    public int getPotionCount() {
+        return potionCount;
+    }
+    
+    public int getMaxPotions() {
+        return MAX_POTIONS;
+    }
+    
+    public boolean canAddPotion() {
+        return potionCount < MAX_POTIONS;
+    }
+
+    public void addPotion(int amount) {
+        potionCount = Math.min(MAX_POTIONS, Math.max(0, potionCount + amount));
+    }
+
+    public void setPotionCount(int amount) {
+        potionCount = Math.min(MAX_POTIONS, Math.max(0, amount));
+    }
+    
+    /**
+     * Heal the player by the specified amount, capped at maxHealth.
+     */
+    public void heal(int amount) {
+        if (health != null && amount > 0) {
+            float currentHealth = health.getCurrentHealth();
+            float maxHealth = health.getMaxHealth();
+            float newHealth = Math.min(currentHealth + amount, maxHealth);
+            health.setHealth(newHealth);
+        }
+    }
+    
+    /**
+     * Use a potion to heal the player.
+     * Can only use potion if player has potions and is not at full health.
+     */
+    private void usePotion() {
+        if (potionCount <= 0) {
+            return; // No potions available
+        }
+        
+        if (health == null) {
+            return; // No health system
+        }
+        
+        float currentHealth = health.getCurrentHealth();
+        float maxHealth = health.getMaxHealth();
+        
+        if (currentHealth >= maxHealth) {
+            return; // Already at full health
+        }
+        
+        // Use potion
+        potionCount--;
+        heal(POTION_HEAL_AMOUNT);
+        
+        // Play healing sound
+        try {
+            SoundManager.play("PickUpItem");
+        } catch (Exception ignored) {
+        }
+        
+        Gdx.app.log("Player", "Used potion! Health: " + health.getCurrentHealth() + " / " + maxHealth + ". Potions left: " + potionCount);
     }
 
     public PlayerType getType() {

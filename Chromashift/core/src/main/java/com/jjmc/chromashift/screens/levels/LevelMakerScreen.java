@@ -66,7 +66,7 @@ public class LevelMakerScreen implements Screen {
 	private boolean levelSelected = false;
 
 	private enum ObjectType {
-		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, TARGET, KEY, LOCKED_DOOR, NONE
+		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, TARGET, KEY, LOCKED_DOOR, HEALTH_POTION, NONE
 	}
 
 	private ObjectType selectedType = ObjectType.NONE;
@@ -79,6 +79,7 @@ public class LevelMakerScreen implements Screen {
 	private Array<Solid> solids = new Array<>();
 	private Array<Interactable> interactableInstances = new Array<>();
 	private Array<com.jjmc.chromashift.environment.collectible.Collectible> collectibleInstances = new Array<>();
+	private Array<com.jjmc.chromashift.environment.interactable.Shop> shopInstances = new Array<>();
 	private BossInstance bossInstance;
 	private Spawn spawnPreview;
 
@@ -343,6 +344,7 @@ public class LevelMakerScreen implements Screen {
 		uiButtons.add(new UIButton(ObjectType.TARGET, "Target"));
 		uiButtons.add(new UIButton(ObjectType.KEY, "Key"));
 		uiButtons.add(new UIButton(ObjectType.LOCKED_DOOR, "LockDoor"));
+		uiButtons.add(new UIButton(ObjectType.HEALTH_POTION, "Potion"));
 		uiButtons.add(new UIButton(ObjectType.NONE, "Link"));
 		uiButtons.add(new UIButton(ObjectType.NONE, "Delete"));
 
@@ -540,6 +542,10 @@ public class LevelMakerScreen implements Screen {
 		for (com.jjmc.chromashift.environment.collectible.Collectible c : collectibleInstances) {
 			c.render(batch);
 		}
+		// Render shops (they are never culled in editor)
+		for (com.jjmc.chromashift.environment.interactable.Shop shop : shopInstances) {
+			shop.render(batch);
+		}
 		if (spawnPreview != null) {
 			// Editor: always show first frame (non-animated)
 			spawnPreview.renderFirstFrame(batch);
@@ -678,6 +684,12 @@ public class LevelMakerScreen implements Screen {
 			}
 			case DIAMOND: {
 				// Diamond is 32x32
+				previewW = 32f;
+				previewH = 32f;
+				break;
+			}
+			case HEALTH_POTION: {
+				// Health potion is 32x32
 				previewW = 32f;
 				previewH = 32f;
 				break;
@@ -2350,6 +2362,25 @@ public class LevelMakerScreen implements Screen {
 				}
 			}
 		}
+		// Health Potions (collectibles)
+		if (state.healthPotions != null) {
+			for (int i = state.healthPotions.size - 1; i >= 0; --i) {
+				LevelIO.LevelState.HealthPotionData hpd = state.healthPotions.get(i);
+				Rectangle hpb = new Rectangle(hpd.x, hpd.y, 32f, 32f);
+				if (hpb.overlaps(area)) {
+					state.healthPotions.removeIndex(i);
+					for (int k = collectibleInstances.size - 1; k >= 0; --k) {
+						com.jjmc.chromashift.environment.collectible.Collectible c = collectibleInstances.get(k);
+						Rectangle cb = new Rectangle(c.getX(), c.getY(), c.getWidth(), c.getHeight());
+						if (cb.overlaps(hpb)) {
+							collectibleInstances.removeIndex(k);
+							break;
+						}
+					}
+					deleted = true;
+				}
+			}
+		}
 		// Tentacle roots
 		if (state.tentacles != null) {
 			for (int i = state.tentacles.size - 1; i >= 0; --i) {
@@ -2989,6 +3020,17 @@ public class LevelMakerScreen implements Screen {
 				placed = true;
 				break;
 			}
+			case HEALTH_POTION: {
+				LevelIO.LevelState.HealthPotionData hpd = new LevelIO.LevelState.HealthPotionData();
+				hpd.x = gx;
+				hpd.y = gy;
+				state.healthPotions.add(hpd);
+				// Instantiate HealthPotion now for immediate preview & deletion consistency
+				try { collectibleInstances.add(new com.jjmc.chromashift.environment.collectible.HealthPotion(gx, gy)); } catch (Throwable ignored) {}
+				placements.add(new Placement(ObjectType.HEALTH_POTION, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
 			case SHOP: {
 				LevelIO.LevelState.ShopData sd = new LevelIO.LevelState.ShopData();
 				sd.x = gx;
@@ -3121,6 +3163,8 @@ public class LevelMakerScreen implements Screen {
 			this.laserRecords.clear();
 			// Rebuild mirrorRecords for linking
 			this.mirrorRecords.clear();
+			// Rebuild shopInstances for rendering
+			this.shopInstances.clear();
 			if (state != null && state.interactables != null) {
 				for (LevelIO.LevelState.InteractableData idd : state.interactables) {
 					if (idd != null && "door".equalsIgnoreCase(String.valueOf(idd.type))) {
@@ -3142,6 +3186,15 @@ public class LevelMakerScreen implements Screen {
 					}
 				}
 			}
+			// Instantiate shops for rendering
+			if (state != null && state.shops != null && state.shops.size > 0) {
+				for (LevelIO.LevelState.ShopData sd : state.shops) {
+					try {
+						com.jjmc.chromashift.environment.interactable.Shop shop = new com.jjmc.chromashift.environment.interactable.Shop(sd.x, sd.y, null, null);
+						this.shopInstances.add(shop);
+					} catch (Throwable ignored) {}
+				}
+			}
 		} catch (Exception ex) {
 			Gdx.app.error("LevelMaker", "Failed to refresh preview from state: " + ex.getMessage(), ex);
 		}
@@ -3159,6 +3212,7 @@ public class LevelMakerScreen implements Screen {
 		solids.clear();
 		interactableInstances.clear();
 		collectibleInstances.clear();
+		shopInstances.clear();
 		doorRecords.clear();
 		placements.clear();
 		bossInstance = null;
@@ -3202,6 +3256,10 @@ public class LevelMakerScreen implements Screen {
 			state.keys = new Array<>();
 		if (state.lockedDoors == null)
 			state.lockedDoors = new Array<>();
+		if (state.healthPotions == null)
+			state.healthPotions = new Array<>();
+		if (state.shops == null)
+			state.shops = new Array<>();
 
 		// Adopt loaded runtime objects for preview rendering
 		this.walls = loaded.walls;
@@ -3214,6 +3272,16 @@ public class LevelMakerScreen implements Screen {
 			spawnPreview = new Spawn(state.spawn.x, state.spawn.y);
 		} else {
 			spawnPreview = null;
+		}
+		
+		// Instantiate shops for rendering in editor (shops are not part of loaded.interactables)
+		if (loaded.shopDataList != null && loaded.shopDataList.size > 0) {
+			for (LevelIO.LevelState.ShopData sd : loaded.shopDataList) {
+				try {
+					com.jjmc.chromashift.environment.interactable.Shop shop = new com.jjmc.chromashift.environment.interactable.Shop(sd.x, sd.y, null, null);
+					shopInstances.add(shop);
+				} catch (Throwable ignored) {}
+			}
 		}
 
 		// Rebuild door lookup for editor linking
@@ -3719,6 +3787,17 @@ public class LevelMakerScreen implements Screen {
 					}
 				}
 				break;
+			case HEALTH_POTION:
+				if (state.healthPotions != null) {
+					for (int i = 0; i < state.healthPotions.size; ++i) {
+						LevelIO.LevelState.HealthPotionData hpd = state.healthPotions.get(i);
+						if (hpd.x == p.x && hpd.y == p.y) {
+							state.healthPotions.removeIndex(i);
+							break;
+						}
+					}
+				}
+				break;
 			case SHOP:
 				if (state.shops != null) {
 					for (int i = 0; i < state.shops.size; ++i) {
@@ -3727,6 +3806,14 @@ public class LevelMakerScreen implements Screen {
 							state.shops.removeIndex(i);
 							break;
 						}
+					}
+				}
+				// Also remove from shopInstances preview array
+				for (int i = shopInstances.size - 1; i >= 0; --i) {
+					com.jjmc.chromashift.environment.interactable.Shop shop = shopInstances.get(i);
+					if ((int) shop.getBounds().x == p.x && (int) shop.getBounds().y == p.y) {
+						shopInstances.removeIndex(i);
+						break;
 					}
 				}
 				break;

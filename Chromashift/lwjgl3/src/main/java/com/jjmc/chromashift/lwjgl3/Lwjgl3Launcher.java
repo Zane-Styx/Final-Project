@@ -23,10 +23,10 @@ public class Lwjgl3Launcher {
         //// screen tearing. This setting doesn't always work on Linux, so the line after is a safeguard.
         configuration.useVsync(true);
         //configuration.setIdleFPS(90);
-        //configuration.setFullscreenMode(Lwjgl3ApplicationConfiguration.getDisplayMode());
+        configuration.setFullscreenMode(Lwjgl3ApplicationConfiguration.getDisplayMode());
         //// Limits FPS to the refresh rate of the currently active monitor, plus 1 to try to match fractional
         //// refresh rates. The Vsync setting above should limit the actual FPS to match the monitor.
-        //configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate +1);
+        configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate +1);
         //// If you remove the above line and set Vsync to false, you can get unlimited FPS, which can also be
         //// useful for testing performance, but can also be very stressful to some hardware.
         //// You may also need to configure GPU drivers to fully disable Vsync; this can cause screen tearing.

@@ -7,7 +7,6 @@ import com.jjmc.chromashift.entity.Entity;
 import com.chromashift.helper.SpriteAnimator;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -206,6 +205,7 @@ public class Boss extends Entity {
 
         // Use raw delta time to reduce perceived stutter when frames spike.
         // Note: raw delta may be larger during big frame drops; use carefully.
+        @SuppressWarnings("deprecation")
         float frameDelta = Gdx.graphics.getRawDeltaTime();
 
         // Update bob timer and calculate current hover height

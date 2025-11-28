@@ -100,6 +100,29 @@ public class SpriteAnimator {
     }
 
     /**
+     * Update the horizontal flip state without resetting animation time.
+     * Useful for flipping an ongoing animation when an entity turns around.
+     */
+    public void setFlipX(boolean flip) {
+        this.flipX = flip;
+    }
+
+    /**
+     * Backwards-compatible overload accepting boxed Boolean. Some compiled
+     * code may call this signature; forward to the primary implementation.
+     */
+    public void setFlipX(Boolean flip) {
+        this.setFlipX(flip != null && flip);
+    }
+
+    /**
+     * Backwards-compatible no-arg variant; treat as setting flip to true.
+     */
+    public void setFlipX() {
+        this.setFlipX(true);
+    }
+
+    /**
      * Set the current animation to show a specific frame index immediately.
      * If no animation is playing, this is a no-op.
      */
@@ -130,11 +153,10 @@ public class SpriteAnimator {
                 batch.begin();
                 didBegin = true;
             }
+            // Draw respecting flipX without mutating the TextureRegion state.
             if (flipX) {
-                boolean old = frame.isFlipX();
-                frame.flip(!old, frame.isFlipY());
-                batch.draw(frame, x, y, width, height);
-                frame.flip(!old, frame.isFlipY());
+                // Draw flipped horizontally by drawing with negative width.
+                batch.draw(frame, x + width, y, -width, height);
             } else {
                 batch.draw(frame, x, y, width, height);
             }

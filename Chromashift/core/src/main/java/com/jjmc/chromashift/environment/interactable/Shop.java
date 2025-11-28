@@ -34,6 +34,9 @@ public class Shop implements Interactable {
     
     // Shop inventory - modifiable list of items
     private Array<ShopItem> inventory;
+    
+    // Potion stock system
+    private int potionStock = 5; // maximum potions the shop can sell
 
     /**
      * Represents an item that can be purchased in the shop
@@ -85,9 +88,18 @@ public class Shop implements Interactable {
         }));
         
         inventory.add(new ShopItem("Health Potion", 3, () -> {
-            if (player != null && player.getHealthSystem() != null) {
-                player.getHealthSystem().heal(50f);
-                Gdx.app.log("Shop", "Purchased Health Potion! Healed 50 HP");
+            if (player != null && potionStock > 0) {
+                if (player.canAddPotion()) {
+                    player.addPotion(1);
+                    potionStock--;
+                    Gdx.app.log("Shop", "Purchased Health Potion! Player now has " + player.getPotionCount() + " potions. Shop stock: " + potionStock);
+                } else {
+                    Gdx.app.log("Shop", "Cannot purchase potion: player inventory is full");
+                    try { com.chromashift.helper.SoundManager.play("Error"); } catch (Throwable ignored) {}
+                }
+            } else if (potionStock <= 0) {
+                Gdx.app.log("Shop", "Cannot purchase potion: shop stock depleted");
+                try { com.chromashift.helper.SoundManager.play("Error"); } catch (Throwable ignored) {}
             }
         }));
         
@@ -207,19 +219,34 @@ public class Shop implements Interactable {
     
     private void purchaseItem(ShopItem item, Dialog dialog, Label diamondLabel) {
         if (player == null) return;
+        
         // Shield cap enforcement before any deduction
         if ("Shield".equalsIgnoreCase(item.name) && player.getShield() >= player.getMaxShield()) {
-            // Feedback: log + optional error sound
             Gdx.app.log("Shop", "Shield purchase blocked: already at cap (" + player.getMaxShield() + ")");
             try { com.chromashift.helper.SoundManager.play("Error"); } catch (Throwable ignored) {}
-            // Optional: future UI flash hook (shield UI could animate)
             return;
         }
+        
+        // Potion stock enforcement before any deduction
+        if ("Health Potion".equalsIgnoreCase(item.name)) {
+            if (potionStock <= 0) {
+                Gdx.app.log("Shop", "Potion purchase blocked: shop stock depleted");
+                try { com.chromashift.helper.SoundManager.play("Error"); } catch (Throwable ignored) {}
+                return;
+            }
+            if (!player.canAddPotion()) {
+                Gdx.app.log("Shop", "Potion purchase blocked: player inventory full (" + player.getMaxPotions() + " max)");
+                try { com.chromashift.helper.SoundManager.play("Error"); } catch (Throwable ignored) {}
+                return;
+            }
+        }
+        
         if (player.getDiamonds() < item.cost) {
             Gdx.app.log("Shop", "Not enough diamonds! Need " + item.cost + ", have " + player.getDiamonds());
             try { com.chromashift.helper.SoundManager.play("Error"); } catch (Throwable ignored) {}
             return;
         }
+        
         // Deduct and execute purchase
         player.addDiamonds(-item.cost);
         item.onPurchase.run();
@@ -263,5 +290,13 @@ public class Shop implements Interactable {
         if (shopTexture != null) {
             shopTexture.dispose();
         }
+    }
+    
+    public int getPotionStock() {
+        return potionStock;
+    }
+    
+    public void setPotionStock(int amount) {
+        this.potionStock = Math.max(0, amount);
     }
 }

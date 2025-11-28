@@ -29,6 +29,7 @@ public class LevelIO {
         public Array<TentacleData> tentacles;
             public Array<KeyData> keys;
             public Array<LockedDoorData> lockedDoors;
+            public Array<HealthPotionData> healthPotions;
         public BossData boss;
 
         public static class Meta {
@@ -131,6 +132,10 @@ public class LevelIO {
         public static class LockedDoorData {
             public float x, y;
             public String orientation = "VERTICAL";
+        }
+        
+        public static class HealthPotionData {
+            public float x, y;
         }
 
         public static class BossData {
@@ -244,6 +249,7 @@ public class LevelIO {
         s.tentacles = new Array<>();
         s.keys = new Array<>();
         s.lockedDoors = new Array<>();
+        s.healthPotions = new Array<>();
         return s;
     }
 
@@ -405,6 +411,7 @@ public class LevelIO {
         // New collectible/interactable arrays
         if (s.keys == null) s.keys = new Array<>();
         if (s.lockedDoors == null) s.lockedDoors = new Array<>();
+        if (s.healthPotions == null) s.healthPotions = new Array<>();
     }
 
     /**

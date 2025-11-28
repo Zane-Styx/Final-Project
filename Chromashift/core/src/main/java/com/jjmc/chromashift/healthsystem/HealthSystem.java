@@ -45,6 +45,18 @@ public class HealthSystem {
 		notifyHealthChanged(0f);
 	}
 
+	public void setHealth(float health) {
+		float clamped = Math.max(0f, Math.min(maxHealth, health));
+		if (clamped != currentHealth) {
+			float delta = clamped - currentHealth;
+			currentHealth = clamped;
+			notifyHealthChanged(delta);
+			if (isDead()) {
+				notifyDeath(null);
+			}
+		}
+	}
+
 	public void setInvulnerable(boolean inv) { this.invulnerable = inv; }
 	public boolean isInvulnerable() { return invulnerable; }
 

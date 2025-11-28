@@ -476,6 +476,15 @@ public final class LevelLoader {
             }
         }
 
+        // Health Potions (collectibles)
+        if (state.healthPotions != null) {
+            for (LevelIO.LevelState.HealthPotionData hpd : state.healthPotions) {
+                com.jjmc.chromashift.environment.collectible.HealthPotion potion = 
+                        new com.jjmc.chromashift.environment.collectible.HealthPotion(hpd.x, hpd.y);
+                out.collectibles.add(potion);
+            }
+        }
+
         // Locked Doors (interactables)
         if (state.lockedDoors != null) {
             for (LevelIO.LevelState.LockedDoorData ld : state.lockedDoors) {
