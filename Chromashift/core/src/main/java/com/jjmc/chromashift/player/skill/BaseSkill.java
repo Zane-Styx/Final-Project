@@ -108,6 +108,31 @@ public abstract class BaseSkill {
         resetJump = false;
     }
 
+    // --- Accessors for serialization / external state restore ---
+    public float getCurrentCooldown() {
+        return currentCooldown;
+    }
+
+    public void setCurrentCooldown(float v) {
+        this.currentCooldown = v;
+    }
+
+    public float getAnimationTimer() {
+        return animationTimer;
+    }
+
+    public void setAnimationTimer(float v) {
+        this.animationTimer = v;
+    }
+
+    public void setActiveState(boolean active) {
+        this.isActive = active;
+    }
+
+    public boolean getActiveState() {
+        return this.isActive;
+    }
+
     public boolean isRequestingDisableGravity() {
         return requestDisableGravity && isActive;
     }

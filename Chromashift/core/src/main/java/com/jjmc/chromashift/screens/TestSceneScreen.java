@@ -63,6 +63,10 @@ public class TestSceneScreen implements Screen {
     private Wall baseRight;
 
     private float groundY = -64f;
+
+    // Current level path for save/load and visited levels tracking
+    private String currentLevelPath = "levels/level1.json";
+    private Array<String> visitedLevels = new Array<>();
     // Camera zoom settings
     private float desiredZoom = 0.4f; // <1 = zoom in a bit
     private float zoomLerpSpeed = 2.5f; // how fast camera zooms to target
@@ -93,6 +97,10 @@ public class TestSceneScreen implements Screen {
 
         // Load everything via the unified LevelLoader
         String levelPath = "levels/level1.json";
+        // Track current level and mark visited for save/load
+        this.currentLevelPath = levelPath;
+        this.visitedLevels.clear();
+        this.visitedLevels.add(levelPath);
         // Prefer workspace copy when available so editor changes (door speeds, links)
         // are reflected immediately during playtesting.
         com.jjmc.chromashift.screens.levels.LevelLoader.Result loaded;
@@ -197,6 +205,26 @@ public class TestSceneScreen implements Screen {
                 t.setPlayerCaptured(false);
             }
         }
+
+        // Quick save/load: F11 = save, F12 = load
+        try {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.F11)) {
+                com.jjmc.chromashift.player.PlayerIO.PlayerState state = com.jjmc.chromashift.player.PlayerIO.capture(player, currentLevelPath, visitedLevels);
+                boolean ok = com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", state);
+                Gdx.app.log("TestSceneScreen", "Player save " + (ok ? "saved" : "failed"));
+            }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.F12)) {
+                com.jjmc.chromashift.player.PlayerIO.PlayerState loaded = com.jjmc.chromashift.player.PlayerIO.load("player_save.json");
+                if (loaded != null) {
+                    com.jjmc.chromashift.player.PlayerIO.applyToPlayer(player, loaded);
+                    if (loaded.currentLevel != null) currentLevelPath = loaded.currentLevel;
+                    if (loaded.visitedLevels != null) visitedLevels = loaded.visitedLevels;
+                    Gdx.app.log("TestSceneScreen", "Player loaded from save");
+                } else {
+                    Gdx.app.log("TestSceneScreen", "No player save found to load");
+                }
+            }
+        } catch (Exception ignored) {}
 
         // First update non-button interactables
         Array<Rectangle> objectBounds = new Array<>();

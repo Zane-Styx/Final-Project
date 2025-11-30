@@ -889,6 +889,17 @@ public class Player {
     public void setMoving(boolean moving) {
         this.moving = moving;
     }
+
+    // Additional setters used by PlayerIO to restore state
+    public void setDashTimer(float t) { this.dashTimer = t; }
+    public void setDashCooldownTimer(float t) { this.dashCooldownTimer = t; }
+    public void setDashUsed(boolean used) { this.dashUsed = used; }
+    public void setAirAttacking(boolean v) { this.airAttacking = v; }
+    public void setAirAttackTimer(float t) { this.airAttackTimer = t; }
+    public void setAttackCooldownTimer(float t) { this.attackCooldownTimer = t; }
+    public void setRespawnInvulRemaining(float t) { this.respawnInvulRemaining = t; }
+    public void setRespawnStunRemaining(float t) { this.respawnStunRemaining = t; }
+    public void setKeyCount(int c) { this.keyCount = c; }
     
     // ============ SKILL SYSTEM ============
     
@@ -945,6 +956,26 @@ public class Player {
             pointerAnimator = null;
         }
     }
+
+    // Expose equipped skill access for save/load routines
+    public com.jjmc.chromashift.player.skill.BaseSkill getSkillInSlot(char slot) {
+        if (slot == 'Q') return skillSlotQ;
+        if (slot == 'E') return skillSlotE;
+        return null;
+    }
+
+    /**
+     * Set the active skill reference directly (used when restoring save state).
+     */
+    public void setActiveSkill(com.jjmc.chromashift.player.skill.BaseSkill s) {
+        this.activeSkill = s;
+    }
+
+    // Respawn getters used by PlayerIO
+    public float getRespawnX() { return respawnX; }
+    public float getRespawnY() { return respawnY; }
+    public float getRespawnInvulRemaining() { return respawnInvulRemaining; }
+    public float getRespawnStunRemaining() { return respawnStunRemaining; }
 
     // --- Health / Respawn API ---
     public HealthSystem getHealthSystem() {
