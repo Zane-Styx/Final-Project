@@ -10,11 +10,9 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.jjmc.chromashift.Assets;
 import com.jjmc.chromashift.ChromashiftGame;
-import com.jjmc.chromashift.screens.levels.LevelMakerScreen;
 
 /**
  * Animated Loading Screen
@@ -337,6 +335,7 @@ public class LoadingScreen implements Screen {
 
 	private void drawLoadingBar() {
 		float w = Gdx.graphics.getWidth();
+		@SuppressWarnings("unused")
 		float h = Gdx.graphics.getHeight();
 		float barW = Math.max(160f, w * barWidthRatio);
 		float barX = (w - barW) * 0.5f;

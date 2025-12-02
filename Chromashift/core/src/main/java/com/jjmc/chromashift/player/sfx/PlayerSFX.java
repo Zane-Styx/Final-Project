@@ -78,7 +78,11 @@ public class PlayerSFX {
             this.height = height;
             this.pos.set(spawnX, spawnY);
             // ensure animator respects initial flip
-            animator.setFlipX(initialFlip);
+            try {    
+                animator.setFlipX(initialFlip);
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
         }
 
         public boolean isFinished() {
@@ -188,7 +192,10 @@ public class PlayerSFX {
                 // Update flip without restarting animation
                 if (s.flipX != facingLeft) {
                     s.flipX = facingLeft;
-                    s.animator.setFlipX(facingLeft);
+                    try {
+                        s.animator.setFlipX(facingLeft);
+                    } catch (Exception e) {
+                    }
                 }
             }
 

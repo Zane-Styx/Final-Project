@@ -5,8 +5,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.jjmc.chromashift.player.Player;
 
 /**
- * Abstract base class for all player skills.
- * Each skill handles its own animation, cooldown, and execution logic.
+ * Base for player skills. Handles cooldown and timing.
  */
 public abstract class BaseSkill {
     protected Player player;
@@ -17,14 +16,14 @@ public abstract class BaseSkill {
     protected float animationTimer = 0f;
     protected float totalAnimationTime = 0f;
     
-    // Flags that skills can set to request player state changes
+    // Skill can ask for these while active
     protected boolean requestInvulnerability = false;
     protected boolean requestInvisibility = false;
     protected boolean resetDash = false;
     protected boolean resetJump = false;
-    // Request to lock player movement while skill animation is active
+    // Lock player movement during the skill
     protected boolean requestMovementLock = false;
-    // Request to disable gravity/vertical movement while skill animation is active
+    // Kill gravity while the skill runs
     protected boolean requestDisableGravity = false;
     protected float movementOverrideX = 0f;
     protected float movementOverrideY = 0f;
@@ -37,14 +36,12 @@ public abstract class BaseSkill {
     }
     
     /**
-     * Activate the skill. Called when player presses the skill key.
-     * Override to implement skill logic.
+     * Called on cast.
      */
     public abstract void activate();
     
     /**
-     * Update the skill each frame.
-     * Handles animation, cooldown, and active skill updates.
+     * Per-frame update. Handles cooldown and active state.
      */
     public void update(float delta) {
         // Update cooldown
@@ -57,7 +54,7 @@ public abstract class BaseSkill {
             animationTimer += delta;
             updateActive(delta);
             
-            // Check if animation finished
+            // End when the timer is up
             if (animationTimer >= totalAnimationTime) {
                 deactivate();
             }
@@ -65,31 +62,31 @@ public abstract class BaseSkill {
     }
     
     /**
-     * Update logic while skill is active. Override in subclasses.
+     * Active tick for the skill.
      */
     protected abstract void updateActive(float delta);
     
     /**
-     * Render the skill. Called by player.render().
+     * Draw any skill visuals.
      */
     public abstract void render(SpriteBatch batch);
     
     /**
-     * Optional debug rendering.
+     * Optional debug draw.
      */
     public void debugDraw(ShapeRenderer shape) {
         // Override if needed
     }
     
     /**
-     * Deactivate the skill and apply cooldown.
+     * Stop the skill and start cooldown.
      */
     public void deactivate() {
         isActive = false;
         animationTimer = 0f;
         currentCooldown = cooldownTime;
         
-        // Apply any pending resets
+        // Apply any queued resets
         if (resetDash) {
             player.resetDash();
         }
@@ -97,7 +94,7 @@ public abstract class BaseSkill {
             player.setCanJump(true);
         }
         
-        // Clear transient requests
+        // Clear one-shot flags
         requestInvulnerability = false;
         requestInvisibility = false;
         requestMovementLock = false;
@@ -108,7 +105,7 @@ public abstract class BaseSkill {
         resetJump = false;
     }
 
-    // --- Accessors for serialization / external state restore ---
+    // Accessors for save/restore
     public float getCurrentCooldown() {
         return currentCooldown;
     }
@@ -138,14 +135,14 @@ public abstract class BaseSkill {
     }
     
     /**
-     * Check if the skill can be cast (not on cooldown).
+     * Can we cast right now?
      */
     public boolean canCast() {
         return currentCooldown <= 0 && !isActive;
     }
     
     /**
-     * Get the current cooldown progress (0 to 1).
+     * Cooldown progress (0..1).
      */
     public float getCooldownProgress() {
         if (cooldownTime <= 0) return 1f;
@@ -185,6 +182,6 @@ public abstract class BaseSkill {
     }
     
     public void dispose() {
-        // Override if resources need cleanup
+        // Override if we allocate stuff
     }
 }

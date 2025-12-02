@@ -46,18 +46,56 @@ public final class LevelLoader {
         public final Map<String, Mirror> mirrorMap = new HashMap<>();
     }
 
-    /** Load using packaged/internal-first assets. */
+    public enum LoadMode {
+        ORIGINAL,           // Always load original level JSON, ignore saves
+        SAVED_IF_EXISTS,    // Load saved level if exists, otherwise original
+        FORCE_SAVED         // Only load saved level (fail if not found)
+    }
+
+    /** Load using packaged/internal-first assets with default mode (apply saves if exist). */
     public static Result load(String path) {
+        return load(path, LoadMode.SAVED_IF_EXISTS);
+    }
+    
+    /** Load using packaged/internal-first assets with specified mode. */
+    public static Result load(String path, LoadMode mode) {
         LevelIO.LevelState state = LevelIO.load(path);
-        return build(state);
+        Result result = build(state);
+        // Apply saved level overrides based on mode
+        if (mode == LoadMode.SAVED_IF_EXISTS) {
+            GameLevelSave.applyOverridesIfPresent(path, result);
+        } else if (mode == LoadMode.FORCE_SAVED) {
+            if (!GameLevelSave.applyOverridesIfPresent(path, result)) {
+                throw new RuntimeException("Saved level not found: " + path);
+            }
+        }
+        // ORIGINAL mode: skip applying saves
+        return result;
     }
 
     /**
      * Load preferring workspace assets and copying into build output (for editors).
      */
     public static Result loadFromWorkspace(String path) {
+        return loadFromWorkspace(path, LoadMode.SAVED_IF_EXISTS);
+    }
+    
+    /**
+     * Load preferring workspace assets with specified mode.
+     */
+    public static Result loadFromWorkspace(String path, LoadMode mode) {
         LevelIO.LevelState state = LevelIO.loadFromWorkspaceThenCopyToBuild(path);
-        return build(state);
+        Result result = build(state);
+        // Apply saved level overrides based on mode
+        if (mode == LoadMode.SAVED_IF_EXISTS) {
+            GameLevelSave.applyOverridesIfPresent(path, result);
+        } else if (mode == LoadMode.FORCE_SAVED) {
+            if (!GameLevelSave.applyOverridesIfPresent(path, result)) {
+                throw new RuntimeException("Saved level not found: " + path);
+            }
+        }
+        // ORIGINAL mode: skip applying saves
+        return result;
     }
 
     /** Build runtime objects from a LevelState. */

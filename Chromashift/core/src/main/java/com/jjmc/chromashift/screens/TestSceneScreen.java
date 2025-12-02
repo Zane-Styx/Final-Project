@@ -41,7 +41,7 @@ public class TestSceneScreen implements Screen {
     private SpriteBatch batch;
     private ShapeRenderer shape;
     private BitmapFont font;
-    private Player player;
+    public Player player;
     private BossInstance boss;
     private Initialize.Context ctx;
     private Stage uiStage;
@@ -66,9 +66,11 @@ public class TestSceneScreen implements Screen {
 
     // Current level path for save/load and visited levels tracking
     private String currentLevelPath = "levels/level1.json";
-    private Array<String> visitedLevels = new Array<>();
+    public Array<String> visitedLevels = new Array<>();
+    private com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode loadMode =
+        com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL;
     // Camera zoom settings
-    private float desiredZoom = 0.4f; // <1 = zoom in a bit
+    private float desiredZoom = 1f;// <1 = zoom in a bit
     private float zoomLerpSpeed = 2.5f; // how fast camera zooms to target
 
     // Tentacle System
@@ -76,6 +78,22 @@ public class TestSceneScreen implements Screen {
     private Array<com.jjmc.chromashift.environment.enemy.TentacleCapture> tentacleCaptures;
     // Cache enemies list so we can perform a post-tentacle-update collision pass.
     private Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies;
+
+    // Constructor with default level (NEW GAME - always load original)
+    public TestSceneScreen() {
+        this("levels/level1.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+    }
+
+    // Constructor with custom level path (NEW GAME - always load original)
+    public TestSceneScreen(String levelPath) {
+        this(levelPath, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+    }
+
+    // Constructor with custom level path and load mode (for CONTINUE)
+    public TestSceneScreen(String levelPath, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode mode) {
+        this.currentLevelPath = levelPath;
+        this.loadMode = mode;
+    }
 
     @Override
     public void show() {
@@ -96,19 +114,20 @@ public class TestSceneScreen implements Screen {
         font = ctx.font;
 
         // Load everything via the unified LevelLoader
-        String levelPath = "levels/level1.json";
-        // Track current level and mark visited for save/load
-        this.currentLevelPath = levelPath;
+        // Track current level and mark visited for save/load (use currentLevelPath from constructor)
         this.visitedLevels.clear();
-        this.visitedLevels.add(levelPath);
+        this.visitedLevels.add(currentLevelPath);
         // Prefer workspace copy when available so editor changes (door speeds, links)
         // are reflected immediately during playtesting.
         com.jjmc.chromashift.screens.levels.LevelLoader.Result loaded;
         try {
-            loaded = com.jjmc.chromashift.screens.levels.LevelLoader.loadFromWorkspace(levelPath);
+            loaded = com.jjmc.chromashift.screens.levels.LevelLoader.loadFromWorkspace(currentLevelPath, loadMode);
         } catch (Exception ex) {
-            loaded = com.jjmc.chromashift.screens.levels.LevelLoader.load(levelPath);
+            loaded = com.jjmc.chromashift.screens.levels.LevelLoader.load(currentLevelPath, loadMode);
         }
+
+        // Log load mode for debugging
+        Gdx.app.log("TestSceneScreen", "Loaded level " + currentLevelPath + " with mode: " + loadMode);
 
         // Adopt loaded collections so updates/render iterate the same instances
         this.walls = loaded.walls;
@@ -128,7 +147,7 @@ public class TestSceneScreen implements Screen {
         // Boss (only for BossRoom level)
         if (loaded.boss != null) {
             this.boss = loaded.boss;
-        } else if (levelPath.contains("bossroom")) {
+        } else if (currentLevelPath.contains("bossroom")) {
             this.boss = new BossInstance();
             // place default boss above the first wall if available
             Wall base = (walls.size > 0) ? walls.first() : new Wall(0, groundY, 10, 1);
@@ -146,8 +165,8 @@ public class TestSceneScreen implements Screen {
         playerSpawnY = player.getY();
 
         // Initialize player skills
-        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.DashSkill(player), 'Q');
-        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.JumpSkill(player), 'E');
+        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.ShurikenSkill(player), 'Q');
+        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.SplitSkill(player), 'E');
 
         // Visible spawn marker (static frame by default)
         spawnMarker = new Spawn(playerSpawnX, playerSpawnY);
@@ -209,9 +228,20 @@ public class TestSceneScreen implements Screen {
         // Quick save/load: F11 = save, F12 = load
         try {
             if (Gdx.input.isKeyJustPressed(Input.Keys.F11)) {
+                // Save player state
                 com.jjmc.chromashift.player.PlayerIO.PlayerState state = com.jjmc.chromashift.player.PlayerIO.capture(player, currentLevelPath, visitedLevels);
                 boolean ok = com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", state);
                 Gdx.app.log("TestSceneScreen", "Player save " + (ok ? "saved" : "failed"));
+
+                // Save current level state with all GameObjects
+                com.jjmc.chromashift.screens.levels.LevelLoader.Result result = new com.jjmc.chromashift.screens.levels.LevelLoader.Result();
+                result.walls.addAll(walls);
+                result.interactables.addAll(interactables);
+                result.collectibles.addAll(collectibles);
+                result.tentacles.addAll(tentacles);
+                result.boss = boss;
+                boolean levelOk = com.jjmc.chromashift.screens.levels.GameLevelSave.saveLevelOverrides(currentLevelPath, result);
+                Gdx.app.log("TestSceneScreen", "Level state " + (levelOk ? "saved" : "failed"));
             }
             if (Gdx.input.isKeyJustPressed(Input.Keys.F12)) {
                 com.jjmc.chromashift.player.PlayerIO.PlayerState loaded = com.jjmc.chromashift.player.PlayerIO.load("player_save.json");

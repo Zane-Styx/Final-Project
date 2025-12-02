@@ -96,6 +96,7 @@ public class TentacleCapture {
             player.setCapturedByTentacle(false);
             nowCaptured = false;
             captureDamageTimer = 0f; // reset damage timer
+            // Don't trigger death here - health system handles it
         }
 
         wasCapturedPrevFrame = nowCaptured;

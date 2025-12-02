@@ -7,58 +7,55 @@ import com.jjmc.chromashift.helper.PerformanceProfiler;
 import com.jjmc.chromashift.helper.VisibilityCuller;
 
 /**
- * A smooth, flexible 2D tentacle driven by spring physics.
- * The root is anchored; segments follow spring forces + tip attraction to mouse
- * cursor.
+ * Flexible spring-driven tentacle; tip follows mouse.
  */
 public class Tentacle implements Enemy {
-    // ===== Enemy interface implementation (capture vs total health) =====
-    private int maxTentacleHealth = 6;          // Total health (resets only on respawn/rebuild)
-    private int currentTentacleHealth = 6;      // Remaining health
-    private int captureHitCounter = 0;          // Hits during current capture (release after 3)
-    private boolean dead = false;               // True once health depleted
-    private boolean staticMode = false;         // LevelMaker static rendering (no physics/capture)
-    private com.badlogic.gdx.utils.Array<com.jjmc.chromashift.environment.collectible.Collectible> dropTarget; // where to spawn diamonds
+    // Hit-based system
+    private int maxHits = 6;                    // hits to kill
+    private int hitPointsRemaining = 6;         // remaining
+    private int captureHitCounter = 0;          // hits during capture (release after 3)
+    private boolean dead = false;               // dead?
+    private boolean staticMode = false;         // static render (no physics)
+    private com.badlogic.gdx.utils.Array<com.jjmc.chromashift.environment.collectible.Collectible> dropTarget; // diamond spawn
     private final Rectangle bounds = new Rectangle();
-    // ===== Segment configuration =====
+    // Segment config
     private final int segments;
     private final float segmentLength = 12f;
 
-    // ===== State arrays (allocate once) =====
-    private final Vector2 anchor; // fixed root position
-    private final Vector2[] pos; // current segment positions
-    private final Vector2[] vel; // current segment velocities
-    private final float[] thickness; // visual thickness: thick at base → thin at tip
-    private final float[] suctionScale; // oscillating suction cup size per segment
+    // State arrays (allocated once)
+    private final Vector2 anchor; // root
+    private final Vector2[] pos; // segment positions
+    private final Vector2[] vel; // velocities
+    private final float[] thickness; // visual: thick → thin
+    private final float[] suctionScale; // suction cup size
 
-    // ===== Physics parameters (tweak these!) =====
-    private float springStiffness = 10f; // Hooke's law spring constant (higher = stiffer)
-    private float springDamping = 8f; // velocity damping between segments (higher = less bouncy)
-    private float globalDamping = 0.992f; // per-frame energy bleed (< 1.0 to slowly dissipate motion)
-    private float targetAttract = 100f; // force magnitude pulling tip toward mouse (higher so it visibly moves)
-    private float maxVelocity = 800f; // safety clamp to prevent physics explosion
+    // Physics params
+    private float springStiffness = 10f; // spring constant (higher = stiffer)
+    private float springDamping = 8f; // damping (higher = less bouncy)
+    private float globalDamping = 0.992f; // energy bleed (<1.0 dissipates)
+    private float targetAttract = 100f; // tip->mouse force
+    private float maxVelocity = 800f; // velocity clamp
 
-    // ===== Animation timing =====
+    // Animation timing
     private float time = 0f;
-    private float suctionWaveSpeed = 3f; // frequency of suction cup oscillation
-    private float suctionWaveOffset = 0.35f; // phase shift per segment (creates traveling wave)
-    // Idle lateral wave parameters (adds motion even if cursor still)
-    // Base amplitude applies near root, scaled down toward tip by waveTipFactor.
-    private float waveBaseAmplitude = 200f; // amplitude at root
-    private float waveTipFactor = 3f; // relative amplitude at tip (0 = none, 1 = same as base)
-    private float idleWaveFrequency = 1.4f; // cycles per second
-    private float idleWavePropagation = 0.25f; // phase advance per segment
-    // Tip follow smoothing (lerp factor per frame)
-    private float tipFollowLerp = 0.18f; // increase for snappier following
-    // Mouse attraction priority (wave first, mouse blended after constraints)
-    private float mouseInfluence = 0.3f; // 0 = ignore mouse, 1 = full follow
-    private float mouseDistanceThreshold = 140f; // ramp-in distance for influence
-    // Life-like motion parameters
-    private float lifeTwitchAmplitude = 8f; // small twitch magnitude
-    private float lifeTwitchFrequency = 2.2f; // twitch speed
-    private float stiffnessModAmplitude = 0.12f; // stiffness modulation depth (fraction)
-    private float stiffnessModFrequency = 0.5f; // stiffness modulation speed
-    private float neighborVelocityBlend = 0.08f; // blend velocities with neighbors for smoothness
+    private float suctionWaveSpeed = 3f; // suction oscillation
+    private float suctionWaveOffset = 0.35f; // phase per segment (wave)
+    // Idle wave (motion when cursor still)
+    private float waveBaseAmplitude = 200f; // root amplitude
+    private float waveTipFactor = 3f; // tip amplitude (0 = none, 1 = same)
+    private float idleWaveFrequency = 1.4f; // Hz
+    private float idleWavePropagation = 0.25f; // phase advance
+    // Tip smoothing (lerp per frame)
+    private float tipFollowLerp = 0.18f; // snappier = higher
+    // Mouse blend after constraints
+    private float mouseInfluence = 0.3f; // 0 = ignore, 1 = full
+    private float mouseDistanceThreshold = 140f; // ramp distance
+    // Life-like motion
+    private float lifeTwitchAmplitude = 8f; // twitch size
+    private float lifeTwitchFrequency = 2.2f; // twitch Hz
+    private float stiffnessModAmplitude = 0.12f; // stiffness mod depth
+    private float stiffnessModFrequency = 0.5f; // stiffness mod Hz
+    private float neighborVelocityBlend = 0.08f; // neighbor blend
     private final Vector2 prevMouse = new Vector2();
     private boolean sleeping = false; // sleep when far offscreen
 
@@ -69,19 +66,16 @@ public class Tentacle implements Enemy {
     private final Vector2 tempTarget = new Vector2();
 
     /**
-     * Create a new Tentacle anchored at (x, y) with default segment count (30).
+     * Tentacle at (x, y) with default segments (30).
      */
     public Tentacle(float x, float y) {
         this(x, y, 30);
     }
 
     /**
-     * Create a new Tentacle anchored at (x, y) with specified segment count.
-     * @param x The x coordinate of the anchor point
-     * @param y The y coordinate of the anchor point
-     * @param segmentCount The number of segments (10-50 recommended)
+     * Tentacle at (x, y) with custom segment count (10-50).
      */
-    // LUT for fast sin
+    // Fast sin LUT
     private static final int SIN_LUT_SIZE = 2048;
     private static final float TWO_PI = (float) (Math.PI * 2.0);
     private static final float INV_TWO_PI = 1f / TWO_PI;
@@ -108,41 +102,40 @@ public class Tentacle implements Enemy {
         thickness = new float[segments];
         suctionScale = new float[segments];
 
-        // Initialize all segments hanging downward
+        // Init segments hanging down
         segmentHitboxes = new com.badlogic.gdx.math.Circle[segments];
         for (int i = 0; i < segments; i++) {
             pos[i] = new Vector2(anchor.x, anchor.y - i * segmentLength);
             vel[i] = new Vector2();
 
-            // Thickness: thick at base (i=0) → thin at tip (i=segments-1)
+            // Thick at base → thin at tip
             float t = 1f - (i / (float) segments);
             thickness[i] = 6f + t * 16f;
 
             suctionScale[i] = 1f; // default scale
             
-            // Create hitbox for each segment
+            // Segment hitbox
             segmentHitboxes[i] = new com.badlogic.gdx.math.Circle(pos[i].x, pos[i].y, thickness[i] / 2f);
         }
     }
 
     /**
-     * Update physics: spring forces, tip attraction, velocity integration,
-     * constraint pass.
+     * Update: spring forces, tip attraction, velocity integration.
      */
-    // ===== Capture State =====
+    // Capture state
     private boolean isPlayerCaptured = false;
-    private float curlRadius = 60f; // Radius of the curl trap
-    private boolean hasCapturedThisCurl = false; // Prevent re-capture in same curl
-    private boolean wasCurledLastFrame = false; // Track curl state changes
+    private float curlRadius = 60f; // curl trap radius
+    private boolean hasCapturedThisCurl = false; // no re-capture
+    private boolean wasCurledLastFrame = false; // curl tracking
     
-    // ===== Segment Hitboxes =====
-    private final com.badlogic.gdx.math.Circle[] segmentHitboxes; // Per-segment collision circles
+    // Segment hitboxes
+    private final com.badlogic.gdx.math.Circle[] segmentHitboxes; // per-segment
     
-    // ===== Curl Detection State =====
+    // Curl detection
     private final Vector2 curlCenter = new Vector2();
     private boolean isCurledCached = false;
     private boolean hasFullCurlCached = false;
-    private float curlDetectionThreshold = 0.6f; // How "closed" the loop needs to be (0-1)
+    private float curlDetectionThreshold = 0.6f; // loop closed (0-1)
 
     /**
      * Update physics: spring forces, tip attraction, velocity integration,
@@ -513,7 +506,7 @@ public class Tentacle implements Enemy {
 
     /** Respawn/reset full health (editor rebuild or game respawn). */
     public void respawn() {
-        currentTentacleHealth = maxTentacleHealth;
+        hitPointsRemaining = maxHits;
         dead = false;
         isPlayerCaptured = false;
         captureHitCounter = 0;
@@ -581,28 +574,54 @@ public class Tentacle implements Enemy {
 
     @Override
     public void takeDamage(int damage) {
+        // Compatibility wrapper: treat any damage as 1 hit
+        applyHit(1);
+    }
+    
+    /**
+     * Apply hit-based damage. Ignores damage values - only counts hits.
+     * Regular attacks = 1 hit, Skill attacks = 2-3 hits.
+     * Tentacle always requires exactly 6 regular hits to die.
+     * @param hitValue Number of hits to apply (1 for regular, 2-3 for skills)
+     */
+    public void applyHit(int hitValue) {
         if (dead) return;
-        currentTentacleHealth -= damage;
-        if (currentTentacleHealth < 0) currentTentacleHealth = 0;
+        if (hitValue <= 0) return;
+        
+        hitPointsRemaining -= hitValue;
+        if (hitPointsRemaining < 0) hitPointsRemaining = 0;
+        
         if (isPlayerCaptured) {
-            captureHitCounter += damage; // Per-capture release counter
+            captureHitCounter += hitValue; // Per-capture release counter
             if (captureHitCounter >= 3) {
                 releasePlayer();
             }
         }
-        if (currentTentacleHealth <= 0) {
+        
+        if (hitPointsRemaining <= 0) {
             die();
         }
     }
     
     /**
      * Apply damage to a specific segment of the tentacle.
-     * @param damage Amount of damage to apply
+     * Note: Damage value is ignored - converted to 1 hit for hit-based system.
+     * @param damage Ignored - treated as 1 hit
      * @param segmentIndex Index of the segment that was hit
      */
     public void applyDamage(int damage, int segmentIndex) {
         if (segmentIndex < 0 || segmentIndex >= segments || dead) return;
-        takeDamage(damage);
+        applyHit(1); // Regular attacks always count as 1 hit
+    }
+    
+    /**
+     * Apply hit-based damage to a specific segment (for skills).
+     * @param hitValue Number of hits (1 for regular, 2-3 for skills)
+     * @param segmentIndex Index of the segment that was hit
+     */
+    public void applyHitToSegment(int hitValue, int segmentIndex) {
+        if (segmentIndex < 0 || segmentIndex >= segments || dead) return;
+        applyHit(hitValue);
     }
     
     /**
@@ -621,7 +640,7 @@ public class Tentacle implements Enemy {
     }
 
     @Override
-    public int getHealth() { return currentTentacleHealth; }
+    public int getHealth() { return hitPointsRemaining; }
 
     @Override
     public boolean isAlive() { return !dead; }
@@ -657,6 +676,11 @@ public class Tentacle implements Enemy {
      * Reset tentacle to full health.
      */
     public void resetHealth() { respawn(); }
+    
+    /**
+     * Get maximum hit points.
+     */
+    public int getMaxHits() { return maxHits; }
 
     private void die() {
         releasePlayer();

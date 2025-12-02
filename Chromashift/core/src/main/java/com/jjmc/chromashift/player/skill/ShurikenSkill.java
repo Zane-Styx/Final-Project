@@ -7,9 +7,7 @@ import com.jjmc.chromashift.player.Player;
 import com.badlogic.gdx.utils.Array;
 
 /**
- * ShurikenSkill: Launches a projectile toward the mouse position.
- * Projectile deals damage on enemy hit and is destroyed on solid collision.
- * Sprite: skill_shuriken.png (1 row, 4 frames, 32×32)
+ * Throw a shuriken toward the mouse.
  */
 public class ShurikenSkill extends BaseSkill {
     private com.chromashift.helper.SpriteAnimator animator;
@@ -22,7 +20,7 @@ public class ShurikenSkill extends BaseSkill {
         super(player, "ShurikenSkill", 0.8f); // 0.8 second cooldown
         this.totalAnimationTime = 0.24f; // 4 frames at 0.06s each
         
-        // Load sprite for skill activation animation
+        // Load cast anim
         try {
             animator = new com.chromashift.helper.SpriteAnimator("player/sfx/skill_shuriken.png", 1, 4);
             animator.addAnimation("cast", 0, 0, 4, 0.06f, false);
@@ -40,16 +38,20 @@ public class ShurikenSkill extends BaseSkill {
         requestInvulnerability = false;
         requestInvisibility = false;
         
-        // Get direction toward mouse
+        // Aim at mouse
         Vector2 mousePos = getMouseWorldPosition();
         Vector2 playerPos = new Vector2(player.getX(), player.getY());
         Vector2 direction = mousePos.sub(playerPos);
         
-        // Launch projectile
+        // Fire the shuriken
         try {
+            // Spawn above the head (avoid ground)
+            float spawnX = player.getX() + player.getHitboxWidth() / 2f - 16f;
+            float spawnY = player.getY() + player.getHitboxHeight() + 8f;
+            
             Projectile proj = new Projectile(
-                player.getX(),
-                player.getY(),
+                spawnX,
+                spawnY,
                 direction,
                 PROJECTILE_SPEED,
                 PROJECTILE_DAMAGE,
@@ -58,6 +60,8 @@ public class ShurikenSkill extends BaseSkill {
                 0.06f,
                 player
             );
+            // Perpendicular sine wobble
+            proj.setSineWave(true, 12f, 3f); // 12px amplitude, ~3 wobbles/sec
             projectiles.add(proj);
             player.activeProjectiles.add(proj);
             activeProjectile = proj;
@@ -65,7 +69,7 @@ public class ShurikenSkill extends BaseSkill {
             Gdx.app.error("ShurikenSkill", "Failed to create projectile", e);
         }
         
-        // Start cast animation
+        // Play cast anim
         if (animator != null) {
             animator.play("cast", false);
         }
@@ -77,14 +81,14 @@ public class ShurikenSkill extends BaseSkill {
     protected void updateActive(float delta) {
         if (!isActive || animator == null) return;
         
-        // Update cast animation
+        // Cast anim tick
         animator.update(delta);
         
-        // Update projectile
+        // Step the projectile
         if (activeProjectile != null && activeProjectile.isActive()) {
             activeProjectile.update(delta, player.getSolids(), player.getEnemies());
         } else {
-            // Projectile finished, end skill
+            // Done; end the skill
             animationTimer = totalAnimationTime;
         }
     }
@@ -100,12 +104,12 @@ public class ShurikenSkill extends BaseSkill {
     
     @Override
     public void render(SpriteBatch batch) {
-        // Render cast animation at player
+        // Draw cast anim on player
         if (isActive && animator != null) {
             animator.render(batch, player.getX() - 16f, player.getY() - 16f, 32f, 32f);
         }
         
-        // Render projectiles
+        // Draw projectiles
         for (Projectile proj : projectiles) {
             proj.render(batch);
         }
@@ -122,12 +126,11 @@ public class ShurikenSkill extends BaseSkill {
     }
     
     private Vector2 getMouseWorldPosition() {
-        // Convert screen mouse position to world coordinates
+        // Screen -> world (approx)
         float mouseX = Gdx.input.getX();
         float mouseY = Gdx.input.getY();
         
-        // Approximate world position (would need camera reference for accurate conversion)
-        // For now, just use relative direction
+        // Use relative direction from screen center
         Vector2 playerPos = new Vector2(player.getX(), player.getY());
         Vector2 screenCenter = new Vector2(Gdx.graphics.getWidth() / 2f, Gdx.graphics.getHeight() / 2f);
         Vector2 mouseDiff = new Vector2(mouseX - screenCenter.x, screenCenter.y - mouseY);

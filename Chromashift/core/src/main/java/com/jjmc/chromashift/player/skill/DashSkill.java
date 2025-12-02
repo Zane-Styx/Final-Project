@@ -12,8 +12,7 @@ import com.jjmc.chromashift.player.Player;
 import com.jjmc.chromashift.player.PlayerCollision;
 
 /**
- * DashSkill: Invulnerable invisibile horizontal dash that damages enemies on the path.
- * Sprite: skill_dash.png (1 row, 6 frames, 176×96)
+ * Quick horizontal dash; invulnerable, invisible, damages through.
  */
 public class DashSkill extends BaseSkill {
     private com.chromashift.helper.SpriteAnimator animator;
@@ -32,7 +31,7 @@ public class DashSkill extends BaseSkill {
         super(player, "DashSkill", 2.5f); // 2.5 second cooldown
         this.totalAnimationTime = 0.36f; // 6 frames at ~60fps = ~0.1s per frame * 6
         
-        // Load sprite
+        // Load dash anim
         try {
             animator = new com.chromashift.helper.SpriteAnimator("player/sfx/skill_dash.png", 1, 6);
             animator.addAnimation("dash", 0, 0, 6, 0.06f, false);
@@ -47,7 +46,7 @@ public class DashSkill extends BaseSkill {
         
         isActive = true;
         animationTimer = 0f;
-        // Anchor the animation at the player's hitbox center (exact trigger point)
+        // Anchor at hitbox center
         float playerLeft = player.getHitboxX();
         float playerBottom = player.getHitboxY();
         dashStartX = playerLeft + player.getHitboxWidth() / 2f;
@@ -56,62 +55,77 @@ public class DashSkill extends BaseSkill {
         damagedEnemies.clear();
         requestInvulnerability = true;
         requestInvisibility = true;
-        // lock movement while dashing animation plays
+        // Lock movement during dash
         requestMovementLock = true;
-        // According to spec: DashSkill should reset the jump only (not dash)
+        // Reset jump only
         resetDash = false;
         resetJump = true;
 
-        // Start animation
+        // Play anim
         if (animator != null) {
-            // Flip animation based on facing direction — sprite is right->left oriented so invert
+            // Flip based on facing (sprite right->left)
             boolean facingLeft = player.isFacingLeft();
             animator.play("dash", !facingLeft);
         }
 
-        // Disable gravity while the skill runs
+        // Disable gravity while active
         requestDisableGravity = true;
 
-        // Play skill sound
+        // Play sfx
         try {
             com.chromashift.helper.SoundManager.play("DashSkill");
         } catch (Exception ignored) {}
 
-        // Compute final dash target respecting solids and damage enemies along the path immediately
-        // Compute final dash target using hitbox center, respecting solids
-        float intendedCenterTarget = dashStartX + (player.isFacingLeft() ? -DASH_DISTANCE : DASH_DISTANCE);
+        // Compute dash target and damage along path
+        boolean facingLeft = player.isFacingLeft();
+        float direction = facingLeft ? -1f : 1f;
+        float intendedCenterTarget = dashStartX + (direction * DASH_DISTANCE);
         dashTargetCenterX = intendedCenterTarget;
-        float minCenter = Math.min(dashStartX, intendedCenterTarget);
-        float maxCenter = Math.max(dashStartX, intendedCenterTarget);
+        
         // Only consider solids that are in front of the player (forward raycast)
+        float rayStart = dashStartX;
+        float rayEnd = intendedCenterTarget;
+        float rayMin = Math.min(rayStart, rayEnd);
+        float rayMax = Math.max(rayStart, rayEnd);
+        
         for (Solid solid : player.getSolids()) {
             if (!solid.isBlocking()) continue;
             Rectangle b = solid.getBounds();
-            // check vertical overlap with player's hitbox
+            // vertical overlap with player
             if (b.y > playerBottom + player.getHitboxHeight() || b.y + b.height < playerBottom) continue;
-            if (player.isFacingLeft()) {
-                // Solid must be between intendedCenterTarget and dashStartX on the X axis (its right edge)
-                float solidRight = b.x + b.width;
-                if (solidRight <= dashStartX && solidRight >= intendedCenterTarget) {
-                    dashTargetCenterX = solidRight + player.getHitboxWidth() / 2f;
-                    if (dashTargetCenterX > dashStartX) dashTargetCenterX = dashStartX;
-                    break;
+            
+            // horizontal overlap with dash ray
+            float solidLeft = b.x;
+            float solidRight = b.x + b.width;
+            
+            // only solids in path
+            if (solidRight < rayMin || solidLeft > rayMax) continue;
+            
+            if (facingLeft) {
+                // left: stop at solid's right
+                if (solidRight <= rayStart && solidRight >= rayEnd) {
+                    float newTarget = solidRight + player.getHitboxWidth() / 2f;
+                    if (newTarget > dashStartX) newTarget = dashStartX;
+                    if (Math.abs(dashStartX - newTarget) < Math.abs(dashStartX - dashTargetCenterX)) {
+                        dashTargetCenterX = newTarget;
+                    }
                 }
             } else {
-                // Facing right: consider solids whose left edge is between dashStartX and intendedCenterTarget
-                float solidLeft = b.x;
-                if (solidLeft >= dashStartX && solidLeft <= intendedCenterTarget) {
-                    dashTargetCenterX = solidLeft - player.getHitboxWidth() / 2f - 1f;
-                    if (dashTargetCenterX < dashStartX) dashTargetCenterX = dashStartX;
-                    break;
+                // right: stop at solid's left
+                if (solidLeft >= rayStart && solidLeft <= rayEnd) {
+                    float newTarget = solidLeft - player.getHitboxWidth() / 2f - 1f;
+                    if (newTarget < dashStartX) newTarget = dashStartX;
+                    if (Math.abs(dashStartX - newTarget) < Math.abs(dashStartX - dashTargetCenterX)) {
+                        dashTargetCenterX = newTarget;
+                    }
                 }
             }
         }
 
-        // Compute final left X for teleport (player X is the left coordinate)
+        // Convert center -> left X
         dashTargetX = dashTargetCenterX - player.getHitboxWidth() / 2f;
 
-        // Build dash bounds for hitting enemies (use center sweep and include full hitbox width)
+        // Sweep bounds to hit enemies
         float dashBoundsLeft = Math.min(dashStartX, dashTargetCenterX) - player.getHitboxWidth() / 2f;
         Rectangle dashBounds = new Rectangle(dashBoundsLeft, playerBottom, Math.abs(dashTargetCenterX - dashStartX) + player.getHitboxWidth(), player.getHitboxHeight());
         for (Enemy enemy : player.getEnemies()) {
@@ -128,24 +142,24 @@ public class DashSkill extends BaseSkill {
     protected void updateActive(float delta) {
         if (!isActive || animator == null) return;
 
-        // Advance animation (anchored at dashStartX/dashStartY)
+        // Advance anim at anchor
         animator.update(delta);
-        // Calculate visual offset for the animation based on animation progress
+        // Compute signed offset by progress
         float progress = Math.min(1f, animationTimer / totalAnimationTime);
-        currentDashX = progress * Math.abs(dashTargetX - dashStartX);
+        float dashDistanceActual = dashTargetCenterX - dashStartX; // signed distance
+        currentDashX = progress * dashDistanceActual; // signed offset
     }
     
     @Override
     public void render(SpriteBatch batch) {
         if (!isActive || animator == null) return;
 
-        // Render at anchored animation position (do not follow player while animating)
-        float dir = player.isFacingLeft() ? -1f : 1f;
-        float renderX = dashStartX + (dir * currentDashX);
-        // Center the animation vertically on the player's hitbox center
+        // Draw at anchored center
+        float renderCenterX = dashStartX + currentDashX;
+        // Center vertically
         float animW = 96f;
         float animH = 96f;
-        animator.render(batch, renderX - animW / 2f, dashStartY - animH / 2f, animW, animH);
+        animator.render(batch, renderCenterX - animW / 2f, dashStartY - animH / 2f, animW, animH);
     }
     
     @Override
@@ -166,12 +180,11 @@ public class DashSkill extends BaseSkill {
             player.setCanJump(true);
         }
 
-        // Before teleporting, resolve collisions at the target position. This avoids
-        // placing the player inside solids. We construct a hitbox at the intended
-        // X and current Y and let PlayerCollision resolve it against walls/solids.
+        // Resolve collisions at target; avoid embedding in solids
         try {
+            // dashTargetX = hitbox left
             Rectangle candidate = new Rectangle(dashTargetX, player.getHitboxY(), player.getHitboxWidth(), player.getHitboxHeight());
-            // Build walls list from solids
+            // Collect walls
             Array<Wall> walls = new Array<>();
             for (Solid s : player.getSolids()) {
                 if (s instanceof Wall w) walls.add(w);
@@ -180,18 +193,17 @@ public class DashSkill extends BaseSkill {
             PlayerCollision.resolveWallCollision(candidate, walls);
             PlayerCollision.resolveSolidCollision(candidate, player.getSolids());
 
-            // Place player at resolved position (candidate.x is hitbox.x)
+            // Apply resolved hitbox -> player pos
             player.setX(candidate.x - player.hitboxOffsetX);
-            // Also adjust Y if needed
             player.setY(candidate.y - player.hitboxOffsetY);
 
-            // Zero vertical velocity and give a short hover to avoid instant gravity snap
+            // Zero Y and short hover
             player.setVelocityY(0f);
             player.setDashHover(0.15f); // 150ms hover
             player.setOnGround(false);
         } catch (Exception e) {
-            // Fallback: teleport directly
-            player.setX(dashTargetX);
+            // Fallback: direct teleport
+            player.setX(dashTargetX - player.hitboxOffsetX);
         }
 
         Gdx.app.log("DashSkill", "Deactivated!");

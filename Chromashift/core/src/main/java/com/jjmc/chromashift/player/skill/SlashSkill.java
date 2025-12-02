@@ -10,10 +10,7 @@ import com.jjmc.chromashift.player.Player;
 import com.badlogic.gdx.utils.Array;
 
 /**
- * SlashSkill: AoE attack around the player that damages enemies.
- * Makes player invulnerable during animation.
- * Resets dash and jump if at least 1 enemy is hit.
- * Sprite: skill_slash.png (1 row, 12 frames, 128×128)
+ * AoE slash around player; invul during cast; resets dash/jump if hit.
  */
 public class SlashSkill extends BaseSkill {
     private com.chromashift.helper.SpriteAnimator animator;
@@ -25,7 +22,7 @@ public class SlashSkill extends BaseSkill {
         super(player, "SlashSkill", 1.5f); // 1.5 second cooldown
         this.totalAnimationTime = 1f; // 12 frames spread over 0.9 seconds
         
-        // Load sprite
+        // Load slash anim
         try {
             animator = new com.chromashift.helper.SpriteAnimator("player/sfx/skill_slash.png", 1, 12);
             animator.addAnimation("slash", 0, 0, 12, 1f / 12f, false);
@@ -42,20 +39,20 @@ public class SlashSkill extends BaseSkill {
         animationTimer = 0f;
         hitEnemies.clear();
         requestInvulnerability = true;
-        // Make player invisible for entire animation and lock movement
+        // Invisible and locked during slash
         requestInvisibility = true;
         requestMovementLock = true;
-        // Keep player suspended and disable gravity for the duration of the slash
+        // Suspend and disable gravity
         requestDisableGravity = true;
         resetDash = false;
         resetJump = false;
         
-        // Start animation
+        // Play anim
         if (animator != null) {
             animator.play("slash", false);
         }
 
-        // Play skill sound
+        // Play sfx
         try {
             com.chromashift.helper.SoundManager.play("SlashSkill");
         } catch (Exception ignored) {}
@@ -67,20 +64,25 @@ public class SlashSkill extends BaseSkill {
     protected void updateActive(float delta) {
         if (!isActive || animator == null) return;
         
-        // Update animation
+        // Anim tick
         animator.update(delta);
         
-        // Create AoE box centered on player's hitbox center
+        // Build AoE box at hitbox center
         float centerX = player.getHitboxX() + player.getHitboxWidth() / 2f;
         float centerY = player.getHitboxY() + player.getHitboxHeight() / 2f;
         float aoeX = centerX - AOE_SIZE / 2f;
         float aoeY = centerY - AOE_SIZE / 2f;
         Rectangle aoeBounds = new Rectangle(aoeX, aoeY, AOE_SIZE, AOE_SIZE);
         
-        // Check for enemy hits
+        // Check hits
         for (Enemy enemy : player.getEnemies()) {
             if (enemy.getBounds().overlaps(aoeBounds) && !hitEnemies.contains(enemy, true)) {
-                enemy.takeDamage(SLASH_DAMAGE);
+                // Slash = 3 hits for tentacles
+                if (enemy instanceof com.jjmc.chromashift.environment.enemy.Tentacle) {
+                    ((com.jjmc.chromashift.environment.enemy.Tentacle) enemy).applyHit(3);
+                } else {
+                    enemy.takeDamage(SLASH_DAMAGE);
+                }
                 hitEnemies.add(enemy);
             }
         }
@@ -90,7 +92,7 @@ public class SlashSkill extends BaseSkill {
     public void render(SpriteBatch batch) {
         if (!isActive || animator == null) return;
         
-        // Render centered on player's hitbox center
+        // Draw at hitbox center
         float centerX = player.getHitboxX() + player.getHitboxWidth() / 2f;
         float centerY = player.getHitboxY() + player.getHitboxHeight() / 2f;
         float renderX = centerX - AOE_SIZE / 2f;
@@ -117,7 +119,7 @@ public class SlashSkill extends BaseSkill {
         animationTimer = 0f;
         currentCooldown = cooldownTime;
         
-        // Reset dash/jump only if we hit at least 1 enemy
+        // Reset dash/jump if we hit anything
         if (hitEnemies.size > 0) {
             resetDash = true;
             resetJump = true;

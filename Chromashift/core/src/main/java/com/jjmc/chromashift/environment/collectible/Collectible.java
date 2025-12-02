@@ -13,12 +13,23 @@ public abstract class Collectible {
     protected float x, y;
     protected float width, height;
     protected boolean collected = false;
+    protected String id; // Unique stable ID for save/load persistence
 
     public Collectible(float x, float y, float width, float height) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+        // Generate deterministic ID based on type and position
+        this.id = generateDefaultId();
+    }
+    
+    /**
+     * Generate a deterministic ID based on class name and position.
+     * Can be overridden by subclasses or set explicitly.
+     */
+    protected String generateDefaultId() {
+        return getClass().getSimpleName() + "_" + ((int)x) + "_" + ((int)y);
     }
 
     /**
@@ -88,6 +99,27 @@ public abstract class Collectible {
 
     public float getHeight() {
         return height;
+    }
+    
+    /**
+     * Get the unique ID of this collectible.
+     */
+    public String getId() {
+        return id;
+    }
+    
+    /**
+     * Set the unique ID of this collectible (for loading from save).
+     */
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    /**
+     * Set collected state (for loading from save).
+     */
+    public void setCollected(boolean collected) {
+        this.collected = collected;
     }
 
     /**

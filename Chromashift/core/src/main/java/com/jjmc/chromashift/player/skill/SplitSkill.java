@@ -7,24 +7,26 @@ import com.jjmc.chromashift.player.Player;
 import com.badlogic.gdx.utils.Array;
 
 /**
- * SplitSkill: Launches a projectile that splits into 3 mini-projectiles if it doesn't hit anything.
- * Primary sprite: skill_split.png (1 row, 4 frames, 32×32)
- * Secondary sprite: the_split.png (1 row, 4 frames, 32×32)
+ * Fire a shot that splits into three if it doesn't hit.
  */
 public class SplitSkill extends BaseSkill {
     private com.chromashift.helper.SpriteAnimator animator;
     private Projectile mainProjectile;
     private final float PROJECTILE_SPEED = 280f;
+    private final float SPLIT_PROJECTILE_SPEED = 240f;
     private final int MAIN_DAMAGE = 15;
     private final int SPLIT_DAMAGE = 8;
     private Array<Projectile> projectiles = new Array<>();
-    private final float SPLIT_SPREAD_ANGLE = 30f; // degrees
+    private final float SPLIT_SPREAD_ANGLE = 20f; // fan: -20, 0, +20 deg
+    private final float SPLIT_DELAY = 1f; // wait before splitting
+    private final float HOMING_TURN_RATE = 180f; // turn speed for splits
     
     public SplitSkill(Player player) {
         super(player, "SplitSkill", 1.2f); // 1.2 second cooldown
-        this.totalAnimationTime = 0.24f; // 4 frames at 0.06s each
+        // Stay alive long enough to watch for the split
+        this.totalAnimationTime = 2.0f;
         
-        // Load sprite for skill activation animation
+        // Load cast anim
         try {
             animator = new com.chromashift.helper.SpriteAnimator("player/sfx/skill_split.png", 1, 4);
             animator.addAnimation("cast", 0, 0, 4, 0.06f, false);
@@ -42,16 +44,16 @@ public class SplitSkill extends BaseSkill {
         requestInvulnerability = false;
         requestInvisibility = false;
         
-        // Get direction toward mouse
+        // Aim at mouse
         Vector2 mousePos = getMouseWorldPosition();
         Vector2 playerPos = new Vector2(player.getX(), player.getY());
         Vector2 direction = mousePos.sub(playerPos);
         
-        // Launch main projectile
+        // Fire main shot (spawns above the head)
         try {
             mainProjectile = new Projectile(
-                player.getX(),
-                player.getY(),
+                player.getX() + player.getHitboxWidth() / 2f - 16f,
+                player.getY() + player.getHitboxHeight() + 8f, // above head
                 direction,
                 PROJECTILE_SPEED,
                 MAIN_DAMAGE,
@@ -62,13 +64,14 @@ public class SplitSkill extends BaseSkill {
             );
             mainProjectile.setWidth(32f);
             mainProjectile.setHeight(32f);
+            mainProjectile.setMainProjectile(true, SPLIT_DELAY);
             projectiles.add(mainProjectile);
             player.activeProjectiles.add(mainProjectile);
         } catch (Exception e) {
             Gdx.app.error("SplitSkill", "Failed to create main projectile", e);
         }
         
-        // Start cast animation
+        // Play cast anim
         if (animator != null) {
             animator.play("cast", false);
         }
@@ -80,38 +83,64 @@ public class SplitSkill extends BaseSkill {
     protected void updateActive(float delta) {
         if (!isActive || animator == null) return;
         
-        // Update cast animation
+        // Cast anim tick
         animator.update(delta);
         
-        // Update main projectile
+        // Track the main shot
         if (mainProjectile != null && mainProjectile.isActive()) {
             mainProjectile.update(delta, player.getSolids(), player.getEnemies());
-        } else if (mainProjectile != null && !mainProjectile.isActive() && !mainProjectile.hasHit()) {
-            // Main projectile finished without hitting - spawn splits
-            spawnSplitProjectiles();
+        } else if (mainProjectile != null && !mainProjectile.isActive()) {
+            // Split? (timer up, no hit)
+            boolean shouldSplit = mainProjectile.shouldSplit();
+            boolean hasHit = mainProjectile.hasHit();
+            
+            Gdx.app.log("SplitSkill", "Main projectile inactive: shouldSplit=" + shouldSplit + ", hasHit=" + hasHit);
+            
+            if (shouldSplit) {
+                // Spawn the three here
+                spawnSplitProjectiles();
+                Gdx.app.log("SplitSkill", "✓ SPAWNED 3 SPLIT PROJECTILES!");
+            } else if (hasHit) {
+                Gdx.app.log("SplitSkill", "Main projectile hit target - no split");
+            } else {
+                Gdx.app.log("SplitSkill", "Main projectile died without split or hit (lifetime expired?)");
+            }
             mainProjectile = null;
+            
+            // Projectile is done, deactivate skill now
+            deactivate();
         }
     }
     
     private void spawnSplitProjectiles() {
-        if (mainProjectile == null) return;
+        if (mainProjectile == null) {
+            Gdx.app.error("SplitSkill", "Cannot spawn splits: mainProjectile is null!");
+            return;
+        }
         
-        Vector2 playerPos = new Vector2(player.getX(), player.getY());
-        Vector2 mainDir = new Vector2(
-            mainProjectile.getBounds().x - playerPos.x,
-            mainProjectile.getBounds().y - playerPos.y
-        ).nor();
+        // Keep position/dir before clearing
+        Vector2 spawnPos = mainProjectile.getPosition();
+        Vector2 mainDir = mainProjectile.getDirection();
         
-        // Create 3 spread projectiles in a fan pattern
+        Gdx.app.log("SplitSkill", "Spawning splits at position: (" + spawnPos.x + ", " + spawnPos.y + "), direction: " + mainDir);
+        
+        int spawnedCount = 0;
+        
+        // Make 3 homing shots in a fan
         float[] angles = { -SPLIT_SPREAD_ANGLE, 0f, SPLIT_SPREAD_ANGLE };
         for (float angleOffset : angles) {
             try {
-                Vector2 spreadDir = rotateVector(mainDir, angleOffset);
+            // Spread from the original direction
+                Vector2 spreadDir = mainDir.cpy().rotateDeg(angleOffset).nor();
+                
+                Gdx.app.log("SplitSkill", "  Creating split #" + (spawnedCount + 1) + " at angle offset " + angleOffset + "°");
+                
+                // Spawn a homing split projectile
                 Projectile split = new Projectile(
-                    mainProjectile.getBounds().x,
-                    mainProjectile.getBounds().y,
+                    spawnPos.x - 16f, // center 32x32
+                    spawnPos.y - 16f,
                     spreadDir,
-                    PROJECTILE_SPEED * 0.8f, // Slightly slower
+                    SPLIT_PROJECTILE_SPEED,
                     SPLIT_DAMAGE,
                     "player/sfx/the_split.png",
                     4,
@@ -120,21 +149,21 @@ public class SplitSkill extends BaseSkill {
                 );
                 split.setWidth(32f);
                 split.setHeight(32f);
+                split.setHoming(true);
+                split.setMaxTurnRate(HOMING_TURN_RATE);
+                
+                // Track it
                 projectiles.add(split);
                 player.activeProjectiles.add(split);
+                spawnedCount++;
+                
+                Gdx.app.log("SplitSkill", "    ✓ Split #" + spawnedCount + " created and added to lists");
             } catch (Exception e) {
-                Gdx.app.error("SplitSkill", "Failed to create split projectile", e);
+                Gdx.app.error("SplitSkill", "Failed to create split projectile at angle " + angleOffset, e);
             }
         }
         
-        Gdx.app.log("SplitSkill", "Spawned 3 split projectiles!");
-    }
-    
-    private Vector2 rotateVector(Vector2 vec, float angle) {
-        float rad = (float) Math.toRadians(angle);
-        float cos = (float) Math.cos(rad);
-        float sin = (float) Math.sin(rad);
-        return new Vector2(vec.x * cos - vec.y * sin, vec.x * sin + vec.y * cos);
+        Gdx.app.log("SplitSkill", "=== SPLIT COMPLETE: " + spawnedCount + "/3 projectiles spawned at (" + spawnPos.x + ", " + spawnPos.y + ") ===");
     }
     
     public void updateProjectiles(float delta) {
@@ -148,12 +177,12 @@ public class SplitSkill extends BaseSkill {
     
     @Override
     public void render(SpriteBatch batch) {
-        // Render cast animation at player
+        // Draw cast anim on player
         if (isActive && animator != null) {
             animator.render(batch, player.getX() - 16f, player.getY() - 16f, 32f, 32f);
         }
         
-        // Render projectiles
+        // Draw projectiles
         for (Projectile proj : projectiles) {
             proj.render(batch);
         }
@@ -170,11 +199,11 @@ public class SplitSkill extends BaseSkill {
     }
     
     private Vector2 getMouseWorldPosition() {
-        // Convert screen mouse position to world coordinates
+        // Rough screen->world guess
         float mouseX = Gdx.input.getX();
         float mouseY = Gdx.input.getY();
         
-        // Approximate world position
+        // Use relative direction from screen center
         Vector2 playerPos = new Vector2(player.getX(), player.getY());
         Vector2 screenCenter = new Vector2(Gdx.graphics.getWidth() / 2f, Gdx.graphics.getHeight() / 2f);
         Vector2 mouseDiff = new Vector2(mouseX - screenCenter.x, screenCenter.y - mouseY);

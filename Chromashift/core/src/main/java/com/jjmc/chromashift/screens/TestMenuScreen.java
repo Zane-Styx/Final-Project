@@ -118,8 +118,51 @@ public class TestMenuScreen implements Screen {
         navLabel.setFontScale(1.3f);
         rootTable.add(navLabel).colspan(2).padTop(10).padBottom(10).row();
         
-        // Test Scene Button
-        TextButton testSceneBtn = UIHelper.createButton("Open Test Scene", skin, new ClickListener() {
+        // Continue Button (loads last save with SAVED_IF_EXISTS mode)
+        TextButton continueBtn = UIHelper.createButton("Continue", skin, new ClickListener() {
+            @Override
+            public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                try {
+                    // Load player save
+                    com.jjmc.chromashift.player.PlayerIO.PlayerState loaded = 
+                        com.jjmc.chromashift.player.PlayerIO.load("player_save.json");
+                    if (loaded != null && loaded.currentLevel != null) {
+                        System.out.println("Continuing from saved game: " + loaded.currentLevel);
+                        // Create TestSceneScreen with saved level using SAVED_IF_EXISTS mode
+                        TestSceneScreen screen = new TestSceneScreen(
+                            loaded.currentLevel, 
+                            com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS
+                        );
+                        ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(screen);
+                        // Apply player state after screen is created
+                        Gdx.app.postRunnable(() -> {
+                            try {
+                                if (screen.player != null) {
+                                    com.jjmc.chromashift.player.PlayerIO.applyToPlayer(screen.player, loaded);
+                                    if (loaded.visitedLevels != null) {
+                                        screen.visitedLevels.clear();
+                                        screen.visitedLevels.addAll(loaded.visitedLevels);
+                                    }
+                                    System.out.println("Player state restored with saved level state");
+                                }
+                            } catch (Exception ex) {
+                                System.err.println("Failed to restore player state: " + ex.getMessage());
+                            }
+                        });
+                    } else {
+                        System.out.println("No save found, starting new game");
+                        ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new TestSceneScreen());
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Failed to load save: " + ex.getMessage());
+                    ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new TestSceneScreen());
+                }
+            }
+        });
+        rootTable.add(continueBtn).colspan(2).width(260).height(48).row();
+        
+        // Test Scene Button (New Game)
+        TextButton testSceneBtn = UIHelper.createButton("New Game", skin, new ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 System.out.println("Opening Test Scene...");

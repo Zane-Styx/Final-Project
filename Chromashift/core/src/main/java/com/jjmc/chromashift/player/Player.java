@@ -23,7 +23,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.jjmc.chromashift.player.sfx.PlayerSFX;
 
 /**
- * Cleaned Player implementation — single, consistent class.
+ * Main player class: movement, skills, combat, health.
  */
 public class Player {
     private SpriteAnimator anim;
@@ -50,19 +50,18 @@ public class Player {
     protected float dashTimer = 0f;
     protected float dashCooldownTimer = 0f;
     protected boolean dashUsed = false;
-    // Short hover after skill-based dash to prevent instant gravity snap (seconds)
+    // Hover after dash skill to avoid gravity snap
     protected float dashHoverRemaining = 0f;
 
     public void setCamera(com.badlogic.gdx.graphics.Camera camera) {
         this.gameCamera = camera;
-        // Also set camera for held object if any
+        // Set camera for held object
         if (heldObject instanceof Box box) {
             box.setCamera(camera);
         } else if (heldObject instanceof Orb orb) {
             orb.setCamera(camera);
         }
-        // Camera change may imply viewport change; caller should reattach viewport if
-        // needed
+        // Caller reattaches viewport if needed
     }
 
     private boolean attacking = false;
@@ -110,9 +109,9 @@ public class Player {
     // Solids tracking for skill collision detection
     private Array<com.jjmc.chromashift.environment.Solid> solids;
     
-    // Animation state tracking to prevent resetting animations every frame
+    // Anim state to avoid resets every frame
     private String lastAnimationName = null;
-    private Boolean lastFlipX = null; // track last horizontal flip state
+    private Boolean lastFlipX = null; // last flip
     // Capture state (tentacle) allowing attacks while immobilized
     private boolean capturedByTentacle = false;
     
@@ -164,17 +163,17 @@ public class Player {
         wallSensor = new Circle(x, y, 5f);
         backSensor = new Circle(x, y, 3f);
 
-        // Respawn defaults to initial spawn
+        // Respawn at start
         this.respawnX = startX;
         this.respawnY = startY;
         
-        // Initialize attack hitbox
+        // Init attack hitbox
         this.attackHitbox = new AttackHitbox(this);
         
-        // Initialize SFX handler
+        // Init SFX
         this.sfx = new PlayerSFX();
 
-        // Pointer animator for held-object throw direction indicator
+        // Pointer for throw direction
         try {
             pointerAnimator = new com.chromashift.helper.SpriteAnimator("player/ui/ArrowPointer.png", 1, 5);
             pointerAnimator.addAnimation("point", 0, 0, 5, 0.1f, true);
@@ -183,7 +182,7 @@ public class Player {
             pointerAnimator = null;
         }
 
-        // Initialize health system with shield logic
+        // Health + shield
         this.health = new HealthSystem(200f) {
             @Override
             public boolean damage(float amount, Object source) {
@@ -193,57 +192,66 @@ public class Player {
                     return false;
                 if (isDead())
                     return false;
+                // Death lock
+                if (isDying)
+                    return false;
 
-                // Shield absorbs damage first
+                // Shield absorbs first
                 if (shield > 0) {
                     shield--;
-                    // Shield absorbs the hit completely
+                    // Hit fully absorbed
                     return true;
                 }
 
                 return super.damage(amount, source);
             }
         };
-        // small auto-regen after 1.5s
+        // Auto-regen after 1.5s
         this.health.setRegenPerSecond(1f);
         this.health.setRegenDelayAfterDamage(1.5f);
-        // Listen for death to respawn the player
+        // Death listener
         this.health.addListener(new HealthListener() {
             @Override
             public void onHealthChanged(HealthSystem hs, float delta, float current, float max) {
-                // Optional: could hook damage flash, sound, UI here
+                // Hook damage flash, sound, UI here
             }
 
             @Override
             public void onDeath(HealthSystem hs, Object source) {
-                // On death, respawn at the last respawn point
+                // Death lock
+                if (isDying) return; // already dying
+                isDying = true;
+                
+                // Respawn
                 respawn();
             }
         });
     }
 
-    // Currently held pickable
+    // Held object
     private com.jjmc.chromashift.environment.interactable.Pickable heldObject = null;
-    // Pointer shown when holding an object (arrow sprite)
+    // Throw pointer (arrow)
     private com.chromashift.helper.SpriteAnimator pointerAnimator;
-    private float pointerOffsetY = 16f; // height above player to spawn pointer (adjustable)
+    private float pointerOffsetY = 16f; // pointer height
 
-    // Health system and respawn
+    // Health and respawn
     private final HealthSystem health;
     private float respawnX, respawnY;
-    // temporary invulnerability and stun after respawn (seconds)
+    // Temp invul + stun after respawn
     private float respawnInvulDuration = 1.0f;
     private float respawnInvulRemaining = 0f;
-    private float respawnStunDuration = 0.5f; // How long player can't move after respawn
+    private float respawnStunDuration = 0.5f; // stun length
     private float respawnStunRemaining = 0f;
     private boolean isStunned = false;
+    // Death lock (multiple tentacles)
+    private boolean isDying = false;
 
     public void update(float delta, float groundY, Array<Wall> walls) {
-        // update health first (regen, timers)
+        // Health tick
         if (health != null)
             health.update(delta);
 
-        // handle respawn timers
+        // Respawn timers
         if (respawnInvulRemaining > 0f) {
             respawnInvulRemaining -= delta;
             if (respawnInvulRemaining <= 0f) {
@@ -259,25 +267,25 @@ public class Player {
             }
         }
 
-        // Don't update movement if stunned (respawn stun only)
+        // No movement if stunned
         if (!isStunned) {
             update(delta, groundY, walls, null);
         } else {
-            // Still update animation while stunned (respawn only)
+            // Anim only while stunned
             anim.update(delta);
             setAnimation("idle", facingLeft);
         }
     }
 
     public void update(float delta, float groundY, Array<Wall> walls, Array<Solid> solids) {
-        // Store solids reference for skill collision detection
+        // Store solids for skills
         this.solids = solids;
         
-        // update health (regen, timers)
+        // Health tick
         if (health != null)
             health.update(delta);
 
-        // handle respawn timers
+        // Respawn timers
         if (respawnInvulRemaining > 0f) {
             respawnInvulRemaining -= delta;
             if (respawnInvulRemaining <= 0f) {
@@ -997,9 +1005,10 @@ public class Player {
      * gives a short invulnerability window.
      */
     public void respawn() {
-        // move player
+        // ALWAYS respawn at checkpoint position (not death position)
         setX(respawnX);
         setY(respawnY);
+        
         // reset movement state
         this.velocityY = 0f;
         this.dashing = false;
@@ -1011,6 +1020,9 @@ public class Player {
 
         // restore health to full (even if dead)
         health.reset();
+        
+        // Reset death lock AFTER respawn sequence starts
+        isDying = false;
 
         // Play defeat sound (randomize between Defeat1 and Defeat2)
         if (Math.random() < 0.5) {

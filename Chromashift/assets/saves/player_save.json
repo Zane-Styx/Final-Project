@@ -1,0 +1,25 @@
+{
+x: 1015.12506
+y: 320
+onGround: true
+canJump: true
+airAttackTimer: -0.017427156
+attackCooldownTimer: -0.014965611
+respawnX: 160
+respawnY: 352
+diamonds: 30
+healthCurrent: 200
+healthMax: 200
+skillQ: {
+	skillName: DashSkill
+	currentCooldown: -0.015988119
+}
+skillE: {
+	skillName: SplitSkill
+	currentCooldown: -1.6652048E-5
+}
+currentLevel: levels/level1.json
+visitedLevels: [
+	levels/level1.json
+]
+}

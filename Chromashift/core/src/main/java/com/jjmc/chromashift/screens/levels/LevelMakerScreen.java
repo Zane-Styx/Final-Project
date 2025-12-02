@@ -2667,7 +2667,7 @@ public class LevelMakerScreen implements Screen {
 							"Overlaps wall at " + (int) w.getBounds().x + "," + (int) w.getBounds().y);
 			}
 			for (Interactable it : interactableInstances) {
-				if (it.getBounds().overlaps(intended))
+				if (it.getBounds() != null && it.getBounds().overlaps(intended))
 					Gdx.app.log("LevelMaker", "Overlaps interactable: " + it.getClass().getSimpleName() + " at "
 							+ (int) it.getBounds().x + "," + (int) it.getBounds().y);
 			}
@@ -3218,9 +3218,10 @@ public class LevelMakerScreen implements Screen {
 		bossInstance = null;
 
 		// Load via LevelLoader to guarantee editor and runtime see identical objects
+		// ALWAYS load ORIGINAL level JSON in editor (never use saved state)
 		LevelLoader.Result loaded;
 		try {
-			loaded = LevelLoader.loadFromWorkspace(path);
+			loaded = LevelLoader.loadFromWorkspace(path, LevelLoader.LoadMode.ORIGINAL);
 			// Also keep the LevelState for editing/saving
 			state = LevelIO.loadFromWorkspaceThenCopyToBuild(path);
 		} catch (Exception ex) {
