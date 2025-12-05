@@ -24,15 +24,14 @@ Navigate through each level and reach the end-level portal to progress. Defeat e
 
 ### Game Mechanics
 - **Light-Based Mechanics**: Use light-based abilities to solve puzzles and defeat enemies
-- **Combat**: Engage in fast-paced action combat with various enemy types
 - **Platforming**: Navigate challenging platforms and obstacles
-- **Progression**: Collect items and power-ups to enhance your abilities
+- **Progression**: Collect diamonds to buy health potions/sheild in shop
 
 ### Tips
 - Master the timing of your jumps to avoid hazards
-- Use light abilities strategically in combat
-- Explore each level for hidden items and power-ups
-- Watch for patterns in enemy attacks to dodge effectively
+- Use light abilities strategically in combat/traversing the level
+- Explore each level for puzzles to progress to another level
+- Watch for patterns in boss attacks to dodge effectively
 
 ---
 
@@ -237,6 +236,260 @@ UIHelper.BUTTON_HOVER_COLOR = new Color(1.5f, 1.5f, 0.8f, 1f);
 // Change button padding
 UIHelper.BUTTON_PAD_X = 30f;
 UIHelper.BUTTON_PAD_Y = 15f;
+```
+
+### Sliders
+
+Create horizontal or vertical sliders for numeric value input.
+
+#### Creating a Slider
+
+```java
+// Horizontal slider (0-100 range, step size of 1)
+Slider volumeSlider = UIHelper.createSlider(0, 100, 1, false, skin, new ChangeListener() {
+    @Override
+    public void changed(ChangeEvent event, Actor actor) {
+        float value = ((Slider) actor).getValue();
+        System.out.println("Volume: " + value);
+    }
+});
+
+// Vertical slider
+Slider brightnessSlider = UIHelper.createSlider(0, 100, 5, true, skin, new ChangeListener() {
+    @Override
+    public void changed(ChangeEvent event, Actor actor) {
+        float value = ((Slider) actor).getValue();
+        applyBrightness(value);
+    }
+});
+
+table.add(volumeSlider).width(200).padBottom(10).row();
+table.add(brightnessSlider).height(150).padBottom(10).row();
+```
+
+#### Slider Customization
+
+```java
+// Slider size configuration
+UIHelper.SLIDER_SIZE = 250f;
+
+// Get/Set slider value
+float currentValue = volumeSlider.getValue();
+volumeSlider.setValue(50);
+
+// Get min/max range
+float min = volumeSlider.getMinValue();
+float max = volumeSlider.getMaxValue();
+float step = volumeSlider.getStepSize();
+```
+
+### Checkboxes & Toggles
+
+Create toggle switches and checkboxes for boolean inputs.
+
+#### Text-based Toggle (ON/OFF)
+
+```java
+CheckBox toggle = UIHelper.createToggle(true, skin, new ChangeListener() {
+    @Override
+    public void changed(ChangeEvent event, Actor actor) {
+        boolean isChecked = ((CheckBox) actor).isChecked();
+        System.out.println("Toggle state: " + isChecked);
+    }
+});
+
+// Customize ON/OFF text
+UIHelper.TOGGLE_ON_TEXT = "ENABLED";
+UIHelper.TOGGLE_OFF_TEXT = "DISABLED";
+
+table.add(toggle).padBottom(10).row();
+```
+
+#### Sprite-based Toggle (Icon)
+
+```java
+TextureRegion onIcon = new TextureRegion(texture, 0, 0, 32, 32);
+TextureRegion offIcon = new TextureRegion(texture, 32, 0, 32, 32);
+
+Container<Table> spriteToggle = UIHelper.createToggle(false, onIcon, offIcon, skin, new ChangeListener() {
+    @Override
+    public void changed(ChangeEvent event, Actor actor) {
+        boolean state = UIHelper.getToggleState((Container<Table>) actor);
+        System.out.println("Toggle is: " + (state ? "ON" : "OFF"));
+    }
+});
+
+// Get/Set toggle state
+boolean isOn = UIHelper.getToggleState(spriteToggle);
+UIHelper.setToggleState(spriteToggle, true, onIcon, offIcon);
+
+table.add(spriteToggle).size(50).padBottom(10).row();
+```
+
+---
+
+## Table Layout & Alignment
+
+The Scene2D `Table` class is used for UI layout. Use these methods to control positioning and alignment:
+
+### Table Setup
+
+```java
+Table rootTable = new Table(skin);
+rootTable.setFillParent(true);        // Make table fill the stage
+rootTable.setBackground("background"); // Set background drawable
+
+// Add padding around table
+rootTable.pad(20);                     // All sides: 20 pixels
+rootTable.padTop(30);                  // Top only
+rootTable.padLeft(15).padRight(15);   // Left and right
+```
+
+### Alignment Options
+
+#### Horizontal Alignment
+
+```java
+Table table = new Table();
+
+table.left();       // Align all content to the LEFT
+table.center();     // Center all content horizontally
+table.right();      // Align all content to the RIGHT
+```
+
+#### Vertical Alignment
+
+```java
+table.top();        // Align all content to the TOP
+table.center();     // Center all content vertically
+table.bottom();     // Align all content to the BOTTOM
+```
+
+#### Combined Alignment
+
+```java
+table.left().top();     // Left-top corner
+table.center().center(); // Centered both ways
+table.right().bottom(); // Right-bottom corner
+```
+
+### Cell Methods (Per-Element)
+
+Control individual elements within a table:
+
+```java
+Table table = new Table();
+
+TextButton btn = createButton("Click", skin, listener);
+Label label = new Label("Score: 100", skin);
+Slider slider = createSlider(0, 100, 1, false, skin, listener);
+
+// Add with alignment
+table.add(btn).left();              // Left-align this button
+table.row();
+table.add(label).center();          // Center this label
+table.row();
+table.add(slider).right();          // Right-align this slider
+
+// Add with sizing
+table.add(btn).width(150);          // Fixed width
+table.add(btn).height(40);          // Fixed height
+table.add(btn).size(150, 40);       // Fixed width and height
+table.add(btn).expandX().fillX();   // Expand and fill horizontal space
+table.add(btn).expandY().fillY();   // Expand and fill vertical space
+
+// Add with spacing
+table.add(btn).pad(10);             // Padding on all sides
+table.add(btn).padLeft(20);         // Left padding only
+table.add(btn).padTop(15).padBottom(15); // Top and bottom
+table.add(btn).spaceRight(10);      // Space to the right (gap after element)
+table.add(btn).spaceLeft(10);       // Space to the left (gap before element)
+```
+
+### Common Layout Examples
+
+#### Vertical Layout (Stack Top to Bottom)
+
+```java
+Table vLayout = new Table(skin);
+vLayout.left().top();  // Start from top-left
+
+TextButton btn1 = createButton("Button 1", skin, listener);
+TextButton btn2 = createButton("Button 2", skin, listener);
+TextButton btn3 = createButton("Button 3", skin, listener);
+
+vLayout.add(btn1).width(200).padBottom(10).row();
+vLayout.add(btn2).width(200).padBottom(10).row();
+vLayout.add(btn3).width(200).row();
+
+stage.addActor(vLayout);
+```
+
+#### Horizontal Layout (Side by Side)
+
+```java
+Table hLayout = new Table(skin);
+hLayout.center().center(); // Center alignment
+
+TextButton btn1 = createButton("Left", skin, listener);
+TextButton btn2 = createButton("Middle", skin, listener);
+TextButton btn3 = createButton("Right", skin, listener);
+
+hLayout.add(btn1).width(100).padRight(10);
+hLayout.add(btn2).width(100).padRight(10);
+hLayout.add(btn3).width(100);
+
+stage.addActor(hLayout);
+```
+
+#### Grid Layout (Rows and Columns)
+
+```java
+Table gridLayout = new Table(skin);
+gridLayout.center();
+
+// 3x3 grid
+for (int row = 0; row < 3; row++) {
+    for (int col = 0; col < 3; col++) {
+        TextButton btn = createButton("" + (row * 3 + col + 1), skin, listener);
+        gridLayout.add(btn).size(50, 50).pad(5);
+    }
+    gridLayout.row();
+}
+
+stage.addActor(gridLayout);
+```
+
+#### Form Layout (Labels + Inputs)
+
+```java
+Table formLayout = new Table(skin);
+formLayout.left();
+formLayout.pad(20);
+
+// Name field
+Label nameLabel = new Label("Name:", skin);
+TextField nameInput = new TextField("", skin);
+formLayout.add(nameLabel).width(100);
+formLayout.add(nameInput).width(200).padBottom(15).row();
+
+// Volume slider
+Label volumeLabel = new Label("Volume:", skin);
+Slider volumeSlider = createSlider(0, 100, 1, false, skin, listener);
+formLayout.add(volumeLabel).width(100);
+formLayout.add(volumeSlider).width(200).padBottom(15).row();
+
+// Settings toggle
+Label settingsLabel = new Label("Enabled:", skin);
+CheckBox toggle = createToggle(true, skin, listener);
+formLayout.add(settingsLabel).width(100);
+formLayout.add(toggle).padBottom(15).row();
+
+// Submit button
+TextButton submitBtn = createButton("Submit", skin, listener);
+formLayout.add(submitBtn).colspan(2).center().width(150);
+
+stage.addActor(formLayout);
 ```
 
 ---
