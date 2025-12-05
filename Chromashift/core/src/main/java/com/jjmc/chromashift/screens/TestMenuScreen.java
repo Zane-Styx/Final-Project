@@ -98,6 +98,16 @@ public class TestMenuScreen implements Screen {
         // Load skin
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
         
+        // Load sprite font for UI elements
+        try {
+            if (!com.chromashift.helper.SpriteFontManager.isLoaded("default")) {
+                com.chromashift.helper.SpriteFontManager.load("default", "ui/ctm.uiskin.png");
+            }
+        } catch (Exception e) {
+            Gdx.app.error("TestMenuScreen", "Failed to load sprite font", e);
+            UIHelper.USE_SPRITE_FONTS = false; // Fallback to regular fonts
+        }
+        
         // Build UI
         buildUI();
     }
@@ -119,7 +129,7 @@ public class TestMenuScreen implements Screen {
         rootTable.add(navLabel).colspan(2).padTop(10).padBottom(10).row();
         
         // Continue Button (loads last save with SAVED_IF_EXISTS mode)
-        TextButton continueBtn = UIHelper.createButton("Continue", skin, new ClickListener() {
+        Actor continueBtn = UIHelper.createButton("Continue", skin, new ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 try {
@@ -162,7 +172,7 @@ public class TestMenuScreen implements Screen {
         rootTable.add(continueBtn).colspan(2).width(260).height(48).row();
         
         // Test Scene Button (New Game)
-        TextButton testSceneBtn = UIHelper.createButton("New Game", skin, new ClickListener() {
+        Actor testSceneBtn = UIHelper.createButton("New Game", skin, new ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 System.out.println("Opening Test Scene...");
@@ -172,7 +182,7 @@ public class TestMenuScreen implements Screen {
         rootTable.add(testSceneBtn).colspan(2).width(260).height(48).row();
         
         // Level Maker Button
-        TextButton levelMakerBtn = UIHelper.createButton("Open Level Maker", skin, new ClickListener() {
+        Actor levelMakerBtn = UIHelper.createSpriteButton("Open Level Maker", "default", 1.5f, skin, new ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 System.out.println("Opening Level Maker...");
@@ -187,7 +197,7 @@ public class TestMenuScreen implements Screen {
         rootTable.add(demoLabel).colspan(2).padTop(10).padBottom(10).row();
         
         // Demo: Simple Button
-        TextButton demoBtn = UIHelper.createButton("Demo Button", skin, new ClickListener() {
+        Actor demoBtn = UIHelper.createButton("Demo Button", skin, new ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 System.out.println("Demo button clicked!");
@@ -249,8 +259,56 @@ public class TestMenuScreen implements Screen {
         volumeRow.add(volumeLabel);
         rootTable.add(volumeRow).left().row();
         
+        // ===== SECTION: SPRITE FONT DEMOS =====
+        Label spriteFontLabel = new Label("Sprite Fonts (Image-Based):", skin);
+        spriteFontLabel.setFontScale(1.3f);
+        rootTable.add(spriteFontLabel).colspan(2).padTop(20).padBottom(10).row();
+        
+        // Try to load sprite font and create demos
+        try {
+            com.chromashift.helper.SpriteFontManager.load("custom", "ui/ctm.uiskin.png");
+            
+            // Demo: Basic sprite label
+            com.chromashift.helper.SpriteLabel spriteLabel1 = 
+                UIHelper.createSpriteLabel("hello world", "custom");
+            if (spriteLabel1 != null) {
+                rootTable.add(new Label("Sprite Text:", skin)).right().padRight(10);
+                rootTable.add(spriteLabel1).left().row();
+            }
+            
+            // Demo: Scaled sprite label
+            com.chromashift.helper.SpriteLabel spriteLabel2 = 
+                UIHelper.createSpriteLabel("big text!", "custom", 2f);
+            if (spriteLabel2 != null) {
+                rootTable.add(new Label("Scaled 2x:", skin)).right().padRight(10);
+                rootTable.add(spriteLabel2).left().row();
+            }
+            
+            // Demo: Colored sprite label
+            com.chromashift.helper.SpriteLabel spriteLabel3 = 
+                UIHelper.createSpriteLabel("colored", "custom", 1.5f, com.badlogic.gdx.graphics.Color.CYAN);
+            if (spriteLabel3 != null) {
+                rootTable.add(new Label("Colored:", skin)).right().padRight(10);
+                rootTable.add(spriteLabel3).left().row();
+            }
+            
+            // Demo: Centered sprite label
+            com.chromashift.helper.SpriteLabel spriteLabel4 = 
+                UIHelper.createSpriteLabel("centered", "custom", com.chromashift.helper.SpriteLabel.Align.CENTER);
+            if (spriteLabel4 != null) {
+                spriteLabel4.setWidth(200);
+                rootTable.add(new Label("Centered:", skin)).right().padRight(10);
+                rootTable.add(spriteLabel4).width(200).left().row();
+            }
+            
+        } catch (Exception e) {
+            Label errorLabel = new Label("(Sprite font not available)", skin);
+            errorLabel.setColor(com.badlogic.gdx.graphics.Color.GRAY);
+            rootTable.add(errorLabel).colspan(2).row();
+        }
+        
         // ===== EXIT BUTTON =====
-        TextButton exitBtn = UIHelper.createButton("Exit Game", skin, new ClickListener() {
+        Actor exitBtn = UIHelper.createButton("Exit Game", skin, new ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 System.out.println("Exiting game...");

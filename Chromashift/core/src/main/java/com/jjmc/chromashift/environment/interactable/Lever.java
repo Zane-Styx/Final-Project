@@ -16,6 +16,7 @@ public class Lever implements Interactable {
     private boolean playerNearby = false;
     private boolean horizontal = false;
     private com.chromashift.helper.SpriteAnimator anim;
+    private String id;
 
     public Lever(float x, float y, float w, float h) {
         this(x, y, w, h, false, null);
@@ -54,6 +55,14 @@ public class Lever implements Interactable {
     public void setTarget(Interactable target) {
         if (target == null) return;
         if (!this.targets.contains(target)) this.targets.add(target);
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getId() {
+        return id;
     }
 
     @Override

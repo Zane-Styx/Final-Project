@@ -28,6 +28,7 @@ import com.jjmc.chromashift.environment.interactable.Laser;
 import com.jjmc.chromashift.environment.interactable.Mirror;
 import com.jjmc.chromashift.environment.interactable.Glass;
 import com.jjmc.chromashift.environment.interactable.LockedDoor;
+import com.jjmc.chromashift.environment.interactable.Portal;
 import com.jjmc.chromashift.screens.Initialize;
 import com.jjmc.chromashift.entity.boss.BossInstance;
 
@@ -53,6 +54,158 @@ public class LevelMakerScreen implements Screen {
 	private ShapeRenderer shape;
 	private BitmapFont font;
 
+	public LevelMakerScreen() {
+		try {
+			font = new BitmapFont(Gdx.files.internal("ui/default.fnt"));
+		} catch (Exception e) {
+			font = new BitmapFont(); // Fallback
+		}
+	}
+
+	// =====================================================================
+	// PORTAL LINK HELPERS
+	// =====================================================================
+
+	private Array<String> collectTriggerIds() {
+		Array<String> ids = new Array<>();
+		if (state == null || state.interactables == null)
+			return ids;
+		for (LevelIO.LevelState.InteractableData idd : state.interactables) {
+			if (idd == null || idd.id == null || idd.id.isEmpty())
+				continue;
+			String t = idd.type == null ? "" : idd.type.toLowerCase();
+			if ("lever".equals(t) || "button".equals(t)) {
+				ids.add(idd.id);
+			}
+		}
+		return ids;
+	}
+
+	private String cycleTriggerId(String current, Array<String> ids, int delta) {
+		if (ids == null || ids.size == 0)
+			return null;
+		int idx = current == null ? -1 : ids.indexOf(current, false);
+		if (idx < 0)
+			idx = 0;
+		idx = (idx + delta) % ids.size;
+		if (idx < 0)
+			idx += ids.size;
+		return ids.get(idx);
+	}
+
+	private LevelIO.LevelState.InteractableData findLastPortalData() {
+		if (state == null || state.interactables == null)
+			return null;
+		for (int i = state.interactables.size - 1; i >= 0; --i) {
+			LevelIO.LevelState.InteractableData idd = state.interactables.get(i);
+			if (idd != null && "portal".equalsIgnoreCase(String.valueOf(idd.type)))
+				return idd;
+		}
+		return null;
+	}
+
+	private Portal findRuntimePortal(float cx, float cy) {
+		if (interactableInstances == null)
+			return null;
+		for (int i = interactableInstances.size - 1; i >= 0; --i) {
+			Interactable it = interactableInstances.get(i);
+			if (it instanceof Portal p) {
+				Rectangle b = p.getBounds();
+				if (b != null) {
+					float pcx = b.x + b.width / 2f;
+					float pcy = b.y + b.height / 2f;
+					if (Math.abs(pcx - cx) < 5f && Math.abs(pcy - cy) < 5f)
+						return p;
+				}
+			}
+		}
+		return null;
+	}
+
+	private Lever findLeverById(String id) {
+		if (id == null || interactableInstances == null)
+			return null;
+		for (int i = 0; i < interactableInstances.size; i++) {
+			Interactable it = interactableInstances.get(i);
+			if (it instanceof Lever l && id.equals(l.getId()))
+				return l;
+		}
+		return null;
+	}
+
+	private Button findButtonById(String id) {
+		if (id == null || interactableInstances == null)
+			return null;
+		for (int i = 0; i < interactableInstances.size; i++) {
+			Interactable it = interactableInstances.get(i);
+			if (it instanceof Button b && id.equals(b.getId()))
+				return b;
+		}
+		return null;
+	}
+
+	private void wirePortalRuntimeLinks(Portal portal, String id1, String id2) {
+		if (portal == null)
+			return;
+		if (id1 != null) {
+			Lever lev = findLeverById(id1);
+			if (lev != null) {
+				lev.setOnToggle(() -> portal.setLeverActive(id1, lev.isOn()));
+				portal.setLeverActive(id1, lev.isOn());
+			}
+			Button btn = findButtonById(id1);
+			if (btn != null) {
+				btn.addPressListener((bid, pressed) -> portal.setLeverActive(bid, pressed));
+				portal.setLeverActive(id1, btn.isPressed());
+			}
+		}
+		if (id2 != null) {
+			Lever lev = findLeverById(id2);
+			if (lev != null) {
+				lev.setOnToggle(() -> portal.setLeverActive(id2, lev.isOn()));
+				portal.setLeverActive(id2, lev.isOn());
+			}
+			Button btn = findButtonById(id2);
+			if (btn != null) {
+				btn.addPressListener((bid, pressed) -> portal.setLeverActive(bid, pressed));
+				portal.setLeverActive(id2, btn.isPressed());
+			}
+		}
+	}
+
+	private void wireTriggersToExistingPortals(String triggerId) {
+		if (triggerId == null || interactableInstances == null)
+			return;
+		for (int i = 0; i < interactableInstances.size; i++) {
+			Interactable it = interactableInstances.get(i);
+			if (it instanceof Portal p) {
+				String l1 = p.getRequiredLeverId1();
+				String l2 = p.getRequiredLeverId2();
+				if (triggerId.equals(l1) || triggerId.equals(l2)) {
+					wirePortalRuntimeLinks(p, l1, l2);
+				}
+			}
+		}
+	}
+
+	private void applyPortalLinks(String id1, String id2) {
+		LevelIO.LevelState.InteractableData pd = findLastPortalData();
+		if (pd == null)
+			return;
+		if (id1 != null) {
+			pd.lever1Id = id1;
+		}
+		if (id2 != null)
+			pd.lever2Id = id2;
+		Portal runtime = findRuntimePortal(pd.x, pd.y);
+		if (runtime != null) {
+			runtime.setLinkedLeverIds(pd.lever1Id, pd.lever2Id);
+			runtime.setLeverStates(pd.lever1Id == null || pd.lever1Id.isEmpty(),
+					pd.lever2Id == null || pd.lever2Id.isEmpty());
+			wirePortalRuntimeLinks(runtime, pd.lever1Id, pd.lever2Id);
+		}
+	}
+
 	// UI camera for screen-fixed UI
 	private OrthographicCamera uiCamera;
 
@@ -66,10 +219,12 @@ public class LevelMakerScreen implements Screen {
 	private boolean levelSelected = false;
 
 	private enum ObjectType {
-		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, TARGET, KEY, LOCKED_DOOR, HEALTH_POTION, NONE
+		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, PORTAL, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, TARGET, KEY, LOCKED_DOOR, HEALTH_POTION, NONE
 	}
 
 	private ObjectType selectedType = ObjectType.NONE;
+
+	// Cached helper: last portal ids (read from state each time)
 
 	// preview placement
 	private int previewCols = 1, previewRows = 1;
@@ -334,6 +489,7 @@ public class LevelMakerScreen implements Screen {
 		uiButtons.add(new UIButton(ObjectType.ORB, "Orb"));
 		uiButtons.add(new UIButton(ObjectType.BOSS, "Boss"));
 		uiButtons.add(new UIButton(ObjectType.SPAWN, "Spawn"));
+		uiButtons.add(new UIButton(ObjectType.PORTAL, "Portal"));
 		uiButtons.add(new UIButton(ObjectType.LAUNCHPAD, "Launch"));
 		uiButtons.add(new UIButton(ObjectType.LASER, "Laser"));
 		uiButtons.add(new UIButton(ObjectType.MIRROR, "Mirror"));
@@ -655,6 +811,15 @@ public class LevelMakerScreen implements Screen {
 				previewH = 32f;
 				break;
 			}
+			case PORTAL: {
+				previewW = 225f;
+				previewH = 225f;
+				// center the large preview on the cursor/grid cell instead of anchoring at
+				// bottom-left of the cell
+				worldPreview.x -= (previewW - 32f) * 0.5f;
+				worldPreview.y -= (previewH - 32f) * 0.5f;
+				break;
+			}
 			case LAUNCHPAD: {
 				if (selectedLaunchpadDirection == com.jjmc.chromashift.environment.Launchpad.LaunchDirection.UP) {
 					previewW = 64f;
@@ -716,6 +881,10 @@ public class LevelMakerScreen implements Screen {
 			// center 16x16 glass in the 32x32 grid cell
 			previewWorldRect.set(worldPreview.x + 8f, worldPreview.y + 8f, 16f, 16f);
 		}
+		if (selectedType == ObjectType.PORTAL) {
+			// Ensure preview rect matches the centered offset applied above
+			previewWorldRect.set(worldPreview.x, worldPreview.y, previewW, previewH);
+		}
 		previewBlocked = !isAreaFree(previewWorldRect);
 
 		// draw UI (screen-fixed) using uiCamera
@@ -755,19 +924,17 @@ public class LevelMakerScreen implements Screen {
 				shape.end();
 				shape.begin(ShapeRenderer.ShapeType.Filled);
 			}
+
 			// draw sliders for open/close speed (draw at rect.y so hits match visuals)
 			if (openSpeedSliderRect != null) {
-				// background bar
 				shape.setColor(new Color(0.12f, 0.12f, 0.12f, 1f));
 				shape.rect(openSpeedSliderRect.x, openSpeedSliderRect.y, openSpeedSliderRect.width,
 						openSpeedSliderRect.height);
-				// filled portion
 				float frac = (selectedDoorOpenSpeed - DOOR_SPEED_MIN) / (DOOR_SPEED_MAX - DOOR_SPEED_MIN);
 				frac = Math.max(0f, Math.min(1f, frac));
 				shape.setColor(Color.GREEN);
 				shape.rect(openSpeedSliderRect.x, openSpeedSliderRect.y, openSpeedSliderRect.width * frac,
 						openSpeedSliderRect.height);
-				// thumb
 				float tx = openSpeedSliderRect.x + openSpeedSliderRect.width * frac;
 				shape.setColor(Color.WHITE);
 				shape.rect(tx - 3, openSpeedSliderRect.y - 4, 6, openSpeedSliderRect.height + 8);
@@ -785,6 +952,18 @@ public class LevelMakerScreen implements Screen {
 				shape.setColor(Color.WHITE);
 				shape.rect(tx2 - 3, closeSpeedSliderRect.y - 4, 6, closeSpeedSliderRect.height + 8);
 			}
+		} else if (selectedType == ObjectType.PORTAL) {
+			// Portal linking UI: display current trigger ids and controls
+			batch.begin();
+			LevelIO.LevelState.InteractableData pd = findLastPortalData();
+			String t1 = (pd != null && pd.lever1Id != null) ? pd.lever1Id : "none";
+			String t2 = (pd != null && pd.lever2Id != null) ? pd.lever2Id : "none";
+			font.setColor(Color.WHITE);
+			font.draw(batch, "Portal Link1: " + t1 + " ([ / ])", uiCamera.position.x - 380, uiCamera.position.y + 170);
+			font.draw(batch, "Portal Link2: " + t2 + " (, / .)", uiCamera.position.x - 380, uiCamera.position.y + 150);
+			font.draw(batch, "Links can be lever or button ids (e.g., lever_1, button_1)", uiCamera.position.x - 380,
+					uiCamera.position.y + 130);
+			batch.end();
 		} else if (selectedType == ObjectType.BUTTON) {
 			// button color swatches
 			for (int i = 0; i < buttonColorRects.size; i++) {
@@ -1549,7 +1728,7 @@ public class LevelMakerScreen implements Screen {
 				uiCamera.position.x - 380, uiCamera.position.y + 220);
 		font.draw(batch, String.format(Locale.ROOT, "Editing: %s    Selected: %s", currentLevelPath, selectedType),
 				uiCamera.position.x - 380, uiCamera.position.y + 200);
-		font.draw(batch, "Keys: 1=Wall 2=Door 3=Button 4=Lever 5=Box 6=Orb 7=Boss 8=Spawn 9=Launchpad 0=None",
+		font.draw(batch, "Keys: 1=Wall 2=Door 3=Button 4=Lever 5=Box 6=Orb 7=Boss 8=Spawn 9=Launchpad P=Portal 0=None",
 				uiCamera.position.x - 380, uiCamera.position.y + 180);
 		font.draw(batch,
 				"Arrow Keys: adjust size (Wall/Door). Left click=place. Delete button toggles delete. P=Export. Ctrl+S=Save",
@@ -1655,8 +1834,23 @@ public class LevelMakerScreen implements Screen {
 		if (levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
 			changeLevel("levels/level3.json");
 		}
+		if (levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+			changeLevel("levels/level4.json");
+		}
+		if (levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) {
+			changeLevel("levels/level5.json");
+		}
+		if (levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) {
+			changeLevel("levels/level6.json");
+		}
+		if (levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+			changeLevel("levels/tutorial.json");
+		}
 		if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
 			changeLevel("levels/bossroom.json");
+		}
+		if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
+			changeLevel("levels/bossroom1.json");
 		}
 		// Resize respawn area with independent width/height controls when placing Box
 		// or Orb OR editing selected object
@@ -1772,6 +1966,30 @@ public class LevelMakerScreen implements Screen {
 			changeLevel("levels/tutorial.json");
 		}
 
+		// Portal link cycling: when portal tool is selected, use [ ] for Link1 and , . for Link2
+		if (selectedType == ObjectType.PORTAL) {
+			Array<String> ids = collectTriggerIds();
+			LevelIO.LevelState.InteractableData pd = findLastPortalData();
+			if (ids.size > 0 && pd != null) {
+				if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT_BRACKET)) {
+					String next = cycleTriggerId(pd.lever1Id, ids, -1);
+					applyPortalLinks(next, pd.lever2Id);
+				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT_BRACKET)) {
+					String next = cycleTriggerId(pd.lever1Id, ids, +1);
+					applyPortalLinks(next, pd.lever2Id);
+				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.COMMA)) {
+					String next = cycleTriggerId(pd.lever2Id, ids, -1);
+					applyPortalLinks(pd.lever1Id, next);
+				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.PERIOD)) {
+					String next = cycleTriggerId(pd.lever2Id, ids, +1);
+					applyPortalLinks(pd.lever1Id, next);
+				}
+			}
+		}
+
 		// object selection
 		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_1))
 			selectedType = ObjectType.WALL;
@@ -1793,6 +2011,8 @@ public class LevelMakerScreen implements Screen {
 			selectedType = ObjectType.LAUNCHPAD;
 		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_0))
 			selectedType = ObjectType.NONE;
+		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.P))
+			selectedType = ObjectType.PORTAL;
 
 		// size adjustments for wall/door
 		if (selectedType == ObjectType.WALL || selectedType == ObjectType.DOOR) {
@@ -2064,6 +2284,11 @@ public class LevelMakerScreen implements Screen {
 
 			// 2) If not UI, treat as world placement/linking/delete
 			Vector2 worldPlace = screenCellBottomLeftToWorldGrid();
+			if (selectedType == ObjectType.PORTAL) {
+				// match centered preview offset so placed portal aligns with mouse
+				worldPlace.x -= (225f - 32f) * 0.5f;
+				worldPlace.y -= (225f - 32f) * 0.5f;
+			}
 			int wx = (int) worldPlace.x;
 			int wy = (int) worldPlace.y;
 			Gdx.app.log("LevelMaker",
@@ -2439,6 +2664,18 @@ public class LevelMakerScreen implements Screen {
 							break;
 						}
 					}
+				} else if (it instanceof Portal) {
+					for (int j = 0; j < state.interactables.size; ++j) {
+						LevelIO.LevelState.InteractableData idd = state.interactables.get(j);
+						if (idd != null && "portal".equalsIgnoreCase(String.valueOf(idd.type))) {
+							float cx = ob.x + ob.width / 2f;
+							float cy = ob.y + ob.height / 2f;
+							if (Math.abs(idd.x - cx) < 5f && Math.abs(idd.y - cy) < 5f) {
+								state.interactables.removeIndex(j);
+								break;
+							}
+						}
+					}
 				} else if (it instanceof Box) {
 					for (int j = 0; j < state.boxes.size; ++j) {
 						LevelIO.LevelState.BoxData bd = state.boxes.get(j);
@@ -2743,9 +2980,11 @@ public class LevelMakerScreen implements Screen {
 				idd.targetId = foundDoor;
 				Button b = new Button(gx, baseSolid, foundDoor != null ? findDoorById(foundDoor) : null,
 						selectedButtonColor);
+				b.setId(idd.id);
 				interactableInstances.add(b);
 				solids.add(b);
 				placements.add(new Placement(ObjectType.BUTTON, gx, gy, 1, 1, null));
+				wireTriggersToExistingPortals(idd.id);
 				placed = true;
 				break;
 			}
@@ -2772,6 +3011,7 @@ public class LevelMakerScreen implements Screen {
 				idd.targetId = foundDoor;
 				Lever l = new Lever(gx, gy, 64, 64, selectedLeverHorizontal,
 						foundDoor != null ? findDoorById(foundDoor) : null);
+				l.setId(idd.id);
 				if (foundDoor != null) {
 					String tid = foundDoor;
 					l.setOnToggle(() -> {
@@ -2784,6 +3024,31 @@ public class LevelMakerScreen implements Screen {
 				}
 				interactableInstances.add(l);
 				placements.add(new Placement(ObjectType.LEVER, gx, gy, 1, 1, null));
+				wireTriggersToExistingPortals(idd.id);
+				placed = true;
+				break;
+			}
+			case PORTAL: {
+				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
+				idd.type = "portal";
+				// Store center so runtime Portal aligns its 225x225 sprite
+				float cx = gx + 112.5f;
+				float cy = gy + 112.5f;
+				idd.x = cx;
+				idd.y = cy;
+				idd.portalState = Portal.PortalState.INACTIVE.name();
+				// Default trigger links to first two available lever/button ids, if any
+				Array<String> triggerIds = collectTriggerIds();
+				if (triggerIds.size > 0) idd.lever1Id = triggerIds.get(0);
+				if (triggerIds.size > 1) idd.lever2Id = triggerIds.get(1);
+				state.interactables.add(idd);
+				Portal p = new Portal(cx, cy);
+				p.setLinkedLeverIds(idd.lever1Id, idd.lever2Id);
+				p.setLeverStates(idd.lever1Id == null || idd.lever1Id.isEmpty(),
+						idd.lever2Id == null || idd.lever2Id.isEmpty());
+				wirePortalRuntimeLinks(p, idd.lever1Id, idd.lever2Id);
+				interactableInstances.add(p);
+				placements.add(new Placement(ObjectType.PORTAL, gx, gy, 1, 1, null));
 				placed = true;
 				break;
 			}

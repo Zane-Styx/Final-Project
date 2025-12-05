@@ -104,6 +104,8 @@ public final class LevelLoader {
         if (state == null)
             return out;
 
+        java.util.ArrayList<Portal> portals = new java.util.ArrayList<>();
+
         // Walls first (these are the base Solids)
         if (state.walls != null) {
             for (LevelIO.LevelState.WallData wd : state.walls) {
@@ -225,6 +227,7 @@ public final class LevelLoader {
                             }
                         }
                         Button b = new Button(idd.x, base, targets, col);
+                        if (idd.id != null && !idd.id.isEmpty()) b.setId(idd.id);
                         out.interactables.add(b);
                         out.solids.add(b);
                         // Map button id to runtime instance if id present
@@ -275,6 +278,7 @@ public final class LevelLoader {
                                 ly = base.getBounds().y + base.getBounds().height;
                         }
                         Lever l = new Lever(lx, ly, 16, 36, horizontal, null);
+                        if (idd.id != null && !idd.id.isEmpty()) l.setId(idd.id);
                         for (Door dd : targets)
                             l.setTarget(dd);
                         for (Interactable it : otherTargets)
@@ -284,6 +288,20 @@ public final class LevelLoader {
                         if (idd.id != null && !idd.id.isEmpty()) {
                             out.leverMap.put(idd.id, l);
                         }
+                    }
+                    case "portal" -> {
+                        Portal portal = new Portal(idd.x, idd.y);
+                        portal.setLinkedLeverIds(idd.lever1Id, idd.lever2Id);
+                        // Ensure missing links are treated as active from the start
+                        portal.setLeverStates(idd.lever1Id == null || idd.lever1Id.isEmpty(),
+                                idd.lever2Id == null || idd.lever2Id.isEmpty());
+                        if (idd.portalState != null) {
+                            try {
+                                portal.setState(Portal.PortalState.valueOf(idd.portalState));
+                            } catch (Exception ignored) {}
+                        }
+                        out.interactables.add(portal);
+                        portals.add(portal);
                     }
                     case "target" -> {
                         // Support multiple target ids comma-separated (doors, lasers, mirrors)
@@ -492,6 +510,36 @@ public final class LevelLoader {
                     lr.setMirrors(mlist);
                     lr.setGlasses(glist);
                     lr.setSolids(slist);
+                }
+            }
+        }
+
+        // Wire levers/buttons to portals after all maps are populated
+        for (Portal p : portals) {
+            String l1 = p.getRequiredLeverId1();
+            String l2 = p.getRequiredLeverId2();
+            if (l1 != null) {
+                Lever lev = out.leverMap.get(l1);
+                if (lev != null) {
+                    lev.setOnToggle(() -> p.setLeverActive(l1, lev.isOn()));
+                    p.setLeverActive(l1, lev.isOn());
+                }
+                Button btn = out.buttonMap.get(l1);
+                if (btn != null) {
+                    btn.addPressListener((id, pressed) -> p.setLeverActive(id, pressed));
+                    p.setLeverActive(l1, btn.isPressed());
+                }
+            }
+            if (l2 != null) {
+                Lever lev = out.leverMap.get(l2);
+                if (lev != null) {
+                    lev.setOnToggle(() -> p.setLeverActive(l2, lev.isOn()));
+                    p.setLeverActive(l2, lev.isOn());
+                }
+                Button btn = out.buttonMap.get(l2);
+                if (btn != null) {
+                    btn.addPressListener((id, pressed) -> p.setLeverActive(id, pressed));
+                    p.setLeverActive(l2, btn.isPressed());
                 }
             }
         }

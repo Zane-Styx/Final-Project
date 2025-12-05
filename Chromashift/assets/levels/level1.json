@@ -371,6 +371,28 @@ interactables: [
 		targetId: mirror_1
 		color: GREEN
 	}
+	{
+		type: lever
+		id: lever_2
+		x: 1056
+		y: 416
+		orientation: VERTICAL
+	}
+	{
+		type: lever
+		id: lever_3
+		x: 1088
+		y: 416
+		orientation: VERTICAL
+	}
+	{
+		type: portal
+		x: 1327.5
+		y: 431.5
+		lever1Id: lever_2
+		lever2Id: lever_3
+		portalState: INACTIVE
+	}
 ]
 boxes: [
 	{

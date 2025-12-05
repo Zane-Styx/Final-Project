@@ -1,13 +1,15 @@
 {
 meta: {
-	name: Level2
+	name: levels/bossroom1.json
 	version: 1
 }
-spawn: {}
+spawn: {
+	y: 40
+}
 walls: [
 	{
-		x: 160
-		y: 128
+		x: 288
+		y: 96
 		width: 1
 		height: 1
 	}

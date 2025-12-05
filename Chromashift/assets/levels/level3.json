@@ -1,3 +1,28 @@
 {
-  "meta": { "name": "Level3", "version": 1 }
+meta: {
+	name: Level3
+	version: 1
+}
+spawn: {}
+walls: [
+	{
+		x: 192
+		y: 128
+		width: 1
+		height: 1
+	}
+]
+interactables: []
+boxes: []
+orbs: []
+launchpads: []
+lasers: []
+mirrors: []
+glasses: []
+diamonds: []
+shops: []
+tentacles: []
+keys: []
+lockedDoors: []
+healthPotions: []
 }

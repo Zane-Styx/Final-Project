@@ -4,13 +4,13 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.chromashift.helper.SpriteFont;
+import com.chromashift.helper.SpriteFontManager;
 import com.jjmc.chromashift.Assets;
 import com.jjmc.chromashift.ChromashiftGame;
 
@@ -30,8 +30,7 @@ public class LoadingScreen implements Screen {
 	// Rendering
 	private SpriteBatch batch;
 	private ShapeRenderer shape;
-	private BitmapFont font;
-	private final GlyphLayout layout = new GlyphLayout(); // reused
+	private SpriteFont font;
 
 	// Fade control
 	// -- Durations (seconds) -- tweak here
@@ -48,7 +47,7 @@ public class LoadingScreen implements Screen {
 	// Title / letters
 	private String titleText = "CHROMASHIFT"; // Game name;
 	// Title font styling -- tweak here
-	private float titleFontScale = 3.0f;   // make title bigger
+	private float titleFontScale = 6.0f;   // make title bigger
 	private boolean titleBold = true;      // simulate bold by multi-pass draws
 	private float boldOffsetPx = 1.2f;     // bold thickness in pixels
 	// -- Anim tuning -- tweak here
@@ -103,8 +102,17 @@ public class LoadingScreen implements Screen {
 	public void show() {
 		batch = new SpriteBatch();
 		shape = new ShapeRenderer();
-		font = new BitmapFont(); // If you have a branded font in Assets, swap it here
-
+		
+		// Load sprite font
+		try {
+			if (!SpriteFontManager.isLoaded("loading")) {
+				SpriteFontManager.load("loading", "ui/ctm.uiskin.png");
+			}
+			font = SpriteFontManager.get("loading");
+		} catch (Exception e) {
+			Gdx.app.error("LoadingScreen", "Failed to load sprite font", e);
+			font = null;
+		}
 		// Do NOT queue assets yet; wait until fade-in finishes per new requirement.
 
 		buildLettersLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -118,19 +126,16 @@ public class LoadingScreen implements Screen {
 
 	private void buildLettersLayout(int screenW, int screenH) {
 		letters.clear();
+		
+		if (font == null) return;
 
-		// Apply font scale before measuring so layout sizes are correct
-		font.getData().setScale(titleFontScale);
-
-		// Measure total width for centering
+		// Measure total width for centering (using SpriteFont)
 		float totalWidth = 0f;
-		float maxHeight = 0f;
+		float charHeight = font.getHeight(titleFontScale);
 		for (int i = 0; i < titleText.length(); i++) {
 			char c = titleText.charAt(i);
-			layout.setText(font, String.valueOf(c));
-			totalWidth += layout.width;
+			totalWidth += font.getWidth(String.valueOf(c), titleFontScale);
 			if (i < titleText.length() - 1) totalWidth += letterExtraSpacing;
-			if (layout.height > maxHeight) maxHeight = layout.height;
 		}
 
 		float startX = (screenW - totalWidth) / 2f;
@@ -139,9 +144,8 @@ public class LoadingScreen implements Screen {
 		float x = startX;
 		for (int i = 0; i < titleText.length(); i++) {
 			char c = titleText.charAt(i);
-			layout.setText(font, String.valueOf(c));
-			float w = layout.width;
-			float h = layout.height;
+			float w = font.getWidth(String.valueOf(c), titleFontScale);
+			float h = charHeight;
 
 			Letter L = new Letter();
 			L.ch = c;
@@ -312,24 +316,24 @@ public class LoadingScreen implements Screen {
 
 	// ---------------- Draw methods ----------------
 	private void drawLetters() {
-		// Ensure correct scale during draw
-		font.getData().setScale(titleFontScale);
+		if (font == null) return;
+		
 		font.setColor(Color.WHITE);
 		for (int i = 0; i < letters.size; i++) {
 			Letter L = letters.get(i);
-			layout.setText(font, String.valueOf(L.ch));
+			String charStr = String.valueOf(L.ch);
 			// Draw baseline-aligned text at L.pos (treat as bottom-left for simplicity)
 			float drawX = L.pos.x;
-			float drawY = L.pos.y + layout.height;
+			float drawY = L.pos.y;
 			if (titleBold) {
 				// Simple faux-bold by drawing around the center in 4 directions
 				float o = boldOffsetPx;
-				font.draw(batch, layout, drawX - o, drawY);
-				font.draw(batch, layout, drawX + o, drawY);
-				font.draw(batch, layout, drawX, drawY - o);
-				font.draw(batch, layout, drawX, drawY + o);
+				font.draw(batch, charStr, drawX - o, drawY, titleFontScale);
+				font.draw(batch, charStr, drawX + o, drawY, titleFontScale);
+				font.draw(batch, charStr, drawX, drawY - o, titleFontScale);
+				font.draw(batch, charStr, drawX, drawY + o, titleFontScale);
 			}
-			font.draw(batch, layout, drawX, drawY);
+			font.draw(batch, charStr, drawX, drawY, titleFontScale);
 		}
 	}
 
@@ -391,7 +395,7 @@ public class LoadingScreen implements Screen {
 	public void dispose() {
 		if (batch != null) batch.dispose();
 		if (shape != null) shape.dispose();
-		if (font != null) font.dispose();
+		// SpriteFont is managed by SpriteFontManager, don't dispose directly
 	}
 }
 

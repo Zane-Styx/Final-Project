@@ -41,6 +41,7 @@ public class TestSceneScreen implements Screen {
     private SpriteBatch batch;
     private ShapeRenderer shape;
     private BitmapFont font;
+
     public Player player;
     private BossInstance boss;
     private Initialize.Context ctx;
@@ -82,6 +83,11 @@ public class TestSceneScreen implements Screen {
     // Constructor with default level (NEW GAME - always load original)
     public TestSceneScreen() {
         this("levels/level1.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+        try {
+            font = new BitmapFont(Gdx.files.internal("ui/default.fnt"));
+        } catch (Exception e) {
+            font = new BitmapFont(); // Fallback
+        }
     }
 
     // Constructor with custom level path (NEW GAME - always load original)
@@ -89,7 +95,7 @@ public class TestSceneScreen implements Screen {
         this(levelPath, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
     }
 
-    // Constructor with custom level path and load mode (for CONTINUE)
+    // Constructor with custom level path andx load mode (for CONTINUE)
     public TestSceneScreen(String levelPath, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode mode) {
         this.currentLevelPath = levelPath;
         this.loadMode = mode;
@@ -202,6 +208,13 @@ public class TestSceneScreen implements Screen {
             enemies.add(t);
         }
         player.setEnemies(enemies);
+        
+        // Wire portal callbacks for level progression
+        for (int i = 0; i < interactables.size; i++) {
+            if (interactables.get(i) instanceof com.jjmc.chromashift.environment.interactable.Portal portal) {
+                portal.setOnPlayerEnter(() -> advanceToNextLevel());
+            }
+        }
     }
 
     @Override
@@ -642,6 +655,80 @@ public class TestSceneScreen implements Screen {
     private float orient(com.badlogic.gdx.math.Vector2 a, com.badlogic.gdx.math.Vector2 b,
             com.badlogic.gdx.math.Vector2 c) {
         return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+    }
+
+    /**
+     * Level progression logic: determines next level based on current level.
+     * Progression: level1 -> level2 -> level3 -> bossroom -> level4 -> level5 -> level6 -> bossroom
+     */
+    private void advanceToNextLevel() {
+        String nextLevel = getNextLevelPath(currentLevelPath);
+        if (nextLevel == null) {
+            Gdx.app.log("TestSceneScreen", "No next level defined for: " + currentLevelPath);
+            return;
+        }
+        
+        Gdx.app.log("TestSceneScreen", "Advancing from " + currentLevelPath + " to " + nextLevel);
+        
+        // Save current player state and level progress
+        try {
+            com.jjmc.chromashift.player.PlayerIO.PlayerState playerState = 
+                com.jjmc.chromashift.player.PlayerIO.capture(player, nextLevel, visitedLevels);
+            boolean saved = com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", playerState);
+            Gdx.app.log("TestSceneScreen", "Player state saved: " + saved);
+            
+            // Save current level state
+            com.jjmc.chromashift.screens.levels.LevelLoader.Result result = 
+                new com.jjmc.chromashift.screens.levels.LevelLoader.Result();
+            result.walls.addAll(walls);
+            result.solids.addAll(solids);
+            result.interactables.addAll(interactables);
+            result.collectibles.addAll(collectibles);
+            result.boss = boss;
+            result.spawnX = playerSpawnX;
+            result.spawnY = playerSpawnY;
+            
+            boolean levelSaved = com.jjmc.chromashift.screens.levels.GameLevelSave.saveLevelOverrides(
+                currentLevelPath, result);
+            Gdx.app.log("TestSceneScreen", "Level state saved: " + levelSaved);
+        } catch (Exception e) {
+            Gdx.app.log("TestSceneScreen", "Error saving state: " + e.getMessage());
+        }
+        
+        // Transition to next level (load saved state since we just saved)
+        ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(
+            new TestSceneScreen(nextLevel, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS));
+    }
+    
+    /**
+     * Returns the next level path based on current level.
+     * Progression order: level1 -> level2 -> level3 -> bossroom -> level4 -> level5 -> level6 -> bossroom
+     */
+    private String getNextLevelPath(String current) {
+        if (current == null) return null;
+        
+        // Normalize path for comparison
+        String normalized = current.toLowerCase().replace("\\", "/");
+        
+        if (normalized.contains("level1")) return "levels/level2.json";
+        if (normalized.contains("level2")) return "levels/level3.json";
+        if (normalized.contains("level3")) return "levels/bossroom.json";
+        if (normalized.contains("bossroom")) {
+            // Check if we came from level3 or level6
+            if (visitedLevels.contains("levels/level3.json", false) && 
+                !visitedLevels.contains("levels/level4.json", false)) {
+                return "levels/level4.json";
+            } else {
+                // Completed game, could loop or end
+                Gdx.app.log("TestSceneScreen", "Game completed! Returning to menu.");
+                return null; // Or return to menu
+            }
+        }
+        if (normalized.contains("level4")) return "levels/level5.json";
+        if (normalized.contains("level5")) return "levels/level6.json";
+        if (normalized.contains("level6")) return "levels/bossroom1.json";
+        
+        return null;
     }
 
     @Override

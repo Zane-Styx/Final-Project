@@ -1,12 +1,14 @@
 {
 meta: {
-	name: Level2
+	name: levels/level5.json
 	version: 1
 }
-spawn: {}
+spawn: {
+	y: 40
+}
 walls: [
 	{
-		x: 160
+		x: 288
 		y: 128
 		width: 1
 		height: 1

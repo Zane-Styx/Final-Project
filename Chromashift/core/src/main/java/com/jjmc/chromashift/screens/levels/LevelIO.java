@@ -58,6 +58,11 @@ public class LevelIO {
             // Door open/close speeds (units per second). Defaults to 3.0f when not set.
             public float openSpeed = 3f;
             public float closeSpeed = 3f;
+            // Portal links: optional lever ids required to activate the portal
+            public String lever1Id;
+            public String lever2Id;
+            // Portal persisted state, default inactive
+            public String portalState;
         }
 
         public static class BoxData {

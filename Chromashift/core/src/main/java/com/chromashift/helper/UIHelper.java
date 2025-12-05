@@ -1,5 +1,8 @@
 package com.chromashift.helper;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -54,6 +57,16 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 public class UIHelper {
 
     // ========================================================================
+    // SPRITE FONT CONFIGURATION
+    // ========================================================================
+    
+    /** Default sprite font to use for all UI text (if available) */
+    public static final String DEFAULT_SPRITE_FONT = "default";
+    
+    /** Enable sprite fonts by default (set to false to use traditional fonts) */
+    public static boolean USE_SPRITE_FONTS = true;
+
+    // ========================================================================
     // CUSTOMIZATION CONSTANTS
     // Adjust these to change default appearance of UI elements
     // ========================================================================
@@ -67,6 +80,9 @@ public class UIHelper {
     
     /** Default minimum button height */
     public static float BUTTON_MIN_HEIGHT = 40f;
+    
+    /** Default sprite font scale for buttons */
+    public static float SPRITE_FONT_SCALE = 2.0f;
     
     /** Icon size when using sprite buttons */
     public static float ICON_SIZE = 24f;
@@ -88,6 +104,13 @@ public class UIHelper {
     
     /** Color when button is disabled */
     public static com.badlogic.gdx.graphics.Color BUTTON_DISABLED_COLOR = new com.badlogic.gdx.graphics.Color(0.5f, 0.5f, 0.5f, 0.7f);
+    
+    /**
+     * Helper method to check if sprite fonts are available and enabled.
+     */
+    private static boolean spritefontsAvailable() {
+        return USE_SPRITE_FONTS && SpriteFontManager.isLoaded(DEFAULT_SPRITE_FONT);
+    }
 
     // ========================================================================
     // 1. NORMAL BUTTON (TEXT ONLY)
@@ -95,19 +118,26 @@ public class UIHelper {
     
     /**
      * Creates a simple text button with automatic padding and centered text.
+     * Uses sprite font by default if available, falls back to skin font.
      * 
      * @param text The button label text
      * @param skin The UI skin to use for styling
      * @param onClick The click listener (use ClickListener with clicked() method)
-     * @return A ready-to-use TextButton
+     * @return A ready-to-use button (TextButton or sprite-based)
      * 
      * Customization tips:
+     * - Disable sprite fonts: Set UIHelper.USE_SPRITE_FONTS = false
      * - Change button size: result.setWidth()/setHeight() or use .size() in Table
      * - Change padding: Adjust BUTTON_PAD_X and BUTTON_PAD_Y constants
-     * - Change font: Modify the skin's "default-font" or create custom button style
      * - Change colors: Edit skin's button style or use result.setColor()
      */
-    public static TextButton createButton(String text, Skin skin, ClickListener onClick) {
+    public static Actor createButton(String text, Skin skin, ClickListener onClick) {
+        // Use sprite button if available and enabled
+        if (spritefontsAvailable()) {
+            return createSpriteButton(text, DEFAULT_SPRITE_FONT, skin, onClick);
+        }
+        
+        // Fallback to traditional text button
         TextButton button = new TextButton(text, skin);
         
         // Apply default padding
@@ -273,8 +303,13 @@ public class UIHelper {
             buttonTable.add(iconImage).size(ICON_SIZE).padRight(ICON_TEXT_SPACING);
         }
         
-        // Add text label
-        Label label = new Label(text, skin);
+        // Add text label using sprite font if available
+        Actor label;
+        if (spritefontsAvailable()) {
+            label = new SpriteLabel(SpriteFontManager.get(DEFAULT_SPRITE_FONT), text);
+        } else {
+            label = new Label(text, skin);
+        }
         buttonTable.add(label);
         
         // Apply padding
@@ -538,7 +573,7 @@ public class UIHelper {
         rootTable.add(title).colspan(2).padBottom(20).row();
         
         // 1. Simple text button
-        TextButton simpleBtn = createButton("Simple Button", skin, new ClickListener() {
+        Actor simpleBtn = createButton("Simple Button", skin, new ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 System.out.println("Simple button clicked!");
@@ -765,7 +800,12 @@ public class UIHelper {
         Image background = new Image(new TextureRegionDrawable(texture));
         background.setSize(width, height);
         
-        Label label = new Label(text, skin);
+        Actor label;
+        if (spritefontsAvailable()) {
+            label = new SpriteLabel(SpriteFontManager.get(DEFAULT_SPRITE_FONT), text);
+        } else {
+            label = new Label(text, skin);
+        }
         
         // Stack image and label
         com.badlogic.gdx.scenes.scene2d.ui.Stack stack = new com.badlogic.gdx.scenes.scene2d.ui.Stack();
@@ -837,7 +877,12 @@ public class UIHelper {
         Image iconImage = new Image(new TextureRegionDrawable(icon));
         iconImage.setSize(iconSize, iconSize);
         
-        Label label = new Label(text, skin);
+        Actor label;
+        if (spritefontsAvailable()) {
+            label = new SpriteLabel(SpriteFontManager.get(DEFAULT_SPRITE_FONT), text);
+        } else {
+            label = new Label(text, skin);
+        }
         
         iconTable.add(iconImage).size(iconSize).padRight(ICON_TEXT_SPACING);
         iconTable.add(label);
@@ -1077,4 +1122,315 @@ public class UIHelper {
         
         return null;
     }
+
+    // ========================================================================
+    // 15. SPRITE-BASED LABELS (NO .FNT FILES)
+    // ========================================================================
+    
+    /**
+     * Creates a sprite-based label using a registered font.
+     * This uses image-based character rendering instead of .fnt files.
+     * 
+     * @param text The text to display
+     * @param fontName The name of the loaded sprite font (use SpriteFontManager.load first)
+     * @return A SpriteLabel widget ready to add to the stage
+     * 
+     * Example:
+     * SpriteFontManager.load("default", "ui/ctm.uiskin.png");
+     * SpriteLabel label = UIHelper.createSpriteLabel("HELLO WORLD", "default");
+     * table.add(label).pad(10).row();
+     */
+    public static SpriteLabel createSpriteLabel(String text, String fontName) {
+        SpriteFont font = SpriteFontManager.get(fontName);
+        if (font == null) {
+            Gdx.app.error("UIHelper", "Font '" + fontName + "' not loaded. Use SpriteFontManager.load() first.");
+            return null;
+        }
+        return new SpriteLabel(font, text);
+    }
+    
+    /**
+     * Creates a sprite-based label with custom scale.
+     * 
+     * @param text The text to display
+     * @param fontName The name of the loaded sprite font
+     * @param scale Scale factor (1.0 = normal size, 2.0 = double size)
+     * @return A SpriteLabel widget
+     */
+    public static SpriteLabel createSpriteLabel(String text, String fontName, float scale) {
+        SpriteFont font = SpriteFontManager.get(fontName);
+        if (font == null) {
+            Gdx.app.error("UIHelper", "Font '" + fontName + "' not loaded. Use SpriteFontManager.load() first.");
+            return null;
+        }
+        return new SpriteLabel(font, text, scale);
+    }
+    
+    /**
+     * Creates a sprite-based label with custom scale and color.
+     * 
+     * @param text The text to display
+     * @param fontName The name of the loaded sprite font
+     * @param scale Scale factor
+     * @param color Color tint for the text
+     * @return A SpriteLabel widget
+     */
+    public static SpriteLabel createSpriteLabel(String text, String fontName, float scale, Color color) {
+        SpriteLabel label = createSpriteLabel(text, fontName, scale);
+        if (label != null) {
+            label.setColor(color);
+        }
+        return label;
+    }
+    
+    /**
+     * Creates a sprite-based label with alignment.
+     * 
+     * @param text The text to display
+     * @param fontName The name of the loaded sprite font
+     * @param alignment Text alignment (LEFT, CENTER, RIGHT)
+     * @return A SpriteLabel widget
+     */
+    public static SpriteLabel createSpriteLabel(String text, String fontName, SpriteLabel.Align alignment) {
+        SpriteLabel label = createSpriteLabel(text, fontName);
+        if (label != null) {
+            label.setAlignment(alignment);
+        }
+        return label;
+    }
+    
+    /**
+     * Creates a sprite-based label with full customization.
+     * 
+     * @param text The text to display
+     * @param fontName The name of the loaded sprite font
+     * @param scale Scale factor
+     * @param color Color tint
+     * @param alignment Text alignment
+     * @param spacing Character spacing adjustment
+     * @return A SpriteLabel widget
+     */
+    public static SpriteLabel createSpriteLabel(String text, String fontName, float scale, Color color, 
+                                                 SpriteLabel.Align alignment, float spacing) {
+        SpriteLabel label = createSpriteLabel(text, fontName, scale, color);
+        if (label != null) {
+            label.setAlignment(alignment);
+            label.setSpacing(spacing);
+        }
+        return label;
+    }
+
+    // ========================================================================
+    // 16. SPRITE-BASED BUTTONS (IMAGE-BASED FONTS)
+    // ========================================================================
+    
+    /**
+     * Creates a button with sprite-based text rendering (no .fnt files).
+     * Returns a Container with a background drawable and SpriteLabel text.
+     * 
+     * @param text The button label text
+     * @param fontName The name of the loaded sprite font
+     * @param skin The UI skin for button background styling
+     * @param onClick The click listener
+     * @return A Container wrapping a button with sprite text
+     * 
+     * Example:
+     * SpriteFontManager.load("default", "ui/ctm.uiskin.png");
+     * Container btn = UIHelper.createSpriteButton("PLAY", "default", skin, listener);
+     * table.add(btn).width(200).height(50).pad(10).row();
+     */
+    public static com.badlogic.gdx.scenes.scene2d.ui.Button createSpriteButton(String text, String fontName, Skin skin, ClickListener onClick) {
+        SpriteFont font = SpriteFontManager.get(fontName);
+        if (font == null) {
+            Gdx.app.error("UIHelper", "Font '" + fontName + "' not loaded");
+            return null;
+        }
+        
+        // Create button with skin style
+        com.badlogic.gdx.scenes.scene2d.ui.Button button = new com.badlogic.gdx.scenes.scene2d.ui.Button(
+            skin.get(com.badlogic.gdx.scenes.scene2d.ui.Button.ButtonStyle.class)
+        );
+        
+        // Create sprite label for text - scale will be adjusted dynamically
+        final SpriteLabel label = new SpriteLabel(font, text, SPRITE_FONT_SCALE);
+        label.setAlignment(SpriteLabel.Align.CENTER);
+        button.add(label).center().expand().fill();
+        button.pad(BUTTON_PAD_Y, BUTTON_PAD_X, BUTTON_PAD_Y, BUTTON_PAD_X);
+        
+        // Add layout listener to dynamically scale font based on button size
+        button.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
+            @Override
+            public void touchDown(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, int button) {
+                // Calculate optimal scale based on button dimensions
+                float availableWidth = label.getWidth() - (BUTTON_PAD_X * 2);
+                float availableHeight = label.getHeight() - (BUTTON_PAD_Y * 2);
+                
+                float textWidth = font.getWidth(text, 1f);
+                float textHeight = font.getHeight(1f);
+                
+                if (textWidth > 0 && textHeight > 0) {
+                    float scaleX = availableWidth / textWidth;
+                    float scaleY = availableHeight / textHeight;
+                    float optimalScale = Math.min(scaleX, scaleY) * 0.8f; // 80% to leave some margin
+                    
+                    if (optimalScale > 0.1f && optimalScale != label.getScale()) {
+                        label.setScale(optimalScale);
+                    }
+                }
+            }
+        });
+        
+        // Attach click listener with sound
+        if (onClick != null) {
+            button.addListener(new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    onClick.clicked(event, x, y);
+                }
+            });
+        }
+        
+        return button;
+    }
+    
+    // ========================================================================
+    // 17. SPRITE BUTTON WITH MANUAL FONT SIZE CONTROL
+    // ========================================================================
+    
+    /**
+     * Creates a sprite button with manual font size control.
+     * 
+     * @param text The button label text
+     * @param fontName The name of the loaded sprite font
+     * @param fontScale The font scale (size) - use positive values for fixed size, 0 or negative for auto-scale
+     * @param skin The UI skin for button background styling
+     * @param onClick The click listener
+     * @return A Button with sprite font text at specified size
+     */
+    public static com.badlogic.gdx.scenes.scene2d.ui.Button createSpriteButton(String text, String fontName, float fontScale, Skin skin, ClickListener onClick) {
+        SpriteFont font = SpriteFontManager.get(fontName);
+        if (font == null) {
+            Gdx.app.error("UIHelper", "Font '" + fontName + "' not loaded");
+            return null;
+        }
+        
+        // Create button with skin style
+        com.badlogic.gdx.scenes.scene2d.ui.Button button = new com.badlogic.gdx.scenes.scene2d.ui.Button(
+            skin.get(com.badlogic.gdx.scenes.scene2d.ui.Button.ButtonStyle.class)
+        );
+        
+        // Create sprite label with specified font scale
+        final SpriteLabel label = new SpriteLabel(font, text, fontScale > 0 ? fontScale : SPRITE_FONT_SCALE);
+        final boolean autoscale = fontScale <= 0;
+        label.setAlignment(SpriteLabel.Align.CENTER);
+        button.add(label).center().expand().fill();
+        button.pad(BUTTON_PAD_Y, BUTTON_PAD_X, BUTTON_PAD_Y, BUTTON_PAD_X);
+        
+        // Add layout listener for dynamic scaling if fontScale <= 0
+        if (autoscale) {
+            button.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
+                @Override
+                public void touchDown(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, int button) {
+                    float availableWidth = label.getWidth() - (BUTTON_PAD_X * 2);
+                    float availableHeight = label.getHeight() - (BUTTON_PAD_Y * 2);
+                    
+                    float textWidth = font.getWidth(text, 1f);
+                    float textHeight = font.getHeight(1f);
+                    
+                    if (textWidth > 0 && textHeight > 0) {
+                        float scaleX = availableWidth / textWidth;
+                        float scaleY = availableHeight / textHeight;
+                        float optimalScale = Math.min(scaleX, scaleY) * 0.8f;
+                        
+                        if (optimalScale > 0.1f && optimalScale != label.getScale()) {
+                            label.setScale(optimalScale);
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Attach click listener with sound
+        if (onClick != null) {
+            button.addListener(new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    onClick.clicked(event, x, y);
+                }
+            });
+        }
+        
+        return button;
+    }
+    
+    /**
+     * Creates a sprite button using the default sprite font, default scale and white color.
+     * This overload avoids requiring callers to provide font name, scale or color.
+     * 
+     * @param text The button label text
+     * @param skin The UI skin for button background styling
+     * @param onClick The click listener
+     * @return A Button with sprite font text using defaults
+     */
+    public static com.badlogic.gdx.scenes.scene2d.ui.Button createSpriteButton(String text, Skin skin, ClickListener onClick) {
+        // Use the default sprite font name and default scale/color
+        SpriteFont font = SpriteFontManager.get(DEFAULT_SPRITE_FONT);
+        if (font == null) {
+            Gdx.app.error("UIHelper", "Font '" + DEFAULT_SPRITE_FONT + "' not loaded");
+            return null;
+        }
+        
+        // Create button with skin style
+        com.badlogic.gdx.scenes.scene2d.ui.Button button = new com.badlogic.gdx.scenes.scene2d.ui.Button(
+            skin.get(com.badlogic.gdx.scenes.scene2d.ui.Button.ButtonStyle.class)
+        );
+        
+        // Create sprite label with default font scale and white color
+        final SpriteLabel label = new SpriteLabel(font, text, SPRITE_FONT_SCALE);
+        final boolean autoscale = true; // autoscale by default for this overload
+        label.setColor(Color.WHITE);
+        label.setAlignment(SpriteLabel.Align.CENTER);
+        button.add(label).center().expand().fill();
+        button.pad(BUTTON_PAD_Y, BUTTON_PAD_X, BUTTON_PAD_Y, BUTTON_PAD_X);
+        
+        // Add layout listener for dynamic scaling
+        if (autoscale) {
+            button.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
+                @Override
+                public void touchDown(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, int button) {
+                    float availableWidth = label.getWidth() - (BUTTON_PAD_X * 2);
+                    float availableHeight = label.getHeight() - (BUTTON_PAD_Y * 2);
+                    
+                    float textWidth = font.getWidth(text, 1f);
+                    float textHeight = font.getHeight(1f);
+                    
+                    if (textWidth > 0 && textHeight > 0) {
+                        float scaleX = availableWidth / textWidth;
+                        float scaleY = availableHeight / textHeight;
+                        float optimalScale = Math.min(scaleX, scaleY) * 0.8f;
+                        
+                        if (optimalScale > 0.1f && optimalScale != label.getScale()) {
+                            label.setScale(optimalScale);
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Attach click listener with sound
+        if (onClick != null) {
+            button.addListener(new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    onClick.clicked(event, x, y);
+                }
+            });
+        }
+        
+        return button;
+    }
 }
+

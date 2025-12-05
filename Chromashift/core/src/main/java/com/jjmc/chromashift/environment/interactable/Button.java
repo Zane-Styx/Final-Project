@@ -9,6 +9,10 @@ import com.chromashift.helper.SpriteAnimator;
 import com.chromashift.helper.SoundManager;
 import com.jjmc.chromashift.environment.Solid;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
+
 public class Button implements Interactable, Solid {
     public enum ButtonColor {
         RED(0),
@@ -29,12 +33,14 @@ public class Button implements Interactable, Solid {
     }
 
     private final Rectangle bounds;
+    private String id;
     private final Door linkedDoor; // legacy single target (keep for compatibility)
     private final Array<Door> linkedDoors = new Array<>();
     private final Array<Interactable> linkedInteractables = new Array<>();
     private boolean pressed;
     private final SpriteAnimator anim;
     private final ButtonColor color;
+    private List<BiConsumer<String, Boolean>> pressListeners;
     private static final float BUTTON_WIDTH = 64f;
     private static final float BUTTON_HEIGHT = 32f;
     // two hitboxes centered within the button area
@@ -83,6 +89,7 @@ public class Button implements Interactable, Solid {
     float actX = cx - actW * 0.5f;
     float actY = solidY + solidH; // directly above solid
     this.activationBounds = new Rectangle(actX, actY, actW, actH);
+        this.pressListeners = new ArrayList<>();
     }
 
     // New: multi-target constructor
@@ -99,6 +106,16 @@ public class Button implements Interactable, Solid {
     public void addLinkedInteractable(Interactable it) {
         if (it == null) return;
         if (!linkedInteractables.contains(it, true)) linkedInteractables.add(it);
+    }
+
+    public void setId(String id) { this.id = id; }
+    public String getId() { return id; }
+
+    /** Register a callback notified when pressed state toggles. */
+    public void addPressListener(BiConsumer<String, Boolean> listener) {
+        if (listener == null) return;
+        if (pressListeners == null) pressListeners = new ArrayList<>();
+        pressListeners.add(listener);
     }
 
     public void update(float delta, Rectangle playerHitbox, Array<Rectangle> objectBounds) {
@@ -131,6 +148,9 @@ public class Button implements Interactable, Solid {
                 for (Interactable it : linkedInteractables) if (it != null) it.interact();
                 // Play button sound
                 SoundManager.play("Button");
+            }
+            if (pressListeners != null) {
+                for (BiConsumer<String, Boolean> cb : pressListeners) if (cb != null) cb.accept(id, pressed);
             }
         }
         anim.update(delta);
