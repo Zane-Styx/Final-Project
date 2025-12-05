@@ -102,19 +102,19 @@ public class Tentacle implements Enemy {
         thickness = new float[segments];
         suctionScale = new float[segments];
 
-        // Init segments hanging down
+        // Initialize all segments hanging downward
         segmentHitboxes = new com.badlogic.gdx.math.Circle[segments];
         for (int i = 0; i < segments; i++) {
             pos[i] = new Vector2(anchor.x, anchor.y - i * segmentLength);
             vel[i] = new Vector2();
 
-            // Thick at base → thin at tip
+            // Thickness: thick at base (i=0) → thin at tip (i=segments-1)
             float t = 1f - (i / (float) segments);
             thickness[i] = 6f + t * 16f;
 
             suctionScale[i] = 1f; // default scale
             
-            // Segment hitbox
+            // Create hitbox for each segment
             segmentHitboxes[i] = new com.badlogic.gdx.math.Circle(pos[i].x, pos[i].y, thickness[i] / 2f);
         }
     }

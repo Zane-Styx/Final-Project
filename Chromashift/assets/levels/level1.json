@@ -381,12 +381,7 @@ boxes: [
 		areaH: 400
 	}
 ]
-orbs: [
-	{
-		x: 196
-		y: 324
-	}
-]
+orbs: []
 launchpads: [
 	{
 		x: 1088
@@ -564,14 +559,20 @@ shops: [
 ]
 tentacles: [
 	{
-		x: 224
-		y: 480
-		segments: 10
+		x: 1312
+		y: 672
 	}
 	{
-		x: 224
-		y: 480
-		segments: 10
+		x: 1504
+		y: 672
+	}
+	{
+		x: 1696
+		y: 672
+	}
+	{
+		x: 1696
+		y: 672
 	}
 ]
 keys: [

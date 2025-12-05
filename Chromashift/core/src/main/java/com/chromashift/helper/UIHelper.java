@@ -82,6 +82,12 @@ public class UIHelper {
     
     /** Toggle switch text when OFF */
     public static String TOGGLE_OFF_TEXT = "OFF";
+    
+    /** Color when button is hovered */
+    public static com.badlogic.gdx.graphics.Color BUTTON_HOVER_COLOR = new com.badlogic.gdx.graphics.Color(1.2f, 1.2f, 1.2f, 1f);
+    
+    /** Color when button is disabled */
+    public static com.badlogic.gdx.graphics.Color BUTTON_DISABLED_COLOR = new com.badlogic.gdx.graphics.Color(0.5f, 0.5f, 0.5f, 0.7f);
 
     // ========================================================================
     // 1. NORMAL BUTTON (TEXT ONLY)
@@ -125,7 +131,117 @@ public class UIHelper {
     }
 
     // ========================================================================
-    // 2. BUTTON WITH SPRITE/ICON
+    // 1B. BUTTON WITH HOVER AND DISABLED STATES
+    // ========================================================================
+    
+    /**
+     * Creates a text button with hover effects and disable support.
+     * Brightens on hover, dims when disabled.
+     * 
+     * @param text The button label text
+     * @param skin The UI skin to use for styling
+     * @param onClick The click listener (use ClickListener with clicked() method)
+     * @return A ready-to-use TextButton with hover/disabled support
+     * 
+     * Customization tips:
+     * - Change hover color: Adjust BUTTON_HOVER_COLOR constant
+     * - Change disabled color: Adjust BUTTON_DISABLED_COLOR constant
+     * - Disable button: Call setButtonDisabled(button, true)
+     * - Enable button: Call setButtonDisabled(button, false)
+     * - Check if disabled: button.isDisabled()
+     */
+    public static TextButton createHoverButton(String text, Skin skin, ClickListener onClick) {
+        TextButton button = new TextButton(text, skin);
+        
+        // Apply default padding and size
+        button.pad(BUTTON_PAD_Y, BUTTON_PAD_X, BUTTON_PAD_Y, BUTTON_PAD_X);
+        button.setSize(BUTTON_MIN_WIDTH, BUTTON_MIN_HEIGHT);
+        
+        // Store original color
+        final com.badlogic.gdx.graphics.Color originalColor = button.getColor().cpy();
+        
+        // Add hover and click listeners
+        button.addListener(new ClickListener() {
+            @Override
+            public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                if (!button.isDisabled()) {
+                    button.setColor(BUTTON_HOVER_COLOR);
+                }
+            }
+            
+            @Override
+            public void exit(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor toActor) {
+                if (!button.isDisabled()) {
+                    button.setColor(originalColor);
+                }
+            }
+            
+            @Override
+            public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                if (!button.isDisabled()) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    if (onClick != null) {
+                        onClick.clicked(event, x, y);
+                    }
+                }
+            }
+        });
+        
+        return button;
+    }
+
+    // ========================================================================
+    // 1C. DISABLE/ENABLE BUTTON UTILITY
+    // ========================================================================
+    
+    /**
+     * Set a button's disabled state with visual feedback.
+     * When disabled: button dims and becomes unclickable.
+     * When enabled: button returns to normal appearance and is clickable.
+     * 
+     * @param button The TextButton to modify
+     * @param disabled True to disable, false to enable
+     * 
+     * Usage:
+     * <pre>
+     * TextButton btn = createHoverButton("Submit", skin, onClick);
+     * setButtonDisabled(btn, true);  // Disable
+     * setButtonDisabled(btn, false); // Enable
+     * </pre>
+     */
+    public static void setButtonDisabled(TextButton button, boolean disabled) {
+        if (button == null) return;
+        
+        button.setDisabled(disabled);
+        
+        if (disabled) {
+            button.setColor(BUTTON_DISABLED_COLOR);
+        } else {
+            button.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    /**
+     * Set a button's disabled state with visual feedback (Container<Table> variant).
+     * Use with buttons created by createButton(text, icon, skin, onClick).
+     * 
+     * @param buttonContainer The Container<Table> button to modify
+     * @param disabled True to disable, false to enable
+     */
+    public static void setButtonDisabled(Container<Table> buttonContainer, boolean disabled) {
+        if (buttonContainer == null || buttonContainer.getActor() == null) return;
+        
+        Table table = buttonContainer.getActor();
+        
+        if (disabled) {
+            table.setColor(BUTTON_DISABLED_COLOR);
+        } else {
+            table.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // ========================================================================
+    // 3. BUTTON WITH SPRITE/ICON
     // ========================================================================
     
     /**
@@ -183,7 +299,7 @@ public class UIHelper {
     }
 
     // ========================================================================
-    // 3. SLIDER
+    // 4. SLIDER
     // ========================================================================
     
     /**
@@ -230,7 +346,7 @@ public class UIHelper {
     }
 
     // ========================================================================
-    // 4. TOGGLE SWITCH (TEXT: ON/OFF)
+    // 5. TOGGLE SWITCH (TEXT: ON/OFF)
     // ========================================================================
     
     /**
@@ -273,7 +389,7 @@ public class UIHelper {
     }
 
     // ========================================================================
-    // 5. TOGGLE SWITCH (WITH SPRITE/ICON)
+    // 6. TOGGLE SWITCH (WITH SPRITE/ICON)
     // ========================================================================
     
     /**
@@ -486,5 +602,479 @@ public class UIHelper {
         
         // Add root table to stage
         stage.addActor(rootTable);
+    }
+
+    // ========================================================================
+    // 7. IMAGE ELEMENT (SIMPLE IMAGE DISPLAY)
+    // ========================================================================
+    
+    /**
+     * Creates a simple image display element.
+     * 
+     * @param texture The texture region to display
+     * @param width The width of the image
+     * @param height The height of the image
+     * @return An Image actor ready to add to a Stage or Table
+     * 
+     * Customization tips:
+     * - Scale: Use image.scaleBy(float) or setSize(width, height)
+     * - Rotation: image.setRotation(degrees)
+     * - Color tint: image.setColor(Color.RED) or image.setColor(r, g, b, a)
+     * - Alignment: Use Table alignment when adding to table
+     */
+    public static Image createImage(TextureRegion texture, float width, float height) {
+        if (texture == null) {
+            return new Image();
+        }
+        
+        Image image = new Image(new TextureRegionDrawable(texture));
+        image.setSize(width, height);
+        
+        return image;
+    }
+
+    /**
+     * Creates a clickable image button (no text, just image).
+     * 
+     * @param texture The texture region for the button
+     * @param width The width of the button
+     * @param height The height of the button
+     * @param onClick The click listener
+     * @return A Container wrapping the clickable image
+     * 
+     * Customization tips:
+     * - Add hover effect: Use createImageHoverButton() instead
+     * - Add text overlay: Add a Label to the Table
+     * - Scale on click: Use Actions in onClick listener
+     */
+    public static Container<Table> createImageButton(TextureRegion texture, float width, float height, ClickListener onClick) {
+        Table buttonTable = new Table();
+        
+        Image image = new Image(new TextureRegionDrawable(texture));
+        image.setSize(width, height);
+        
+        buttonTable.add(image).size(width, height);
+        
+        if (onClick != null) {
+            buttonTable.addListener(new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    onClick.clicked(event, x, y);
+                }
+            });
+        }
+        
+        Container<Table> container = new Container<>(buttonTable);
+        container.setSize(width, height);
+        
+        return container;
+    }
+
+    /**
+     * Creates a clickable image button with hover effect.
+     * Image brightens on hover, dims when disabled.
+     * 
+     * @param texture The texture region for the button
+     * @param width The width of the button
+     * @param height The height of the button
+     * @param onClick The click listener
+     * @return A Container wrapping the image button with hover support
+     * 
+     * Customization tips:
+     * - Change hover color: Adjust BUTTON_HOVER_COLOR
+     * - Change disabled color: Adjust BUTTON_DISABLED_COLOR
+     * - Disable button: Call setImageButtonDisabled(container, true)
+     */
+    public static Container<Table> createImageHoverButton(TextureRegion texture, float width, float height, ClickListener onClick) {
+        Table buttonTable = new Table();
+        
+        Image image = new Image(new TextureRegionDrawable(texture));
+        image.setSize(width, height);
+        buttonTable.add(image).size(width, height);
+        
+        final com.badlogic.gdx.graphics.Color originalColor = image.getColor().cpy();
+        
+        buttonTable.addListener(new ClickListener() {
+            @Override
+            public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                image.setColor(BUTTON_HOVER_COLOR);
+            }
+            
+            @Override
+            public void exit(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor toActor) {
+                image.setColor(originalColor);
+            }
+            
+            @Override
+            public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                com.chromashift.helper.SoundManager.play("UISelect");
+                if (onClick != null) {
+                    onClick.clicked(event, x, y);
+                }
+            }
+        });
+        
+        Container<Table> container = new Container<>(buttonTable);
+        container.setSize(width, height);
+        
+        return container;
+    }
+
+    /**
+     * Disable or enable an image button created with createImageButton or createImageHoverButton.
+     * 
+     * @param imageButtonContainer The container returned by createImageButton/createImageHoverButton
+     * @param disabled True to disable, false to enable
+     */
+    public static void setImageButtonDisabled(Container<Table> imageButtonContainer, boolean disabled) {
+        if (imageButtonContainer == null || imageButtonContainer.getActor() == null) return;
+        
+        Table table = imageButtonContainer.getActor();
+        
+        if (disabled) {
+            table.setColor(BUTTON_DISABLED_COLOR);
+        } else {
+            table.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // ========================================================================
+    // 8. IMAGE LABEL (IMAGE WITH TEXT OVERLAY)
+    // ========================================================================
+    
+    /**
+     * Creates an image with text overlay.
+     * Text is centered on the image.
+     * 
+     * @param texture The background texture region
+     * @param text The text to display over the image
+     * @param width The width of the element
+     * @param height The height of the element
+     * @param skin The UI skin for text styling
+     * @return A Container wrapping the image + text
+     * 
+     * Customization tips:
+     * - Change text alignment: Use table.align() and cell.center()/left()/right()
+     * - Change text color: Modify skin's Label style or use label.setColor()
+     * - Add text shadow: Use custom font with shadow effect
+     */
+    public static Container<Table> createImageLabel(TextureRegion texture, String text, float width, float height, Skin skin) {
+        Table imageTable = new Table(skin);
+        
+        Image background = new Image(new TextureRegionDrawable(texture));
+        background.setSize(width, height);
+        
+        Label label = new Label(text, skin);
+        
+        // Stack image and label
+        com.badlogic.gdx.scenes.scene2d.ui.Stack stack = new com.badlogic.gdx.scenes.scene2d.ui.Stack();
+        stack.add(background);
+        stack.add(label);
+        
+        imageTable.add(stack).size(width, height);
+        
+        Container<Table> container = new Container<>(imageTable);
+        container.setSize(width, height);
+        
+        return container;
+    }
+
+    // ========================================================================
+    // 9. PROGRESS BAR WITH IMAGE BACKGROUND
+    // ========================================================================
+    
+    /**
+     * Creates a progress bar with an image as the background.
+     * Shows progress as a filled rectangle overlay.
+     * 
+     * @param backgroundTexture The background texture
+     * @param fillColor The color of the progress fill
+     * @param width The width of the progress bar
+     * @param height The height of the progress bar
+     * @param skin The UI skin
+     * @return A ProgressBar styled with image background
+     * 
+     * Customization tips:
+     * - Change fill color: Use progressBar.setColor()
+     * - Set progress: progressBar.setValue(0-100)
+     * - Get progress: progressBar.getValue()
+     */
+    public static com.badlogic.gdx.scenes.scene2d.ui.ProgressBar createImageProgressBar(TextureRegion backgroundTexture, com.badlogic.gdx.graphics.Color fillColor, float width, float height, Skin skin) {
+        com.badlogic.gdx.scenes.scene2d.ui.ProgressBar.ProgressBarStyle style = new com.badlogic.gdx.scenes.scene2d.ui.ProgressBar.ProgressBarStyle();
+        style.background = new TextureRegionDrawable(backgroundTexture);
+        style.knobBefore = new TextureRegionDrawable(backgroundTexture);
+        
+        com.badlogic.gdx.scenes.scene2d.ui.ProgressBar progressBar = new com.badlogic.gdx.scenes.scene2d.ui.ProgressBar(0, 100, 1, false, style);
+        progressBar.setSize(width, height);
+        progressBar.setColor(fillColor);
+        
+        return progressBar;
+    }
+
+    // ========================================================================
+    // 10. ICON + LABEL COMBINATION
+    // ========================================================================
+    
+    /**
+     * Creates an icon with label text (icon on left, text on right).
+     * Returns a Container wrapping the layout.
+     * 
+     * @param icon The texture region for the icon
+     * @param text The label text
+     * @param iconSize The size of the icon
+     * @param skin The UI skin
+     * @return A Container with icon + text layout
+     * 
+     * Customization tips:
+     * - Change spacing: Adjust cell.padRight() in method or use ICON_TEXT_SPACING
+     * - Swap position: Add label first, then icon
+     * - Add color: Use icon.setColor() or label.setColor()
+     */
+    public static Container<Table> createIconLabel(TextureRegion icon, String text, float iconSize, Skin skin) {
+        Table iconTable = new Table();
+        
+        Image iconImage = new Image(new TextureRegionDrawable(icon));
+        iconImage.setSize(iconSize, iconSize);
+        
+        Label label = new Label(text, skin);
+        
+        iconTable.add(iconImage).size(iconSize).padRight(ICON_TEXT_SPACING);
+        iconTable.add(label);
+        
+        Container<Table> container = new Container<>(iconTable);
+        
+        return container;
+    }
+
+    /**
+     * Creates an icon with label and description text.
+     * Layout: icon | [title text] / [description text]
+     * 
+     * @param icon The texture region for the icon
+     * @param title The main label text
+     * @param description The secondary description text
+     * @param iconSize The size of the icon
+     * @param skin The UI skin
+     * @return A Container with icon + title + description layout
+     */
+    public static Container<Table> createIconLabelWithDescription(TextureRegion icon, String title, String description, float iconSize, Skin skin) {
+        Table iconTable = new Table();
+        
+        Image iconImage = new Image(new TextureRegionDrawable(icon));
+        iconImage.setSize(iconSize, iconSize);
+        
+        Table textTable = new Table();
+        Label titleLabel = new Label(title, skin);
+        Label descLabel = new Label(description, skin);
+        descLabel.setFontScale(0.8f);
+        
+        textTable.add(titleLabel).left().row();
+        textTable.add(descLabel).left();
+        
+        iconTable.add(iconImage).size(iconSize).padRight(ICON_TEXT_SPACING);
+        iconTable.add(textTable).left();
+        
+        Container<Table> container = new Container<>(iconTable);
+        
+        return container;
+    }
+
+    // ========================================================================
+    // 11. IMAGE GRID / IMAGE SELECTOR
+    // ========================================================================
+    
+    /**
+     * Creates a grid of clickable images (image selector).
+     * Images are arranged in rows and columns.
+     * 
+     * @param textures Array of texture regions to display
+     * @param columns Number of columns in the grid
+     * @param cellSize Size of each image cell (width and height)
+     * @param onImageClick Listener triggered when an image is clicked (passes index)
+     * @param skin The UI skin
+     * @return A ScrollPane containing the image grid
+     * 
+     * Customization tips:
+     * - Change grid spacing: Modify cell.pad() in method
+     * - Change cell size: Adjust cellSize parameter
+     * - Add selection highlight: Use getImageGridSelection() and highlight selected index
+     * - Hover effects: Images will show in the cell with basic sizing
+     */
+    public static com.badlogic.gdx.scenes.scene2d.ui.ScrollPane createImageGrid(TextureRegion[] textures, int columns, float cellSize, final com.chromashift.helper.UIHelper.ImageGridListener onImageClick, Skin skin) {
+        Table gridTable = new Table();
+        
+        for (int i = 0; i < textures.length; i++) {
+            final int index = i;
+            TextureRegion texture = textures[i];
+            
+            Image cellImage = new Image(new TextureRegionDrawable(texture));
+            cellImage.setSize(cellSize, cellSize);
+            
+            com.badlogic.gdx.scenes.scene2d.ui.Container<Image> cellContainer = new com.badlogic.gdx.scenes.scene2d.ui.Container<>(cellImage);
+            cellContainer.setSize(cellSize, cellSize);
+            
+            cellContainer.addListener(new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    if (onImageClick != null) {
+                        onImageClick.onImageSelected(index, texture);
+                    }
+                }
+            });
+            
+            gridTable.add(cellContainer).size(cellSize).pad(5);
+            
+            if ((i + 1) % columns == 0) {
+                gridTable.row();
+            }
+        }
+        
+        com.badlogic.gdx.scenes.scene2d.ui.ScrollPane scrollPane = new com.badlogic.gdx.scenes.scene2d.ui.ScrollPane(gridTable, skin);
+        
+        return scrollPane;
+    }
+
+    /**
+     * Listener interface for image grid selection.
+     */
+    public interface ImageGridListener {
+        /**
+         * Called when an image in the grid is selected.
+         * 
+         * @param index The index of the selected image
+         * @param texture The texture region of the selected image
+         */
+        void onImageSelected(int index, TextureRegion texture);
+    }
+
+    // ========================================================================
+    // 12. IMAGE SLIDER (VISUAL SLIDER WITH BACKGROUND IMAGE)
+    // ========================================================================
+    
+    /**
+     * Creates a slider with an image as the background/track.
+     * 
+     * @param min Minimum value
+     * @param max Maximum value
+     * @param step Step size
+     * @param backgroundTexture The texture for the slider background/track
+     * @param handleTexture Optional texture for the slider handle (null = default)
+     * @param vertical True for vertical slider, false for horizontal
+     * @param skin The UI skin
+     * @param onChange Change listener
+     * @return A Slider with image-based styling
+     * 
+     * Customization tips:
+     * - Change handle appearance: Provide handleTexture or modify skin
+     * - Change track color: Use slider.setColor()
+     * - Adjust size: Use container.setSize() or Table sizing
+     */
+    public static com.badlogic.gdx.scenes.scene2d.ui.Slider createImageSlider(float min, float max, float step, TextureRegion backgroundTexture, TextureRegion handleTexture, boolean vertical, Skin skin, ChangeListener onChange) {
+        com.badlogic.gdx.scenes.scene2d.ui.Slider.SliderStyle style = new com.badlogic.gdx.scenes.scene2d.ui.Slider.SliderStyle();
+        style.background = new TextureRegionDrawable(backgroundTexture);
+        
+        if (handleTexture != null) {
+            style.knob = new TextureRegionDrawable(handleTexture);
+        } else {
+            // Use skin's default knob if not provided
+            style.knob = skin.getDrawable("default-slider-knob");
+        }
+        
+        com.badlogic.gdx.scenes.scene2d.ui.Slider slider = new com.badlogic.gdx.scenes.scene2d.ui.Slider(min, max, step, vertical, style);
+        
+        if (vertical) {
+            slider.setHeight(SLIDER_SIZE);
+        } else {
+            slider.setWidth(SLIDER_SIZE);
+        }
+        
+        if (onChange != null) {
+            slider.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    onChange.changed(event, actor);
+                }
+            });
+        }
+        
+        return slider;
+    }
+
+    // ========================================================================
+    // 13. IMAGE DIVIDER (VISUAL SEPARATOR)
+    // ========================================================================
+    
+    /**
+     * Creates a visual divider/separator using an image.
+     * Useful for separating sections in UI layouts.
+     * 
+     * @param texture The texture region for the divider
+     * @param width The width of the divider
+     * @param height The height of the divider (usually small)
+     * @return An Image actor that can be added to layouts
+     * 
+     * Customization tips:
+     * - Horizontal divider: Use width=large, height=small
+     * - Vertical divider: Use width=small, height=large
+     * - Stretch to fill: Use Table.fill() on the cell
+     */
+    public static Image createImageDivider(TextureRegion texture, float width, float height) {
+        Image divider = new Image(new TextureRegionDrawable(texture));
+        divider.setSize(width, height);
+        
+        return divider;
+    }
+
+    // ========================================================================
+    // 14. UTILITY: CHANGE IMAGE TEXTURE AT RUNTIME
+    // ========================================================================
+    
+    /**
+     * Changes the texture of an image element at runtime.
+     * Useful for dynamic UI updates.
+     * 
+     * @param image The Image actor to update
+     * @param newTexture The new texture region to display
+     */
+    public static void setImageTexture(Image image, TextureRegion newTexture) {
+        if (image == null || newTexture == null) return;
+        
+        image.setDrawable(new TextureRegionDrawable(newTexture));
+    }
+
+    /**
+     * Changes the texture of an image button at runtime.
+     * 
+     * @param imageButtonContainer The container from createImageButton/createImageHoverButton
+     * @param newTexture The new texture region to display
+     */
+    public static void setImageButtonTexture(Container<Table> imageButtonContainer, TextureRegion newTexture) {
+        if (imageButtonContainer == null || imageButtonContainer.getActor() == null) return;
+        
+        Table table = imageButtonContainer.getActor();
+        if (table.getChildren().size > 0 && table.getChildren().first() instanceof Image) {
+            Image img = (Image) table.getChildren().first();
+            setImageTexture(img, newTexture);
+        }
+    }
+
+    /**
+     * Gets the image from an image button container.
+     * 
+     * @param imageButtonContainer The container from createImageButton/createImageHoverButton
+     * @return The Image actor, or null if not found
+     */
+    public static Image getImageFromButton(Container<Table> imageButtonContainer) {
+        if (imageButtonContainer == null || imageButtonContainer.getActor() == null) return null;
+        
+        Table table = imageButtonContainer.getActor();
+        if (table.getChildren().size > 0 && table.getChildren().first() instanceof Image) {
+            return (Image) table.getChildren().first();
+        }
+        
+        return null;
     }
 }
