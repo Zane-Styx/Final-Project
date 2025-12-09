@@ -18,6 +18,11 @@ apply plugin: 'io.github.fourlastor.construo'
 
 import io.github.fourlastor.construo.Target
 
+// LWJGL runtime natives (explicitly declared to ensure OpenAL and GLES classes are present at launch)
+def lwjglVersion = "3.3.3"
+def lwjglNatives = org.gradle.internal.os.OperatingSystem.current().isWindows() ? "natives-windows" :
+        (org.gradle.internal.os.OperatingSystem.current().isMacOsX() ? "natives-macos" : "natives-linux")
+
 sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
 mainClassName = 'com.jjmc.chromashift.lwjgl3.Lwjgl3Launcher'
 application.setMainClass(mainClassName)
@@ -38,6 +43,17 @@ dependencies {
   implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
   implementation project(':core')
   implementation("com.badlogicgames.gdx:gdx-tools:$gdxVersion"){exclude group: 'com.badlogicgames.gdx', module: 'gdx-backend-lwjgl'}
+
+  // Ensure OpenAL is present when launching via plain java command
+  implementation "org.lwjgl:lwjgl-openal:$lwjglVersion"
+  runtimeOnly "org.lwjgl:lwjgl-openal:$lwjglVersion:$lwjglNatives"
+
+  // Include GLES/GL/OpenGL support and common natives explicitly to avoid ClassNotFound in modular JDKs
+  runtimeOnly "org.lwjgl:lwjgl:$lwjglVersion:$lwjglNatives"
+  runtimeOnly "org.lwjgl:lwjgl-opengl:$lwjglVersion:$lwjglNatives"
+  runtimeOnly "org.lwjgl:lwjgl-glfw:$lwjglVersion:$lwjglNatives"
+  runtimeOnly "org.lwjgl:lwjgl-jemalloc:$lwjglVersion:$lwjglNatives"
+  runtimeOnly "org.lwjgl:lwjgl-stb:$lwjglVersion:$lwjglNatives"
 
   if(enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-backend-lwjgl3:$graalHelperVersion"
