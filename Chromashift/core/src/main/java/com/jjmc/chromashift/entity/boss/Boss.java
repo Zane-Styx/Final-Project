@@ -102,6 +102,12 @@ public class Boss extends Entity {
     // Scheduled delayed actions (delay seconds -> Runnable)
     private final List<PendingAction> pending = new ArrayList<>();
 
+    // Spawning state
+    private boolean isSpawning = false;
+    private boolean hasSpawned = false;
+    private float spawnTimer = 0f;
+    private float spawnDuration = 2.0f; // Default spawn animation duration
+
     // Movement and targeting
     protected float targetX, targetY;
     protected float velocityX, velocityY;
@@ -199,9 +205,87 @@ public class Boss extends Entity {
         attacks.add(a);
     }
 
+    /**
+     * Start the boss spawn sequence.
+     * This method should be called when the boss first appears.
+     * Override in subclasses to customize spawning behavior.
+     */
+    public void startSpawn() {
+        isSpawning = true;
+        hasSpawned = false;
+        spawnTimer = 0f;
+        onSpawnStart();
+    }
+
+    /**
+     * Called when spawn sequence starts.
+     * Override in subclasses for custom spawn initialization.
+     */
+    protected void onSpawnStart() {
+        // Default: fade in, scale up, or play spawn animation
+        // Subclasses can override for custom spawn effects
+    }
+
+    /**
+     * Update spawn sequence progress.
+     * Override in subclasses for custom spawn animations.
+     * @param delta time since last frame
+     * @param progress spawn progress from 0.0 to 1.0
+     */
+    protected void updateSpawn(float delta, float progress) {
+        // Default: simple fade in
+        // Subclasses can override for custom spawn behavior
+    }
+
+    /**
+     * Called when spawn sequence completes.
+     * Override in subclasses for post-spawn behavior.
+     */
+    protected void onSpawnComplete() {
+        // Default: nothing special
+        // Subclasses can override for spawn completion effects
+    }
+
+    /**
+     * Check if boss is currently spawning.
+     */
+    public boolean isSpawning() {
+        return isSpawning;
+    }
+
+    /**
+     * Check if boss has completed spawning.
+     */
+    public boolean hasSpawned() {
+        return hasSpawned;
+    }
+
+    /**
+     * Set spawn duration in seconds.
+     */
+    public void setSpawnDuration(float duration) {
+        this.spawnDuration = duration;
+    }
+
     @Override
     public void update(float delta) {
         super.update(delta);
+
+        // Handle spawning sequence
+        if (isSpawning) {
+            spawnTimer += delta;
+            float progress = Math.min(spawnTimer / spawnDuration, 1.0f);
+            updateSpawn(delta, progress);
+            
+            if (progress >= 1.0f) {
+                isSpawning = false;
+                hasSpawned = true;
+                onSpawnComplete();
+            }
+            
+            // Skip normal updates during spawn
+            return;
+        }
 
         // Use raw delta time to reduce perceived stutter when frames spike.
         // Note: raw delta may be larger during big frame drops; use carefully.

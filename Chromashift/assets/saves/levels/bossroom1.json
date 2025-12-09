@@ -1,0 +1,1257 @@
+{
+levelPath: levels/bossroom1.json
+timestamp: 1765094251274
+objects: [
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_-288_256
+		x: -288
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 32
+				}
+				x: {
+					class: java.lang.Float
+					value: -288
+				}
+				h: {
+					class: java.lang.Float
+					value: 768
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_1024_256
+		x: 1024
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 32
+				}
+				x: {
+					class: java.lang.Float
+					value: 1024
+				}
+				h: {
+					class: java.lang.Float
+					value: 768
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_-256_992
+		x: -256
+		y: 992
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 1280
+				}
+				x: {
+					class: java.lang.Float
+					value: -256
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 992
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_-288_1024
+		x: -288
+		y: 1024
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 1344
+				}
+				x: {
+					class: java.lang.Float
+					value: -288
+				}
+				h: {
+					class: java.lang.Float
+					value: 448
+				}
+				y: {
+					class: java.lang.Float
+					value: 1024
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_-256_256
+		x: -256
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 224
+				}
+				x: {
+					class: java.lang.Float
+					value: -256
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_800_256
+		x: 800
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 224
+				}
+				x: {
+					class: java.lang.Float
+					value: 800
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_32_544
+		x: 32
+		y: 544
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 704
+				}
+				x: {
+					class: java.lang.Float
+					value: 32
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 544
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_-256_672
+		x: -256
+		y: 672
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 160
+				}
+				x: {
+					class: java.lang.Float
+					value: -256
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 672
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_864_672
+		x: 864
+		y: 672
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 160
+				}
+				x: {
+					class: java.lang.Float
+					value: 864
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 672
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_864_288
+		x: 864
+		y: 288
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 160
+				}
+				x: {
+					class: java.lang.Float
+					value: 864
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 288
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_-256_288
+		x: -256
+		y: 288
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 160
+				}
+				x: {
+					class: java.lang.Float
+					value: -256
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 288
+				}
+			}
+		}
+	}
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_-288_224
+		x: -288
+		y: 224
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 1344
+				}
+				x: {
+					class: java.lang.Float
+					value: -288
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 224
+				}
+			}
+		}
+	}
+	{
+		className: Launchpad
+		fullClassName: com.jjmc.chromashift.environment.Launchpad
+		uniqueId: Launchpad_-32_256
+		x: -32
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			solidBounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 42
+				}
+				x: {
+					class: java.lang.Float
+					value: -21
+				}
+				h: {
+					class: java.lang.Float
+					value: 16
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			launchCooldown: {
+				class: java.lang.Float
+				value: 0
+			}
+			isLaunching: {
+				class: java.lang.Boolean
+				value: false
+			}
+			activationArmed: {
+				class: java.lang.Boolean
+				value: false
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 64
+				}
+				x: {
+					class: java.lang.Float
+					value: -32
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			launchSpeed: {
+				class: java.lang.Float
+				value: 600
+			}
+			detectionBounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 36
+				}
+				x: {
+					class: java.lang.Float
+					value: -18
+				}
+				h: {
+					class: java.lang.Float
+					value: 2
+				}
+				y: {
+					class: java.lang.Float
+					value: 272
+				}
+			}
+			direction: {
+				class: java.lang.String
+				value: UP
+			}
+		}
+	}
+	{
+		className: Launchpad
+		fullClassName: com.jjmc.chromashift.environment.Launchpad
+		uniqueId: Launchpad_736_256
+		x: 736
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			solidBounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 42
+				}
+				x: {
+					class: java.lang.Float
+					value: 747
+				}
+				h: {
+					class: java.lang.Float
+					value: 16
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			launchCooldown: {
+				class: java.lang.Float
+				value: 0
+			}
+			isLaunching: {
+				class: java.lang.Boolean
+				value: false
+			}
+			activationArmed: {
+				class: java.lang.Boolean
+				value: false
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 64
+				}
+				x: {
+					class: java.lang.Float
+					value: 736
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			launchSpeed: {
+				class: java.lang.Float
+				value: 600
+			}
+			detectionBounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 36
+				}
+				x: {
+					class: java.lang.Float
+					value: 750
+				}
+				h: {
+					class: java.lang.Float
+					value: 2
+				}
+				y: {
+					class: java.lang.Float
+					value: 272
+				}
+			}
+			direction: {
+				class: java.lang.String
+				value: UP
+			}
+		}
+	}
+	{
+		className: TriggerZone
+		fullClassName: com.jjmc.chromashift.environment.TriggerZone
+		uniqueId: trigger_1
+		x: 384
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			color: {
+				class: java.util.HashMap
+				a: {
+					class: java.lang.Float
+					value: 1
+				}
+				r: {
+					class: java.lang.Float
+					value: 1
+				}
+				b: {
+					class: java.lang.Float
+					value: 0
+				}
+				g: {
+					class: java.lang.Float
+					value: 0
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 640
+				}
+				x: {
+					class: java.lang.Float
+					value: 384
+				}
+				h: {
+					class: java.lang.Float
+					value: 288
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: trigger_1
+			}
+		}
+	}
+	{
+		className: TriggerZone
+		fullClassName: com.jjmc.chromashift.environment.TriggerZone
+		uniqueId: trigger_2
+		x: -256
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			color: {
+				class: java.util.HashMap
+				a: {
+					class: java.lang.Float
+					value: 1
+				}
+				r: {
+					class: java.lang.Float
+					value: 1
+				}
+				b: {
+					class: java.lang.Float
+					value: 0
+				}
+				g: {
+					class: java.lang.Float
+					value: 0
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 640
+				}
+				x: {
+					class: java.lang.Float
+					value: -256
+				}
+				h: {
+					class: java.lang.Float
+					value: 288
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: trigger_2
+			}
+		}
+	}
+	{
+		className: TriggerZone
+		fullClassName: com.jjmc.chromashift.environment.TriggerZone
+		uniqueId: trigger_3
+		x: 32
+		y: 576
+		fields: {
+			class: java.util.HashMap
+			color: {
+				class: java.util.HashMap
+				a: {
+					class: java.lang.Float
+					value: 1
+				}
+				r: {
+					class: java.lang.Float
+					value: 1
+				}
+				b: {
+					class: java.lang.Float
+					value: 0
+				}
+				g: {
+					class: java.lang.Float
+					value: 0
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 704
+				}
+				x: {
+					class: java.lang.Float
+					value: 32
+				}
+				h: {
+					class: java.lang.Float
+					value: 96
+				}
+				y: {
+					class: java.lang.Float
+					value: 576
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: trigger_3
+			}
+		}
+	}
+	{
+		className: TriggerZone
+		fullClassName: com.jjmc.chromashift.environment.TriggerZone
+		uniqueId: trigger_4
+		x: 32
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			color: {
+				class: java.util.HashMap
+				a: {
+					class: java.lang.Float
+					value: 1
+				}
+				r: {
+					class: java.lang.Float
+					value: 1
+				}
+				b: {
+					class: java.lang.Float
+					value: 0
+				}
+				g: {
+					class: java.lang.Float
+					value: 0
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 704
+				}
+				x: {
+					class: java.lang.Float
+					value: 32
+				}
+				h: {
+					class: java.lang.Float
+					value: 96
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: trigger_4
+			}
+		}
+	}
+	{
+		className: TriggerZone
+		fullClassName: com.jjmc.chromashift.environment.TriggerZone
+		uniqueId: trigger_5
+		x: -256
+		y: 672
+		fields: {
+			class: java.util.HashMap
+			color: {
+				class: java.util.HashMap
+				a: {
+					class: java.lang.Float
+					value: 1
+				}
+				r: {
+					class: java.lang.Float
+					value: 1
+				}
+				b: {
+					class: java.lang.Float
+					value: 0
+				}
+				g: {
+					class: java.lang.Float
+					value: 0
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 1280
+				}
+				x: {
+					class: java.lang.Float
+					value: -256
+				}
+				h: {
+					class: java.lang.Float
+					value: 96
+				}
+				y: {
+					class: java.lang.Float
+					value: 672
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: trigger_5
+			}
+		}
+	}
+	{
+		className: TriggerZone
+		fullClassName: com.jjmc.chromashift.environment.TriggerZone
+		uniqueId: trigger_6
+		x: -256
+		y: 256
+		fields: {
+			class: java.util.HashMap
+			color: {
+				class: java.util.HashMap
+				a: {
+					class: java.lang.Float
+					value: 1
+				}
+				r: {
+					class: java.lang.Float
+					value: 1
+				}
+				b: {
+					class: java.lang.Float
+					value: 0
+				}
+				g: {
+					class: java.lang.Float
+					value: 0
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 1280
+				}
+				x: {
+					class: java.lang.Float
+					value: -256
+				}
+				h: {
+					class: java.lang.Float
+					value: 736
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: trigger_6
+			}
+		}
+	}
+	{
+		className: FinalBoss
+		fullClassName: com.jjmc.chromashift.entity.boss.FinalBoss
+		uniqueId: FinalBoss_0_0
+		fields: {
+			class: java.util.HashMap
+			phase1Pause: {
+				class: java.lang.Float
+				value: 0.75
+			}
+			bobTimer: {
+				class: java.lang.Float
+				value: 13.115113
+			}
+			sideLerp: {
+				class: java.lang.Float
+				value: 0.08
+			}
+			triggerCooldownTimer: {
+				class: java.lang.Float
+				value: 0
+			}
+			leftLowerWidth: {
+				class: java.lang.Float
+				value: 672
+			}
+			phase3ChainActive: {
+				class: java.lang.Boolean
+				value: false
+			}
+			velocityX: {
+				class: java.lang.Float
+				value: 85.781364
+			}
+			orbitAngleDeg: {
+				class: java.lang.Float
+				value: 25
+			}
+			velocityY: {
+				class: java.lang.Float
+				value: 377.22922
+			}
+			chasingVelocityX: {
+				class: java.lang.Float
+				value: -324.38522
+			}
+			chasingVelocityY: {
+				class: java.lang.Float
+				value: -164.33205
+			}
+			chasingDistance: {
+				class: java.lang.Float
+				value: 200
+			}
+			groundAttackOffset: {
+				class: java.lang.Float
+				value: 300
+			}
+			arenaLeft: {
+				class: java.lang.Float
+				value: -288
+			}
+			leftLowerOffsetY: {
+				class: java.lang.Float
+				value: -250.75409
+			}
+			arenaRight: {
+				class: java.lang.Float
+				value: 1024
+			}
+			phase3AttackPause: {
+				class: java.lang.Float
+				value: 0.9
+			}
+			leftLowerOffsetX: {
+				class: java.lang.Float
+				value: -396.1677
+			}
+			triggerWidth: {
+				class: java.lang.Float
+				value: 0
+			}
+			phase: {
+				class: java.lang.Integer
+				value: 1
+			}
+			chasingAcceleration: {
+				class: java.lang.Float
+				value: 300
+			}
+			isAttacking: {
+				class: java.lang.Boolean
+				value: true
+			}
+			leftUpperHeight: {
+				class: java.lang.Float
+				value: 720
+			}
+			triggerRightColor: {
+				class: java.util.HashMap
+				a: {
+					class: java.lang.Float
+					value: 1
+				}
+				r: {
+					class: java.lang.Float
+					value: 0
+				}
+				b: {
+					class: java.lang.Float
+					value: 1
+				}
+				g: {
+					class: java.lang.Float
+					value: 1
+				}
+			}
+			targetY: {
+				class: java.lang.Float
+				value: 41.332947
+			}
+			phase1PatternIndex: {
+				class: java.lang.Integer
+				value: 2
+			}
+			targetX: {
+				class: java.lang.Float
+				value: 76.19925
+			}
+			phase2ChainActive: {
+				class: java.lang.Boolean
+				value: false
+			}
+			phase2Pause: {
+				class: java.lang.Float
+				value: 0.5
+			}
+			bobFrequency: {
+				class: java.lang.Float
+				value: 100
+			}
+			phase2RandomsSinceGuaranteed: {
+				class: java.lang.Integer
+				value: 0
+			}
+			rightLowerWidth: {
+				class: java.lang.Float
+				value: 672
+			}
+			debugTriggerInfo: {
+				class: java.lang.Boolean
+				value: true
+			}
+			launchpadLeftX: {
+				class: java.lang.Float
+				value: -32
+			}
+			phase1ChainActive: {
+				class: java.lang.Boolean
+				value: true
+			}
+			rightLowerHeight: {
+				class: java.lang.Float
+				value: 720
+			}
+			phaseHighThreshold: {
+				class: java.lang.Float
+				value: 0.66
+			}
+			prevPlayerX: {
+				class: java.lang.Float
+				value: 79.90062
+			}
+			prevPlayerY: {
+				class: java.lang.Float
+				value: 41.1372
+			}
+			lastPlayerY: {
+				class: java.lang.Float
+				value: 41.332947
+			}
+			nextAttackIndex: {
+				class: java.lang.Integer
+				value: 0
+			}
+			chasingMaxSpeed: {
+				class: java.lang.Float
+				value: 400
+			}
+			altitudeBias: {
+				class: java.lang.Float
+				value: 40
+			}
+			lastPlayerX: {
+				class: java.lang.Float
+				value: 76.19925
+			}
+			bobAmplitude: {
+				class: java.lang.Float
+				value: 70
+			}
+			bodyHeight: {
+				class: java.lang.Float
+				value: 720
+			}
+			rightUpperOffsetX: {
+				class: java.lang.Float
+				value: 392.04987
+			}
+			launchpadY: {
+				class: java.lang.Float
+				value: 256
+			}
+			rightUpperHeight: {
+				class: java.lang.Float
+				value: 720
+			}
+			tempGroundY: {
+				class: java.lang.Float
+				value: 256
+			}
+			leftLowerHeight: {
+				class: java.lang.Float
+				value: 720
+			}
+			activeTrigger: {
+				class: java.lang.String
+				value: LEFT
+			}
+			attackDamageMultiplier: {
+				class: java.lang.Float
+				value: 1
+			}
+			rightLowerOffsetY: {
+				class: java.lang.Float
+				value: -250.75409
+			}
+			rightLowerOffsetX: {
+				class: java.lang.Float
+				value: 611.8323
+			}
+			useCustomAttackScheduler: {
+				class: java.lang.Boolean
+				value: true
+			}
+			bodyOffsetX: {
+				class: java.lang.Float
+				value: 0
+			}
+			baseHoverHeight: {
+				class: java.lang.Float
+				value: 100
+			}
+			armPhysicsDelay: {
+				class: java.lang.Float
+				value: 0.2
+			}
+			chasingDamping: {
+				class: java.lang.Float
+				value: 0.92
+			}
+			triggerLeftColor: {
+				class: java.util.HashMap
+				a: {
+					class: java.lang.Float
+					value: 1
+				}
+				r: {
+					class: java.lang.Float
+					value: 1
+				}
+				b: {
+					class: java.lang.Float
+					value: 0
+				}
+				g: {
+					class: java.lang.Float
+					value: 0
+				}
+			}
+			phase2PatternIndex: {
+				class: java.lang.Integer
+				value: 0
+			}
+			trigger6Bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 1280
+				}
+				x: {
+					class: java.lang.Float
+					value: -256
+				}
+				h: {
+					class: java.lang.Float
+					value: 736
+				}
+				y: {
+					class: java.lang.Float
+					value: 256
+				}
+			}
+			phase3ShortPause: {
+				class: java.lang.Float
+				value: 0.6
+			}
+			bodyOffsetY: {
+				class: java.lang.Float
+				value: 0
+			}
+			phase3PatternIndex: {
+				class: java.lang.Integer
+				value: 0
+			}
+			rightUpperWidth: {
+				class: java.lang.Float
+				value: 672
+			}
+			phase3SeqPos: {
+				class: java.lang.Integer
+				value: 0
+			}
+			activeTriggerZone: {
+				class: java.lang.String
+				value: NONE
+			}
+			autoPhaseByHealth: {
+				class: java.lang.Boolean
+				value: true
+			}
+			attackCooldownTimer: {
+				class: java.lang.Float
+				value: 2.1659157
+			}
+			triggerCooldown: {
+				class: java.lang.Float
+				value: 0.25
+			}
+			followSpeed: {
+				class: java.lang.Float
+				value: 50
+			}
+			maxSpeed: {
+				class: java.lang.Float
+				value: 1000
+			}
+			armLerpSpeed: {
+				class: java.lang.Float
+				value: 5
+			}
+			leftUpperWidth: {
+				class: java.lang.Float
+				value: 672
+			}
+			hoverRadius: {
+				class: java.lang.Float
+				value: 220
+			}
+			launchpadRightX: {
+				class: java.lang.Float
+				value: 736
+			}
+			lowHpThreshold: {
+				class: java.lang.Float
+				value: 0.15
+			}
+			verticalLagFactor: {
+				class: java.lang.Float
+				value: 0.18
+			}
+			phaseLowThreshold: {
+				class: java.lang.Float
+				value: 0.33
+			}
+			x: {
+				class: java.lang.Float
+				value: -62.17865
+			}
+			rightUpperOffsetY: {
+				class: java.lang.Float
+				value: -41.76861
+			}
+			y: {
+				class: java.lang.Float
+				value: 132.95255
+			}
+			orbitSideSign: {
+				class: java.lang.Float
+				value: -0.99999964
+			}
+			phase3SeqRepeatCount: {
+				class: java.lang.Integer
+				value: 0
+			}
+			leftUpperOffsetX: {
+				class: java.lang.Float
+				value: -279.95013
+			}
+			bodyWidth: {
+				class: java.lang.Float
+				value: 672
+			}
+			leftUpperOffsetY: {
+				class: java.lang.Float
+				value: -41.76861
+			}
+			debugOverlayEnabled: {
+				class: java.lang.Boolean
+				value: true
+			}
+			lastStartedAttackIndex: {
+				class: java.lang.Integer
+				value: 2
+			}
+		}
+	}
+]
+}

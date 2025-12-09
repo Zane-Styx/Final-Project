@@ -27,6 +27,7 @@ public class LevelIO {
         public Array<DiamondData> diamonds;
         public Array<ShopData> shops;
         public Array<TentacleData> tentacles;
+        public Array<TriggerData> triggers;
             public Array<KeyData> keys;
             public Array<LockedDoorData> lockedDoors;
             public Array<HealthPotionData> healthPotions;
@@ -130,6 +131,14 @@ public class LevelIO {
             public int segments = 30; // Default segment count
         }
 
+        public static class TriggerData {
+            public String id; // unique identifier for this trigger
+            public float x, y;
+            public float width = 64f;
+            public float height = 64f;
+            public String color = "RED"; // debug color name
+        }
+
         public static class KeyData {
             public float x, y;
         }
@@ -145,6 +154,7 @@ public class LevelIO {
 
         public static class BossData {
             public float x, y;
+            public boolean guardian; // true = BossGuardian, false = FinalBoss
         }
     }
 
@@ -157,6 +167,8 @@ public class LevelIO {
         // loading hand-edited or legacy level data.
         try {
             json.setIgnoreUnknownFields(true);
+            json.setOutputType(com.badlogic.gdx.utils.JsonWriter.OutputType.json);
+            json.setUsePrototypes(false);
         } catch (Throwable ignored) {
         }
     }
@@ -179,6 +191,8 @@ public class LevelIO {
                     LevelState s = json.fromJson(LevelState.class, text);
                     // Ensure new fields are initialized (for backward compatibility with old level files)
                     ensureArraysInitialized(s);
+                    // Deduplicate objects in case JSON has duplicates
+                    deduplicateObjects(s);
                     // Copy the internal asset into the project's `assets/` folder so editors
                     // and source control can pick up the canonical file. Overwrite if present.
                     try {
@@ -216,6 +230,7 @@ public class LevelIO {
                     try {
                         LevelState s = json.fromJson(LevelState.class, text);
                         ensureArraysInitialized(s);
+                        deduplicateObjects(s);
                         return s;
                     } catch (Exception parseEx) {
                         Gdx.app.error("LevelIO",
@@ -264,6 +279,9 @@ public class LevelIO {
      */
     public static boolean save(String path, LevelState state) {
         try {
+            // Deduplicate objects before saving
+            deduplicateObjects(state);
+            
             String text = json.prettyPrint(state);
             // Attempt to write directly into the project's assets folder. Do NOT write to
             // application-local storage to avoid creating duplicate level files outside the
@@ -320,6 +338,7 @@ public class LevelIO {
                     try {
                         LevelState s = json.fromJson(LevelState.class, text);
                         ensureArraysInitialized(s);
+                        deduplicateObjects(s);
                         // Try to write into build resources so the packaged/internal copy
                         // reflects the editor changes for runtime tests.
                         try {
@@ -399,6 +418,391 @@ public class LevelIO {
     }
 
     /**
+     * Remove duplicate objects from the level state based on type, position, and dimensions.
+     * Objects are considered duplicates if they have the same type and identical properties.
+     */
+    private static void deduplicateObjects(LevelState state) {
+        if (state == null) return;
+        
+        // Deduplicate walls
+        state.walls = deduplicateWalls(state.walls);
+        
+        // Deduplicate interactables (by type, position, targetId)
+        state.interactables = deduplicateInteractables(state.interactables);
+        
+        // Deduplicate boxes
+        state.boxes = deduplicateBoxes(state.boxes);
+        
+        // Deduplicate orbs
+        state.orbs = deduplicateOrbs(state.orbs);
+        
+        // Deduplicate launchpads
+        state.launchpads = deduplicateLaunchpads(state.launchpads);
+        
+        // Deduplicate lasers (by position and rotation)
+        state.lasers = deduplicateLasers(state.lasers);
+        
+        // Deduplicate mirrors
+        state.mirrors = deduplicateMirrors(state.mirrors);
+        
+        // Deduplicate glasses
+        state.glasses = deduplicateGlasses(state.glasses);
+        
+        // Deduplicate diamonds
+        state.diamonds = deduplicateDiamonds(state.diamonds);
+        
+        // Deduplicate shops
+        state.shops = deduplicateShops(state.shops);
+        
+        // Deduplicate tentacles
+        state.tentacles = deduplicateTentacles(state.tentacles);
+        
+        // Deduplicate triggers
+        state.triggers = deduplicateTriggers(state.triggers);
+        
+        // Deduplicate keys
+        state.keys = deduplicateKeys(state.keys);
+        
+        // Deduplicate locked doors
+        state.lockedDoors = deduplicateLockedDoors(state.lockedDoors);
+        
+        // Deduplicate health potions
+        state.healthPotions = deduplicateHealthPotions(state.healthPotions);
+    }
+    
+    private static Array<LevelState.WallData> deduplicateWalls(Array<LevelState.WallData> walls) {
+        if (walls == null || walls.size == 0) return walls;
+        Array<LevelState.WallData> unique = new Array<>();
+        for (LevelState.WallData wall : walls) {
+            boolean duplicate = false;
+            for (LevelState.WallData existing : unique) {
+                if (floatEquals(wall.x, existing.x) && 
+                    floatEquals(wall.y, existing.y) &&
+                    floatEquals(wall.width, existing.width) &&
+                    floatEquals(wall.height, existing.height)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(wall);
+        }
+        if (unique.size < walls.size) {
+            Gdx.app.log("LevelIO", "Removed " + (walls.size - unique.size) + " duplicate walls");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.InteractableData> deduplicateInteractables(Array<LevelState.InteractableData> interactables) {
+        if (interactables == null || interactables.size == 0) return interactables;
+        Array<LevelState.InteractableData> unique = new Array<>();
+        for (LevelState.InteractableData obj : interactables) {
+            boolean duplicate = false;
+            for (LevelState.InteractableData existing : unique) {
+                if (stringEquals(obj.type, existing.type) &&
+                    stringEquals(obj.id, existing.id) &&
+                    floatEquals(obj.x, existing.x) &&
+                    floatEquals(obj.y, existing.y) &&
+                    stringEquals(obj.targetId, existing.targetId)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(obj);
+        }
+        if (unique.size < interactables.size) {
+            Gdx.app.log("LevelIO", "Removed " + (interactables.size - unique.size) + " duplicate interactables");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.BoxData> deduplicateBoxes(Array<LevelState.BoxData> boxes) {
+        if (boxes == null || boxes.size == 0) return boxes;
+        Array<LevelState.BoxData> unique = new Array<>();
+        for (LevelState.BoxData box : boxes) {
+            boolean duplicate = false;
+            for (LevelState.BoxData existing : unique) {
+                if (floatEquals(box.x, existing.x) && 
+                    floatEquals(box.y, existing.y) &&
+                    stringEquals(box.color, existing.color)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(box);
+        }
+        if (unique.size < boxes.size) {
+            Gdx.app.log("LevelIO", "Removed " + (boxes.size - unique.size) + " duplicate boxes");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.OrbData> deduplicateOrbs(Array<LevelState.OrbData> orbs) {
+        if (orbs == null || orbs.size == 0) return orbs;
+        Array<LevelState.OrbData> unique = new Array<>();
+        for (LevelState.OrbData orb : orbs) {
+            boolean duplicate = false;
+            for (LevelState.OrbData existing : unique) {
+                if (floatEquals(orb.x, existing.x) && 
+                    floatEquals(orb.y, existing.y)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(orb);
+        }
+        if (unique.size < orbs.size) {
+            Gdx.app.log("LevelIO", "Removed " + (orbs.size - unique.size) + " duplicate orbs");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.LaunchpadData> deduplicateLaunchpads(Array<LevelState.LaunchpadData> launchpads) {
+        if (launchpads == null || launchpads.size == 0) return launchpads;
+        Array<LevelState.LaunchpadData> unique = new Array<>();
+        for (LevelState.LaunchpadData pad : launchpads) {
+            boolean duplicate = false;
+            for (LevelState.LaunchpadData existing : unique) {
+                if (floatEquals(pad.x, existing.x) && 
+                    floatEquals(pad.y, existing.y) &&
+                    stringEquals(pad.direction, existing.direction)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(pad);
+        }
+        if (unique.size < launchpads.size) {
+            Gdx.app.log("LevelIO", "Removed " + (launchpads.size - unique.size) + " duplicate launchpads");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.LaserData> deduplicateLasers(Array<LevelState.LaserData> lasers) {
+        if (lasers == null || lasers.size == 0) return lasers;
+        Array<LevelState.LaserData> unique = new Array<>();
+        for (LevelState.LaserData laser : lasers) {
+            boolean duplicate = false;
+            for (LevelState.LaserData existing : unique) {
+                if (stringEquals(laser.id, existing.id) &&
+                    floatEquals(laser.x, existing.x) && 
+                    floatEquals(laser.y, existing.y) &&
+                    floatEquals(laser.rotation, existing.rotation)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(laser);
+        }
+        if (unique.size < lasers.size) {
+            Gdx.app.log("LevelIO", "Removed " + (lasers.size - unique.size) + " duplicate lasers");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.MirrorData> deduplicateMirrors(Array<LevelState.MirrorData> mirrors) {
+        if (mirrors == null || mirrors.size == 0) return mirrors;
+        Array<LevelState.MirrorData> unique = new Array<>();
+        for (LevelState.MirrorData mirror : mirrors) {
+            boolean duplicate = false;
+            for (LevelState.MirrorData existing : unique) {
+                if (floatEquals(mirror.x, existing.x) && 
+                    floatEquals(mirror.y, existing.y) &&
+                    floatEquals(mirror.width, existing.width) &&
+                    floatEquals(mirror.height, existing.height) &&
+                    floatEquals(mirror.angleDeg, existing.angleDeg)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(mirror);
+        }
+        if (unique.size < mirrors.size) {
+            Gdx.app.log("LevelIO", "Removed " + (mirrors.size - unique.size) + " duplicate mirrors");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.GlassData> deduplicateGlasses(Array<LevelState.GlassData> glasses) {
+        if (glasses == null || glasses.size == 0) return glasses;
+        Array<LevelState.GlassData> unique = new Array<>();
+        for (LevelState.GlassData glass : glasses) {
+            boolean duplicate = false;
+            for (LevelState.GlassData existing : unique) {
+                if (floatEquals(glass.x, existing.x) && 
+                    floatEquals(glass.y, existing.y) &&
+                    floatEquals(glass.width, existing.width) &&
+                    floatEquals(glass.height, existing.height)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(glass);
+        }
+        if (unique.size < glasses.size) {
+            Gdx.app.log("LevelIO", "Removed " + (glasses.size - unique.size) + " duplicate glasses");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.DiamondData> deduplicateDiamonds(Array<LevelState.DiamondData> diamonds) {
+        if (diamonds == null || diamonds.size == 0) return diamonds;
+        Array<LevelState.DiamondData> unique = new Array<>();
+        for (LevelState.DiamondData diamond : diamonds) {
+            boolean duplicate = false;
+            for (LevelState.DiamondData existing : unique) {
+                if (floatEquals(diamond.x, existing.x) && 
+                    floatEquals(diamond.y, existing.y)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(diamond);
+        }
+        if (unique.size < diamonds.size) {
+            Gdx.app.log("LevelIO", "Removed " + (diamonds.size - unique.size) + " duplicate diamonds");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.ShopData> deduplicateShops(Array<LevelState.ShopData> shops) {
+        if (shops == null || shops.size == 0) return shops;
+        Array<LevelState.ShopData> unique = new Array<>();
+        for (LevelState.ShopData shop : shops) {
+            boolean duplicate = false;
+            for (LevelState.ShopData existing : unique) {
+                if (floatEquals(shop.x, existing.x) && 
+                    floatEquals(shop.y, existing.y)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(shop);
+        }
+        if (unique.size < shops.size) {
+            Gdx.app.log("LevelIO", "Removed " + (shops.size - unique.size) + " duplicate shops");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.TentacleData> deduplicateTentacles(Array<LevelState.TentacleData> tentacles) {
+        if (tentacles == null || tentacles.size == 0) return tentacles;
+        Array<LevelState.TentacleData> unique = new Array<>();
+        for (LevelState.TentacleData tent : tentacles) {
+            boolean duplicate = false;
+            for (LevelState.TentacleData existing : unique) {
+                if (floatEquals(tent.x, existing.x) && 
+                    floatEquals(tent.y, existing.y)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(tent);
+        }
+        if (unique.size < tentacles.size) {
+            Gdx.app.log("LevelIO", "Removed " + (tentacles.size - unique.size) + " duplicate tentacles");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.TriggerData> deduplicateTriggers(Array<LevelState.TriggerData> triggers) {
+        if (triggers == null || triggers.size == 0) return triggers;
+        Array<LevelState.TriggerData> unique = new Array<>();
+        for (LevelState.TriggerData trigger : triggers) {
+            boolean duplicate = false;
+            for (LevelState.TriggerData existing : unique) {
+                if (stringEquals(trigger.id, existing.id) &&
+                    floatEquals(trigger.x, existing.x) && 
+                    floatEquals(trigger.y, existing.y)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(trigger);
+        }
+        if (unique.size < triggers.size) {
+            Gdx.app.log("LevelIO", "Removed " + (triggers.size - unique.size) + " duplicate triggers");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.KeyData> deduplicateKeys(Array<LevelState.KeyData> keys) {
+        if (keys == null || keys.size == 0) return keys;
+        Array<LevelState.KeyData> unique = new Array<>();
+        for (LevelState.KeyData key : keys) {
+            boolean duplicate = false;
+            for (LevelState.KeyData existing : unique) {
+                if (floatEquals(key.x, existing.x) && 
+                    floatEquals(key.y, existing.y)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(key);
+        }
+        if (unique.size < keys.size) {
+            Gdx.app.log("LevelIO", "Removed " + (keys.size - unique.size) + " duplicate keys");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.LockedDoorData> deduplicateLockedDoors(Array<LevelState.LockedDoorData> doors) {
+        if (doors == null || doors.size == 0) return doors;
+        Array<LevelState.LockedDoorData> unique = new Array<>();
+        for (LevelState.LockedDoorData door : doors) {
+            boolean duplicate = false;
+            for (LevelState.LockedDoorData existing : unique) {
+                if (floatEquals(door.x, existing.x) && 
+                    floatEquals(door.y, existing.y) &&
+                    stringEquals(door.orientation, existing.orientation)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(door);
+        }
+        if (unique.size < doors.size) {
+            Gdx.app.log("LevelIO", "Removed " + (doors.size - unique.size) + " duplicate locked doors");
+        }
+        return unique;
+    }
+    
+    private static Array<LevelState.HealthPotionData> deduplicateHealthPotions(Array<LevelState.HealthPotionData> potions) {
+        if (potions == null || potions.size == 0) return potions;
+        Array<LevelState.HealthPotionData> unique = new Array<>();
+        for (LevelState.HealthPotionData potion : potions) {
+            boolean duplicate = false;
+            for (LevelState.HealthPotionData existing : unique) {
+                if (floatEquals(potion.x, existing.x) && 
+                    floatEquals(potion.y, existing.y)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) unique.add(potion);
+        }
+        if (unique.size < potions.size) {
+            Gdx.app.log("LevelIO", "Removed " + (potions.size - unique.size) + " duplicate health potions");
+        }
+        return unique;
+    }
+    
+    /**
+     * Compare floats with epsilon tolerance
+     */
+    private static boolean floatEquals(float a, float b) {
+        return Math.abs(a - b) < 0.001f;
+    }
+    
+    /**
+     * Null-safe string equality check
+     */
+    private static boolean stringEquals(String a, String b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.equals(b);
+    }
+    
+    /**
      * Ensure all array fields in the level state are initialized to prevent null pointer exceptions.
      */
     private static void ensureArraysInitialized(LevelState s) {
@@ -413,6 +817,7 @@ public class LevelIO {
         if (s.diamonds == null) s.diamonds = new Array<>();
         if (s.shops == null) s.shops = new Array<>();
         if (s.tentacles == null) s.tentacles = new Array<>();
+        if (s.triggers == null) s.triggers = new Array<>();
         // New collectible/interactable arrays
         if (s.keys == null) s.keys = new Array<>();
         if (s.lockedDoors == null) s.lockedDoors = new Array<>();

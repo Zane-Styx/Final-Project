@@ -26,6 +26,14 @@ public class Portal implements Interactable {
     private static final int ACTIVE_FRAMES = 18;
     private static final float ANIMATION_SPEED = 0.1f; // seconds per frame
     
+    // Actual interaction hitbox dimensions and offsets within the 225x225 sprite
+    private static final int HITBOX_WIDTH = 140;
+    private static final int HITBOX_HEIGHT = 154;
+    private static final int HITBOX_LEFT_OFFSET = 42;   // 42px from left
+    private static final int HITBOX_TOP_OFFSET = 30;    // 30px from top
+    private static final int HITBOX_RIGHT_OFFSET = 43;  // 43px from right
+    private static final int HITBOX_BOTTOM_OFFSET = 41; // 41px from bottom
+    
     // ========================================================================
     // PORTAL STATE ENUM
     // ========================================================================
@@ -40,7 +48,8 @@ public class Portal implements Interactable {
     // FIELDS
     // ========================================================================
     
-    private final Rectangle bounds;
+    private final Rectangle bounds;           // Full 225x225 sprite bounds
+    private final Rectangle hitbox;           // Actual 140x154 interaction hitbox
     private PortalState state = PortalState.INACTIVE;
     private final SpriteAnimator anim;
     private float interactionCooldown = 0f;
@@ -65,6 +74,12 @@ public class Portal implements Interactable {
         float drawX = x - FRAME_WIDTH / 2f;
         float drawY = y - FRAME_HEIGHT / 2f;
         this.bounds = new Rectangle(drawX, drawY, FRAME_WIDTH, FRAME_HEIGHT);
+        
+        // Calculate hitbox position within the sprite bounds
+        float hitboxX = drawX + HITBOX_LEFT_OFFSET;
+        float hitboxY = drawY + HITBOX_TOP_OFFSET;
+        this.hitbox = new Rectangle(hitboxX, hitboxY, HITBOX_WIDTH, HITBOX_HEIGHT);
+        
         this.anim = new SpriteAnimator(ASSET_PATH, 2, 24);
         // spawn row 0 (24 frames), active row 1 (18 frames)
         this.anim.addAnimation("SPAWN", 0, 0, SPAWN_FRAMES, ANIMATION_SPEED, false);
@@ -202,7 +217,7 @@ public class Portal implements Interactable {
 
     @Override
     public void checkInteraction(Rectangle playerHitbox) {
-        playerNearby = playerHitbox != null && playerHitbox.overlaps(bounds);
+        playerNearby = playerHitbox != null && playerHitbox.overlaps(hitbox);
     }
 
     @Override
@@ -234,6 +249,9 @@ public class Portal implements Interactable {
             float cx = ((Number) ox).floatValue();
             float cy = ((Number) oy).floatValue();
             bounds.set(cx - FRAME_WIDTH / 2f, cy - FRAME_HEIGHT / 2f, FRAME_WIDTH, FRAME_HEIGHT);
+            // Recalculate hitbox position within new bounds
+            hitbox.set(bounds.x + HITBOX_LEFT_OFFSET, bounds.y + HITBOX_TOP_OFFSET, 
+                      HITBOX_WIDTH, HITBOX_HEIGHT);
         }
         if (data.get("lever1_id") instanceof String) requiredLeverId1 = (String) data.get("lever1_id");
         if (data.get("lever2_id") instanceof String) requiredLeverId2 = (String) data.get("lever2_id");

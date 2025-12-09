@@ -5,7 +5,9 @@ import com.badlogic.gdx.math.Rectangle;
 import com.jjmc.chromashift.environment.Solid;
 import com.jjmc.chromashift.environment.Wall;
 import com.jjmc.chromashift.environment.interactable.*;
-import com.jjmc.chromashift.entity.boss.BossInstance;
+import com.jjmc.chromashift.entity.boss.Boss;
+import com.jjmc.chromashift.entity.boss.FinalBoss;
+import com.jjmc.chromashift.entity.boss.BossGuardian;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +34,7 @@ public final class LevelLoader {
         public final Array<LevelIO.LevelState.ShopData> shopDataList = new Array<>();
         // Tentacle instances
         public final Array<com.jjmc.chromashift.environment.enemy.Tentacle> tentacles = new Array<>();
-        public BossInstance boss; // optional
+        public Boss boss; // optional - can be FinalBoss or BossGuardian
         public float spawnX;
         public float spawnY;
         // Door id -> instance for linking
@@ -418,6 +420,24 @@ public final class LevelLoader {
             }
         }
 
+        // Triggers (non-blocking zones, color-coded, identified by id)
+        if (state.triggers != null) {
+            for (LevelIO.LevelState.TriggerData td : state.triggers) {
+                com.badlogic.gdx.graphics.Color color = com.badlogic.gdx.graphics.Color.RED;
+                if (td.color != null) {
+                    try {
+                        color = com.badlogic.gdx.graphics.Color.valueOf(td.color.toUpperCase());
+                    } catch (Exception ignored) {}
+                }
+
+                float w = td.width > 0f ? td.width : 64f;
+                float h = td.height > 0f ? td.height : 64f;
+                String triggerId = (td.id != null && !td.id.isEmpty()) ? td.id : ("trigger_" + (state.triggers.indexOf(td, true) + 1));
+                com.jjmc.chromashift.environment.TriggerZone trig = new com.jjmc.chromashift.environment.TriggerZone(td.x, td.y, w, h, triggerId, color);
+                out.interactables.add(trig);
+            }
+        }
+
         // Lasers (create first; we'll wire references after all interactables are
         // collected)
         Array<com.jjmc.chromashift.environment.interactable.Laser> lasersTemp = new Array<>();
@@ -604,9 +624,19 @@ public final class LevelLoader {
 
         // Boss
         if (state.boss != null) {
-            out.boss = new BossInstance();
-            out.boss.setPosition(state.boss.x, state.boss.y);
-            out.boss.setEnvironment(out.solids, out.walls);
+            Boss b;
+            if (state.boss.guardian) {
+                BossGuardian g = new BossGuardian();
+                g.setPosition(state.boss.x, state.boss.y);
+                g.setEnvironment(out.solids, out.walls);
+                b = g;
+            } else {
+                FinalBoss fb = new FinalBoss();
+                fb.setPosition(state.boss.x, state.boss.y);
+                fb.setEnvironment(out.solids, out.walls);
+                b = fb;
+            }
+            out.boss = b;
         }
 
         // Spawn

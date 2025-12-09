@@ -1,0 +1,178 @@
+{
+levelPath: levels/level2.json
+timestamp: 1764944059801
+objects: [
+	{
+		className: Wall
+		fullClassName: com.jjmc.chromashift.environment.Wall
+		uniqueId: Wall_160_128
+		x: 160
+		y: 128
+		fields: {
+			class: java.util.HashMap
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 32
+				}
+				x: {
+					class: java.lang.Float
+					value: 160
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 128
+				}
+			}
+		}
+	}
+	{
+		className: Portal
+		fullClassName: com.jjmc.chromashift.environment.interactable.Portal
+		uniqueId: Portal_127_-64
+		x: 127
+		y: -64
+		fields: {
+			class: java.util.HashMap
+			playerNearby: {
+				class: java.lang.Boolean
+				value: true
+			}
+			lever2Active: {
+				class: java.lang.Boolean
+				value: true
+			}
+			interactionCooldown: {
+				class: java.lang.Float
+				value: 1
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 225
+				}
+				x: {
+					class: java.lang.Float
+					value: 127
+				}
+				h: {
+					class: java.lang.Float
+					value: 225
+				}
+				y: {
+					class: java.lang.Float
+					value: -64
+				}
+			}
+			requiredLeverId2: null
+			state: {
+				class: java.lang.String
+				value: ACTIVE
+			}
+			lever1Active: {
+				class: java.lang.Boolean
+				value: true
+			}
+			requiredLeverId1: null
+		}
+	}
+	{
+		className: Lever
+		fullClassName: com.jjmc.chromashift.environment.interactable.Lever
+		uniqueId: lever_1
+		x: 32
+		y: -32
+		fields: {
+			class: java.util.HashMap
+			onToggle: null
+			horizontal: {
+				class: java.lang.Boolean
+				value: false
+			}
+			playerNearby: {
+				class: java.lang.Boolean
+				value: false
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 26
+				}
+				x: {
+					class: java.lang.Float
+					value: 32
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: -32
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: lever_1
+			}
+			on: {
+				class: java.lang.Boolean
+				value: false
+			}
+		}
+	}
+	{
+		className: Lever
+		fullClassName: com.jjmc.chromashift.environment.interactable.Lever
+		uniqueId: lever_2
+		x: -64
+		y: -32
+		fields: {
+			class: java.util.HashMap
+			onToggle: null
+			horizontal: {
+				class: java.lang.Boolean
+				value: false
+			}
+			playerNearby: {
+				class: java.lang.Boolean
+				value: false
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 26
+				}
+				x: {
+					class: java.lang.Float
+					value: -64
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: -32
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: lever_2
+			}
+			on: {
+				class: java.lang.Boolean
+				value: false
+			}
+		}
+	}
+]
+}

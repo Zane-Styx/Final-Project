@@ -17,6 +17,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.jjmc.chromashift.environment.Wall;
 import com.jjmc.chromashift.environment.Solid;
 import com.jjmc.chromashift.environment.Spawn;
+import com.jjmc.chromashift.environment.TriggerZone;
 import com.jjmc.chromashift.environment.interactable.Button;
 import com.jjmc.chromashift.environment.interactable.Door;
 import com.jjmc.chromashift.environment.interactable.Lever;
@@ -30,7 +31,9 @@ import com.jjmc.chromashift.environment.interactable.Glass;
 import com.jjmc.chromashift.environment.interactable.LockedDoor;
 import com.jjmc.chromashift.environment.interactable.Portal;
 import com.jjmc.chromashift.screens.Initialize;
-import com.jjmc.chromashift.entity.boss.BossInstance;
+import com.jjmc.chromashift.entity.boss.Boss;
+import com.jjmc.chromashift.entity.boss.FinalBoss;
+import com.jjmc.chromashift.entity.boss.BossGuardian;
 
 import java.util.Locale;
 
@@ -219,7 +222,7 @@ public class LevelMakerScreen implements Screen {
 	private boolean levelSelected = false;
 
 	private enum ObjectType {
-		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, SPAWN, PORTAL, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, TARGET, KEY, LOCKED_DOOR, HEALTH_POTION, NONE
+		WALL, DOOR, BUTTON, LEVER, BOX, ORB, BOSS, BOSS_GUARDIAN, SPAWN, PORTAL, LAUNCHPAD, LASER, MIRROR, GLASS, DIAMOND, SHOP, TENTACLE, TARGET, KEY, LOCKED_DOOR, HEALTH_POTION, TRIGGER_ZONE, NONE
 	}
 
 	private ObjectType selectedType = ObjectType.NONE;
@@ -235,7 +238,7 @@ public class LevelMakerScreen implements Screen {
 	private Array<Interactable> interactableInstances = new Array<>();
 	private Array<com.jjmc.chromashift.environment.collectible.Collectible> collectibleInstances = new Array<>();
 	private Array<com.jjmc.chromashift.environment.interactable.Shop> shopInstances = new Array<>();
-	private BossInstance bossInstance;
+	private Boss bossInstance;
 	private Spawn spawnPreview;
 
 	// quick visual feedback for placements
@@ -357,6 +360,10 @@ public class LevelMakerScreen implements Screen {
 	// Target color selection (same as Button colors)
 	private Array<Rectangle> targetColorRects = new Array<>();
 	private Button.ButtonColor selectedTargetColor = Button.ButtonColor.RED;
+	// Trigger zone selection
+	private String selectedTriggerId = "trigger_1";
+	private String selectedTriggerColor = "RED";
+	private final String[] triggerColors = new String[] { "RED", "BLUE", "GREEN", "YELLOW", "PURPLE", "CYAN" };
 	// Box color selection (same palette as Glass)
 	private Array<Rectangle> boxColorRects = new Array<>();
 	private String selectedBoxColor = "CYAN";
@@ -501,6 +508,7 @@ public class LevelMakerScreen implements Screen {
 		uiButtons.add(new UIButton(ObjectType.KEY, "Key"));
 		uiButtons.add(new UIButton(ObjectType.LOCKED_DOOR, "LockDoor"));
 		uiButtons.add(new UIButton(ObjectType.HEALTH_POTION, "Potion"));
+		uiButtons.add(new UIButton(ObjectType.TRIGGER_ZONE, "Trigger"));
 		uiButtons.add(new UIButton(ObjectType.NONE, "Link"));
 		uiButtons.add(new UIButton(ObjectType.NONE, "Delete"));
 
@@ -551,6 +559,49 @@ public class LevelMakerScreen implements Screen {
 		return (int) Math.floor(v / 32f) * 32;
 	}
 
+	private String cycleTriggerColor(String current, int delta) {
+		if (triggerColors == null || triggerColors.length == 0)
+			return current;
+		int idx = 0;
+		for (int i = 0; i < triggerColors.length; i++) {
+			if (triggerColors[i].equalsIgnoreCase(current)) {
+				idx = i;
+				break;
+			}
+		}
+		idx = (idx + delta) % triggerColors.length;
+		if (idx < 0)
+			idx += triggerColors.length;
+		return triggerColors[idx];
+	}
+
+	private Color parseColor(String name, Color fallback) {
+		if (name == null || name.isEmpty())
+			return fallback;
+		try {
+			return Color.valueOf(name.toUpperCase());
+		} catch (Exception ex) {
+			return fallback;
+		}
+	}
+
+	/**
+	 * Helper to draw multi-line tooltip/info text in the UI corner,
+	 * automatically positioning to avoid overlap.
+	 */
+	private void drawUIInfoBox(SpriteBatch batch, String[] lines, float cornerX, float cornerY, float lineHeight) {
+		if (lines == null || lines.length == 0)
+			return;
+		font.setColor(Color.WHITE);
+		float y = cornerY;
+		for (String line : lines) {
+			if (line != null && !line.isEmpty()) {
+				font.draw(batch, line, cornerX, y);
+				y -= lineHeight;
+			}
+		}
+	}
+
 	/**
 	 * Get preview bottom-left in UI (screen) coordinates by snapping the mouse
 	 * world position
@@ -579,7 +630,7 @@ public class LevelMakerScreen implements Screen {
 
 	/**
 	 * Return true if the provided world-space rectangle does not overlap any
-	 * existing placed object.
+	 * existing placed object. Triggers (non-blocking) are excluded from this check.
 	 */
 	private boolean isAreaFree(Rectangle worldArea) {
 		// check walls
@@ -587,8 +638,10 @@ public class LevelMakerScreen implements Screen {
 			if (w.getBounds().overlaps(worldArea))
 				return false;
 		}
-		// check interactables
+		// check interactables (but skip TriggerZones as they are non-blocking)
 		for (Interactable it : interactableInstances) {
+			if (it instanceof TriggerZone)
+				continue; // Triggers don't block placement
 			if (it.getBounds().overlaps(worldArea))
 				return false;
 		}
@@ -744,6 +797,18 @@ public class LevelMakerScreen implements Screen {
 			}
 		}
 
+		// Render trigger zones as colored outlines for editor visibility
+		if (state.triggers != null && state.triggers.size > 0) {
+			shape.setProjectionMatrix(camera.combined);
+			shape.begin(ShapeRenderer.ShapeType.Line);
+			for (LevelIO.LevelState.TriggerData td : state.triggers) {
+				Color c = parseColor(td.color, Color.RED);
+				shape.setColor(c);
+				shape.rect(td.x, td.y, td.width, td.height);
+			}
+			shape.end();
+		}
+
 		// draw placement flashes in world space
 		if (placementFlashes.size > 0) {
 			shape.setProjectionMatrix(camera.combined);
@@ -812,9 +877,9 @@ public class LevelMakerScreen implements Screen {
 				break;
 			}
 			case PORTAL: {
-				previewW = 225f;
-				previewH = 225f;
-				// center the large preview on the cursor/grid cell instead of anchoring at
+				previewW = 140f;
+				previewH = 154f;
+				// center the preview on the cursor/grid cell instead of anchoring at
 				// bottom-left of the cell
 				worldPreview.x -= (previewW - 32f) * 0.5f;
 				worldPreview.y -= (previewH - 32f) * 0.5f;
@@ -953,17 +1018,7 @@ public class LevelMakerScreen implements Screen {
 				shape.rect(tx2 - 3, closeSpeedSliderRect.y - 4, 6, closeSpeedSliderRect.height + 8);
 			}
 		} else if (selectedType == ObjectType.PORTAL) {
-			// Portal linking UI: display current trigger ids and controls
-			batch.begin();
-			LevelIO.LevelState.InteractableData pd = findLastPortalData();
-			String t1 = (pd != null && pd.lever1Id != null) ? pd.lever1Id : "none";
-			String t2 = (pd != null && pd.lever2Id != null) ? pd.lever2Id : "none";
-			font.setColor(Color.WHITE);
-			font.draw(batch, "Portal Link1: " + t1 + " ([ / ])", uiCamera.position.x - 380, uiCamera.position.y + 170);
-			font.draw(batch, "Portal Link2: " + t2 + " (, / .)", uiCamera.position.x - 380, uiCamera.position.y + 150);
-			font.draw(batch, "Links can be lever or button ids (e.g., lever_1, button_1)", uiCamera.position.x - 380,
-					uiCamera.position.y + 130);
-			batch.end();
+			// Portal linking UI: display current trigger ids and controls (drawn later after batch.begin())
 		} else if (selectedType == ObjectType.BUTTON) {
 			// button color swatches
 			for (int i = 0; i < buttonColorRects.size; i++) {
@@ -1256,6 +1311,28 @@ public class LevelMakerScreen implements Screen {
 		shape.end();
 
 		batch.begin();
+		
+		// Info boxes for portal and trigger zones (top-left corner)
+		if (selectedType == ObjectType.PORTAL) {
+			LevelIO.LevelState.InteractableData pd = findLastPortalData();
+			String t1 = (pd != null && pd.lever1Id != null) ? pd.lever1Id : "none";
+			String t2 = (pd != null && pd.lever2Id != null) ? pd.lever2Id : "none";
+			String[] portalLines = {
+				"Portal Link1: " + t1 + " ([ / ])",
+				"Portal Link2: " + t2 + " (, / .)",
+				"Links can be lever or button ids"
+			};
+			drawUIInfoBox(batch, portalLines, 10, uiCamera.viewportHeight - 10, 18);
+		} else if (selectedType == ObjectType.TRIGGER_ZONE) {
+			String[] triggerLines = {
+				"Trigger ID: " + selectedTriggerId,
+				"Color: " + selectedTriggerColor + " (C to cycle)",
+				"Size: Arrow keys adjust",
+				"Non-solid, overlaps allowed"
+			};
+			drawUIInfoBox(batch, triggerLines, 10, uiCamera.viewportHeight - 10, 18);
+		}
+		
 		// Main button labels (always visible)
 		for (UIButton b : uiButtons) {
 			font.setColor(Color.WHITE);
@@ -1275,12 +1352,16 @@ public class LevelMakerScreen implements Screen {
 				font.setColor(Color.WHITE);
 				font.draw(batch, "-", doorOpenMinusRect.x + 8, doorOpenMinusRect.y + doorOpenMinusRect.height);
 				font.draw(batch, "+", doorOpenPlusRect.x + 8, doorOpenPlusRect.y + doorOpenPlusRect.height);
-				font.draw(batch, String.format("Open: %.1f", selectedDoorOpenSpeed), doorOpenPlusRect.x,
-						doorOpenPlusRect.y + doorOpenPlusRect.height - 2);
 				font.draw(batch, "-", doorCloseMinusRect.x + 8, doorCloseMinusRect.y + doorCloseMinusRect.height);
 				font.draw(batch, "+", doorClosePlusRect.x + 8, doorClosePlusRect.y + doorClosePlusRect.height);
-				font.draw(batch, String.format("Close: %.1f", selectedDoorCloseSpeed), doorClosePlusRect.x,
-						doorClosePlusRect.y + doorClosePlusRect.height - 2);
+				
+				// Draw speed labels using helper for organized layout
+				String[] doorLabels = {
+					"Open Speed: " + String.format("%.1f", selectedDoorOpenSpeed),
+					"Close Speed: " + String.format("%.1f", selectedDoorCloseSpeed)
+				};
+				   // Align to top-left: (0, uiCamera.viewportHeight)
+				   drawUIInfoBox(batch, doorLabels, 10, uiCamera.viewportHeight - 10, 18);
 			}
 		} else if (selectedType == ObjectType.BUTTON) {
 			// button color labels
@@ -1310,11 +1391,12 @@ public class LevelMakerScreen implements Screen {
 						tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height - 6);
 				font.draw(batch, "+", tentacleSegmentPlusRect.x + 10,
 						tentacleSegmentPlusRect.y + tentacleSegmentPlusRect.height - 6);
-				// Draw segment count between buttons
-				font.draw(batch, "Seg: " + selectedTentacleSegments,
-						(tentacleSegmentMinusRect.x + tentacleSegmentPlusRect.x + tentacleSegmentPlusRect.width) / 2f
-								- 20,
-						tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height + 16);
+				// Draw segment count using helper for organized layout
+				String[] tentLabels = {
+					"Segments: " + selectedTentacleSegments
+				};
+				drawUIInfoBox(batch, tentLabels, tentacleSegmentMinusRect.x, 
+						tentacleSegmentMinusRect.y + tentacleSegmentMinusRect.height + 5, 18);
 			}
 		} else if (selectedType == ObjectType.LASER) {
 			// laser type labels
@@ -1342,16 +1424,20 @@ public class LevelMakerScreen implements Screen {
 				font.draw(batch, dirLabels[i], r.x + 8, r.y + r.height - 6);
 			}
 			// Speed display
-			font.draw(batch, String.format("Speed: %.0f", selectedLaunchpadSpeed),
-					launchpadDirRects.first().x, launchpadDirRects.first().y - 8);
+			String[] launchpadLabels = {
+				"Speed: " + String.format("%.0f", selectedLaunchpadSpeed)
+			};
+			drawUIInfoBox(batch, launchpadLabels, launchpadDirRects.first().x, launchpadDirRects.first().y - 8, 18);
 		} else if (selectedType == ObjectType.MIRROR) {
 			if (mirrorRotateRect != null) {
 				font.setColor(Color.WHITE);
 				font.draw(batch, "Rotate 45°", mirrorRotateRect.x + 10,
 						mirrorRotateRect.y + mirrorRotateRect.height - 6);
-				// show current angle
-				font.draw(batch, String.format("Angle: %.0f°", selectedMirrorAngleDeg), mirrorRotateRect.x + 10,
-						mirrorRotateRect.y - 4);
+				// Draw angle using helper for organized layout
+				String[] mirrorLabels = {
+					"Angle: " + String.format("%.0f°", selectedMirrorAngleDeg)
+				};
+				drawUIInfoBox(batch, mirrorLabels, mirrorRotateRect.x + 10, mirrorRotateRect.y - 4, 18);
 			}
 		} else if (selectedType == ObjectType.GLASS) {
 			// labels for glass color (first letter)
@@ -1543,6 +1629,10 @@ public class LevelMakerScreen implements Screen {
 			}
 			shape.setColor(previewBlocked ? Color.FIREBRICK : tc);
 			shape.rect(screenGx, screenGy, 32f, 32f);
+		} else if (selectedType == ObjectType.TRIGGER_ZONE) {
+			Color tc = parseColor(selectedTriggerColor, Color.RED);
+			shape.setColor(tc.r, tc.g, tc.b, 0.5f);
+			shape.rect(screenGx, screenGy, previewCols * 32f, previewRows * 32f);
 		} else if (selectedType == ObjectType.ORB) {
 			// Orb area label (reuse first box rect if available or fallback near preview)
 			font.setColor(Color.WHITE);
@@ -1988,6 +2078,10 @@ public class LevelMakerScreen implements Screen {
 					applyPortalLinks(pd.lever1Id, next);
 				}
 			}
+		} else if (selectedType == ObjectType.TRIGGER_ZONE) {
+			if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
+				selectedTriggerColor = cycleTriggerColor(selectedTriggerColor, +1);
+			}
 		}
 
 		// object selection
@@ -2006,16 +2100,18 @@ public class LevelMakerScreen implements Screen {
 		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_7))
 			selectedType = ObjectType.BOSS;
 		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_8))
-			selectedType = ObjectType.SPAWN;
+			selectedType = ObjectType.BOSS_GUARDIAN;
 		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_9))
-			selectedType = ObjectType.LAUNCHPAD;
+			selectedType = ObjectType.SPAWN;
 		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.NUM_0))
+			selectedType = ObjectType.LAUNCHPAD;
+		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.MINUS))
 			selectedType = ObjectType.NONE;
 		if (!levelModifier && Gdx.input.isKeyJustPressed(Input.Keys.P))
 			selectedType = ObjectType.PORTAL;
 
-		// size adjustments for wall/door
-		if (selectedType == ObjectType.WALL || selectedType == ObjectType.DOOR) {
+		// size adjustments for wall/door/trigger zones
+		if (selectedType == ObjectType.WALL || selectedType == ObjectType.DOOR || selectedType == ObjectType.TRIGGER_ZONE) {
 			if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
 				if (previewCols > 1)
 					previewCols--;
@@ -2109,6 +2205,12 @@ public class LevelMakerScreen implements Screen {
 						linkSourceType = ObjectType.NONE;
 						linkSelectedDoorIds.clear();
 						deleteMode = false;
+						if (selectedType == ObjectType.TRIGGER_ZONE) {
+							previewCols = 2;
+							previewRows = 2;
+							selectedTriggerId = "trigger_" + (state.triggers.size + 1);
+							selectedTriggerColor = "RED";
+						}
 					}
 					return;
 				}
@@ -2759,6 +2861,16 @@ public class LevelMakerScreen implements Screen {
 							break;
 						}
 					}
+				} else if (it instanceof TriggerZone) {
+					if (state.triggers != null) {
+						for (int j = 0; j < state.triggers.size; ++j) {
+							LevelIO.LevelState.TriggerData td = state.triggers.get(j);
+							if (Math.abs(td.x - ob.x) < 5f && Math.abs(td.y - ob.y) < 5f) {
+								state.triggers.removeIndex(j);
+								break;
+							}
+						}
+					}
 				}
 				if (it instanceof Solid)
 					solids.removeValue((Solid) it, true);
@@ -2884,6 +2996,11 @@ public class LevelMakerScreen implements Screen {
 				areaH = previewRows * 32f;
 				break;
 			}
+			case TRIGGER_ZONE: {
+				areaW = previewCols * 32f;
+				areaH = previewRows * 32f;
+				break;
+			}
 			case NONE:
 			default: {
 				break;
@@ -2895,7 +3012,8 @@ public class LevelMakerScreen implements Screen {
 			intended.x += 8f;
 			intended.y += 8f;
 		}
-		boolean areaFree = isAreaFree(intended);
+		// Triggers are non-blocking; allow placement over other objects
+		boolean areaFree = (selectedType == ObjectType.TRIGGER_ZONE) ? true : isAreaFree(intended);
 		if (!areaFree) {
 			// Log overlaps for debugging
 			for (Wall w : walls) {
@@ -3119,9 +3237,21 @@ public class LevelMakerScreen implements Screen {
 				LevelIO.LevelState.BossData bd = new LevelIO.LevelState.BossData();
 				bd.x = gx;
 				bd.y = gy;
+				bd.guardian = false;
 				state.boss = bd;
-				if (bossInstance == null)
-					bossInstance = new BossInstance();
+				bossInstance = new FinalBoss();
+				bossInstance.setPosition(bd.x, bd.y);
+				placements.add(new Placement(ObjectType.BOSS, gx, gy, 1, 1, null));
+				placed = true;
+				break;
+			}
+			case BOSS_GUARDIAN: {
+				LevelIO.LevelState.BossData bd = new LevelIO.LevelState.BossData();
+				bd.x = gx;
+				bd.y = gy;
+				bd.guardian = true;
+				state.boss = bd;
+				bossInstance = new BossGuardian();
 				bossInstance.setPosition(bd.x, bd.y);
 				placements.add(new Placement(ObjectType.BOSS, gx, gy, 1, 1, null));
 				placed = true;
@@ -3351,6 +3481,35 @@ public class LevelMakerScreen implements Screen {
 				placed = true;
 				break;
 			}
+			case TRIGGER_ZONE: {
+				LevelIO.LevelState.TriggerData td = new LevelIO.LevelState.TriggerData();
+				td.id = selectedTriggerId;
+				td.x = gx;
+				td.y = gy;
+				td.width = previewCols * 32f;
+				td.height = previewRows * 32f;
+				td.color = selectedTriggerColor;
+				if (state.triggers == null)
+					state.triggers = new Array<>();
+				state.triggers.add(td);
+				TriggerZone trig = new TriggerZone(td.x, td.y, td.width, td.height, selectedTriggerId,
+						parseColor(selectedTriggerColor, Color.RED));
+				interactableInstances.add(trig);
+				placements.add(new Placement(ObjectType.TRIGGER_ZONE, gx, gy, previewCols, previewRows, selectedTriggerId));
+				// Auto-increment id for next trigger
+				int trigCount = 0;
+				for (LevelIO.LevelState.TriggerData existingTd : state.triggers) {
+					if (existingTd.id != null && existingTd.id.startsWith("trigger_")) {
+						try {
+							int num = Integer.parseInt(existingTd.id.substring(8));
+							trigCount = Math.max(trigCount, num);
+						} catch (Exception ignored) {}
+					}
+				}
+				selectedTriggerId = "trigger_" + (trigCount + 1);
+				placed = true;
+				break;
+			}
 			case NONE:
 			default: {
 				break;
@@ -3518,6 +3677,8 @@ public class LevelMakerScreen implements Screen {
 			state.diamonds = new Array<>();
 		if (state.tentacles == null)
 			state.tentacles = new Array<>();
+		if (state.triggers == null)
+			state.triggers = new Array<>();
 		if (state.keys == null)
 			state.keys = new Array<>();
 		if (state.lockedDoors == null)
@@ -4089,6 +4250,26 @@ public class LevelMakerScreen implements Screen {
 						LevelIO.LevelState.TentacleData td = state.tentacles.get(i);
 						if (td.x == p.x && td.y == p.y) {
 							state.tentacles.removeIndex(i);
+							break;
+						}
+					}
+				}
+				break;
+			case TRIGGER_ZONE:
+				if (state.triggers != null) {
+					for (int i = 0; i < state.triggers.size; ++i) {
+						LevelIO.LevelState.TriggerData td = state.triggers.get(i);
+						if (td.x == p.x && td.y == p.y) {
+							state.triggers.removeIndex(i);
+							break;
+						}
+					}
+				}
+				for (int i = interactableInstances.size - 1; i >= 0; --i) {
+					if (interactableInstances.get(i) instanceof TriggerZone) {
+						Rectangle rb = interactableInstances.get(i).getBounds();
+						if ((int) rb.x == p.x && (int) rb.y == p.y) {
+							interactableInstances.removeIndex(i);
 							break;
 						}
 					}

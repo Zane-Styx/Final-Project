@@ -1,4 +1,114 @@
 {
-  "meta": { "name": "BossRoom", "version": 1 }
-
+"meta": {
+	"name": "BossRoom",
+	"version": 1
+},
+"spawn": {
+	"x": -768,
+	"y": 288
+},
+"walls": [
+	{
+		"x": -800,
+		"y": 224,
+		"width": 46,
+		"height": 1
+	},
+	{
+		"x": -800,
+		"y": -416,
+		"width": 46,
+		"height": 20
+	},
+	{
+		"x": 672,
+		"y": 256,
+		"width": 14,
+		"height": 23
+	},
+	{
+		"x": -1248,
+		"y": 256,
+		"width": 14,
+		"height": 23
+	},
+	{
+		"x": -1248,
+		"y": -416,
+		"width": 14,
+		"height": 21
+	},
+	{
+		"x": 672,
+		"y": -416,
+		"width": 14,
+		"height": 21
+	},
+	{
+		"x": -1248,
+		"y": 992,
+		"width": 14,
+		"height": 5
+	},
+	{
+		"x": 672,
+		"y": 992,
+		"width": 14,
+		"height": 5
+	},
+	{
+		"x": -1248,
+		"y": 1152,
+		"width": 74,
+		"height": 5
+	},
+	{
+		"x": 1120,
+		"y": -416,
+		"width": 10,
+		"height": 54
+	},
+	{
+		"x": -1568,
+		"y": -416,
+		"width": 10,
+		"height": 54
+	},
+	{
+		"x": 1440,
+		"y": 1312,
+		"width": 1,
+		"height": 1
+	},
+	{
+		"x": -1568,
+		"y": 1312,
+		"width": 94,
+		"height": 17
+	}
+],
+"interactables": [],
+"boxes": [],
+"orbs": [],
+"launchpads": [],
+"lasers": [],
+"mirrors": [],
+"glasses": [],
+"diamonds": [],
+"shops": [],
+"tentacles": [],
+"triggers": [
+	{
+		"id": "trigger_1",
+		"x": -800,
+		"y": 256,
+		"width": 1472,
+		"height": 224,
+		"color": "RED"
+	}
+],
+"keys": [],
+"lockedDoors": [],
+"healthPotions": [],
+"boss": null
 }

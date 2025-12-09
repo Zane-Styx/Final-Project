@@ -1,25 +1,46 @@
 {
-x: 1015.12506
-y: 320
-onGround: true
-canJump: true
-airAttackTimer: -0.017427156
-attackCooldownTimer: -0.014965611
-respawnX: 160
-respawnY: 352
-diamonds: 30
-healthCurrent: 200
-healthMax: 200
-skillQ: {
-	skillName: DashSkill
-	currentCooldown: -0.015988119
-}
-skillE: {
-	skillName: SplitSkill
-	currentCooldown: -1.6652048E-5
-}
-currentLevel: levels/level1.json
-visitedLevels: [
-	levels/level1.json
+"x": 250.76445,
+"y": 754.6782,
+"velocityX": 0,
+"velocityY": -188.08704,
+"facingLeft": false,
+"onGround": false,
+"canJump": false,
+"dashing": false,
+"dashTimer": 0,
+"dashCooldownTimer": 0,
+"dashUsed": false,
+"dashHoverRemaining": 0,
+"attacking": false,
+"airAttacking": false,
+"airAttackTimer": 0,
+"attackCooldownTimer": 0,
+"shield": 0,
+"keyCount": 0,
+"potionCount": 0,
+"respawnX": 160,
+"respawnY": 352,
+"respawnInvulRemaining": 0,
+"respawnStunRemaining": 0,
+"isStunned": false,
+"diamonds": 0,
+"healthCurrent": 200,
+"healthMax": 200,
+"skillQ": {
+	"skillName": "DashSkill",
+	"currentCooldown": 0,
+	"isActive": false,
+	"animationTimer": 0
+},
+"skillE": {
+	"skillName": "SplitSkill",
+	"currentCooldown": 0,
+	"isActive": false,
+	"animationTimer": 0
+},
+"activeSkill": null,
+"currentLevel": "levels/level1.json",
+"visitedLevels": [
+	"levels/level1.json"
 ]
 }

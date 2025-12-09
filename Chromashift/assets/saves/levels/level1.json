@@ -1,6 +1,6 @@
 {
 levelPath: levels/level1.json
-timestamp: 1764690672429
+timestamp: 1765245783361
 objects: [
 	{
 		className: Wall
@@ -1511,7 +1511,7 @@ objects: [
 			class: java.util.HashMap
 			openProgress: {
 				class: java.lang.Float
-				value: 1
+				value: 0
 			}
 			openDirection: {
 				class: java.lang.String
@@ -1546,7 +1546,7 @@ objects: [
 			}
 			open: {
 				class: java.lang.Boolean
-				value: true
+				value: false
 			}
 		}
 	}
@@ -1560,7 +1560,7 @@ objects: [
 			class: java.util.HashMap
 			openProgress: {
 				class: java.lang.Float
-				value: 1
+				value: 0
 			}
 			openDirection: {
 				class: java.lang.String
@@ -1595,7 +1595,7 @@ objects: [
 			}
 			open: {
 				class: java.lang.Boolean
-				value: true
+				value: false
 			}
 		}
 	}
@@ -1609,7 +1609,7 @@ objects: [
 			class: java.util.HashMap
 			angleDeg: {
 				class: java.lang.Float
-				value: 225
+				value: 135
 			}
 			playerNearby: {
 				class: java.lang.Boolean
@@ -1623,7 +1623,7 @@ objects: [
 				}
 				y: {
 					class: java.lang.Float
-					value: 507.31372
+					value: 484.68628
 				}
 			}
 			bounds: {
@@ -1653,7 +1653,7 @@ objects: [
 				}
 				y: {
 					class: java.lang.Float
-					value: 484.68628
+					value: 507.31372
 				}
 			}
 		}
@@ -1720,7 +1720,7 @@ objects: [
 	{
 		className: Button
 		fullClassName: com.jjmc.chromashift.environment.interactable.Button
-		uniqueId: Button_768_640
+		uniqueId: button_1
 		x: 768
 		y: 640
 		fields: {
@@ -1790,6 +1790,10 @@ objects: [
 					value: 647
 				}
 			}
+			id: {
+				class: java.lang.String
+				value: button_1
+			}
 			collisionBounds: {
 				class: java.util.HashMap
 				w: {
@@ -1814,7 +1818,7 @@ objects: [
 	{
 		className: Lever
 		fullClassName: com.jjmc.chromashift.environment.interactable.Lever
-		uniqueId: Lever_928_864
+		uniqueId: lever_1
 		x: 928
 		y: 864
 		fields: {
@@ -1847,9 +1851,13 @@ objects: [
 					value: 864
 				}
 			}
+			id: {
+				class: java.lang.String
+				value: lever_1
+			}
 			on: {
 				class: java.lang.Boolean
-				value: true
+				value: false
 			}
 		}
 	}
@@ -1890,14 +1898,14 @@ objects: [
 			}
 			active: {
 				class: java.lang.Boolean
-				value: true
+				value: false
 			}
 		}
 	}
 	{
 		className: Button
 		fullClassName: com.jjmc.chromashift.environment.interactable.Button
-		uniqueId: Button_256_320
+		uniqueId: button_2
 		x: 256
 		y: 320
 		fields: {
@@ -1968,6 +1976,10 @@ objects: [
 					value: 327
 				}
 			}
+			id: {
+				class: java.lang.String
+				value: button_2
+			}
 			collisionBounds: {
 				class: java.util.HashMap
 				w: {
@@ -1986,6 +1998,172 @@ objects: [
 					class: java.lang.Float
 					value: 320
 				}
+			}
+		}
+	}
+	{
+		className: Lever
+		fullClassName: com.jjmc.chromashift.environment.interactable.Lever
+		uniqueId: lever_2
+		x: 1056
+		y: 416
+		fields: {
+			class: java.util.HashMap
+			horizontal: {
+				class: java.lang.Boolean
+				value: false
+			}
+			playerNearby: {
+				class: java.lang.Boolean
+				value: false
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 26
+				}
+				x: {
+					class: java.lang.Float
+					value: 1056
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 416
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: lever_2
+			}
+			on: {
+				class: java.lang.Boolean
+				value: false
+			}
+		}
+	}
+	{
+		className: Lever
+		fullClassName: com.jjmc.chromashift.environment.interactable.Lever
+		uniqueId: lever_3
+		x: 1088
+		y: 416
+		fields: {
+			class: java.util.HashMap
+			horizontal: {
+				class: java.lang.Boolean
+				value: false
+			}
+			playerNearby: {
+				class: java.lang.Boolean
+				value: false
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 26
+				}
+				x: {
+					class: java.lang.Float
+					value: 1088
+				}
+				h: {
+					class: java.lang.Float
+					value: 32
+				}
+				y: {
+					class: java.lang.Float
+					value: 416
+				}
+			}
+			id: {
+				class: java.lang.String
+				value: lever_3
+			}
+			on: {
+				class: java.lang.Boolean
+				value: false
+			}
+		}
+	}
+	{
+		className: Portal
+		fullClassName: com.jjmc.chromashift.environment.interactable.Portal
+		uniqueId: Portal_1215_319
+		x: 1215
+		y: 319
+		fields: {
+			class: java.util.HashMap
+			playerNearby: {
+				class: java.lang.Boolean
+				value: false
+			}
+			lever2Active: {
+				class: java.lang.Boolean
+				value: false
+			}
+			interactionCooldown: {
+				class: java.lang.Float
+				value: 0
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 225
+				}
+				x: {
+					class: java.lang.Float
+					value: 1215
+				}
+				h: {
+					class: java.lang.Float
+					value: 225
+				}
+				y: {
+					class: java.lang.Float
+					value: 319
+				}
+			}
+			requiredLeverId2: {
+				class: java.lang.String
+				value: lever_3
+			}
+			state: {
+				class: java.lang.String
+				value: INACTIVE
+			}
+			lever1Active: {
+				class: java.lang.Boolean
+				value: false
+			}
+			hitbox: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 140
+				}
+				x: {
+					class: java.lang.Float
+					value: 1257
+				}
+				h: {
+					class: java.lang.Float
+					value: 154
+				}
+				y: {
+					class: java.lang.Float
+					value: 349
+				}
+			}
+			requiredLeverId1: {
+				class: java.lang.String
+				value: lever_2
 			}
 		}
 	}
@@ -2104,94 +2282,6 @@ objects: [
 			height: {
 				class: java.lang.Float
 				value: 24
-			}
-		}
-	}
-	{
-		className: Orb
-		fullClassName: com.jjmc.chromashift.environment.interactable.Orb
-		uniqueId: Orb_196_320
-		x: 196
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounceEnabled: {
-				class: java.lang.Boolean
-				value: true
-			}
-			vx: {
-				class: java.lang.Float
-				value: 0
-			}
-			vy: {
-				class: java.lang.Float
-				value: 19.18325
-			}
-			holdOffsetX: {
-				class: java.lang.Float
-				value: 0
-			}
-			held: {
-				class: java.lang.Boolean
-				value: false
-			}
-			holdOffsetY: {
-				class: java.lang.Float
-				value: 6
-			}
-			bounciness: {
-				class: java.lang.Float
-				value: 1
-			}
-			spawnX: {
-				class: java.lang.Float
-				value: 196
-			}
-			holder: null
-			maxSpeed: {
-				class: java.lang.Float
-				value: 1000
-			}
-			spawnY: {
-				class: java.lang.Float
-				value: 324
-			}
-			inRange: {
-				class: java.lang.Boolean
-				value: false
-			}
-			x: {
-				class: java.lang.Float
-				value: 196
-			}
-			respawnArea: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 1600
-				}
-				x: {
-					class: java.lang.Float
-					value: -604
-				}
-				h: {
-					class: java.lang.Float
-					value: 1200
-				}
-				y: {
-					class: java.lang.Float
-					value: -276
-				}
-			}
-			y: {
-				class: java.lang.Float
-				value: 320
-			}
-			gameCamera: null
-			interactables: null
-			radius: {
-				class: java.lang.Float
-				value: 12
 			}
 		}
 	}
@@ -2932,7 +3022,7 @@ objects: [
 			}
 			open: {
 				class: java.lang.Boolean
-				value: true
+				value: false
 			}
 		}
 	}
@@ -2969,7 +3059,7 @@ objects: [
 			}
 			open: {
 				class: java.lang.Boolean
-				value: true
+				value: false
 			}
 		}
 	}
@@ -3024,14 +3114,14 @@ objects: [
 		}
 	}
 	{
-		className: HealthPotion
-		fullClassName: com.jjmc.chromashift.environment.collectible.HealthPotion
-		uniqueId: HealthPotion_192_512
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_448_384
 		fields: {
 			class: java.util.HashMap
 			x: {
 				class: java.lang.Float
-				value: 192
+				value: 448
 			}
 			width: {
 				class: java.lang.Float
@@ -3039,7 +3129,7 @@ objects: [
 			}
 			y: {
 				class: java.lang.Float
-				value: 512
+				value: 384
 			}
 			collected: {
 				class: java.lang.Boolean
@@ -3047,7 +3137,359 @@ objects: [
 			}
 			id: {
 				class: java.lang.String
-				value: HealthPotion_192_512
+				value: Diamond_448_384
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_448_416
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 448
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 416
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_448_416
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_416_384
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 416
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 384
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_416_384
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_416_416
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 416
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 416
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_416_416
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_384_416
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 384
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 416
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_384_416
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_384_384
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 384
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 384
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_384_384
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_352_384
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 352
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 384
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_352_384
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_352_416
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 352
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 416
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_352_416
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_352_352
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 352
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 352
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_352_352
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Diamond
+		fullClassName: com.jjmc.chromashift.environment.collectible.Diamond
+		uniqueId: Diamond_384_352
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 384
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 352
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Diamond_384_352
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Key
+		fullClassName: com.jjmc.chromashift.environment.collectible.Key
+		uniqueId: Key_320_384
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 320
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 384
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Key_320_384
+			}
+			height: {
+				class: java.lang.Float
+				value: 32
+			}
+		}
+	}
+	{
+		className: Key
+		fullClassName: com.jjmc.chromashift.environment.collectible.Key
+		uniqueId: Key_384_448
+		fields: {
+			class: java.util.HashMap
+			x: {
+				class: java.lang.Float
+				value: 384
+			}
+			width: {
+				class: java.lang.Float
+				value: 32
+			}
+			y: {
+				class: java.lang.Float
+				value: 448
+			}
+			collected: {
+				class: java.lang.Boolean
+				value: false
+			}
+			id: {
+				class: java.lang.String
+				value: Key_384_448
 			}
 			height: {
 				class: java.lang.Float
@@ -3087,32 +3529,747 @@ objects: [
 			}
 		}
 	}
+	{
+		className: Tentacle
+		fullClassName: com.jjmc.chromashift.environment.enemy.Tentacle
+		uniqueId: Tentacle_905_650
+		x: 905.2667
+		y: 650
+		fields: {
+			class: java.util.HashMap
+			hitPointsRemaining: {
+				class: java.lang.Integer
+				value: 6
+			}
+			mouseInfluence: {
+				class: java.lang.Float
+				value: 0.3
+			}
+			tempTarget: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 259.26447
+				}
+				y: {
+					class: java.lang.Float
+					value: 764.6782
+				}
+			}
+			stiffnessModAmplitude: {
+				class: java.lang.Float
+				value: 0.12
+			}
+			lifeTwitchAmplitude: {
+				class: java.lang.Float
+				value: 8
+			}
+			tipFollowLerp: {
+				class: java.lang.Float
+				value: 0.18
+			}
+			wasCurledLastFrame: {
+				class: java.lang.Boolean
+				value: false
+			}
+			dead: {
+				class: java.lang.Boolean
+				value: false
+			}
+			idleWavePropagation: {
+				class: java.lang.Float
+				value: 0.25
+			}
+			curlCenter: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 927.429
+				}
+				y: {
+					class: java.lang.Float
+					value: 708.2344
+				}
+			}
+			maxHits: {
+				class: java.lang.Integer
+				value: 6
+			}
+			sleeping: {
+				class: java.lang.Boolean
+				value: false
+			}
+			segments: {
+				class: java.lang.Integer
+				value: 30
+			}
+			waveTipFactor: {
+				class: java.lang.Float
+				value: 3
+			}
+			isPlayerCaptured: {
+				class: java.lang.Boolean
+				value: false
+			}
+			tempDiff: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -11.947617
+				}
+				y: {
+					class: java.lang.Float
+					value: 1.1200275
+				}
+			}
+			waveBaseAmplitude: {
+				class: java.lang.Float
+				value: 200
+			}
+			springStiffness: {
+				class: java.lang.Float
+				value: 10
+			}
+			idleWaveFrequency: {
+				class: java.lang.Float
+				value: 1.4
+			}
+			staticMode: {
+				class: java.lang.Boolean
+				value: false
+			}
+			curlRadius: {
+				class: java.lang.Float
+				value: 40
+			}
+			suctionWaveOffset: {
+				class: java.lang.Float
+				value: 0.35
+			}
+			springDamping: {
+				class: java.lang.Float
+				value: 8
+			}
+			hasFullCurlCached: {
+				class: java.lang.Boolean
+				value: false
+			}
+			stiffnessModFrequency: {
+				class: java.lang.Float
+				value: 0.5
+			}
+			isCurledCached: {
+				class: java.lang.Boolean
+				value: false
+			}
+			mouseDistanceThreshold: {
+				class: java.lang.Float
+				value: 140
+			}
+			globalDamping: {
+				class: java.lang.Float
+				value: 0.992
+			}
+			suctionWaveSpeed: {
+				class: java.lang.Float
+				value: 3
+			}
+			targetAttract: {
+				class: java.lang.Float
+				value: 100
+			}
+			neighborVelocityBlend: {
+				class: java.lang.Float
+				value: 0.08
+			}
+			prevMouse: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 259.26447
+				}
+				y: {
+					class: java.lang.Float
+					value: 764.6782
+				}
+			}
+			hasCapturedThisCurl: {
+				class: java.lang.Boolean
+				value: false
+			}
+			captureHitCounter: {
+				class: java.lang.Integer
+				value: 0
+			}
+			anchor: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 1312
+				}
+				y: {
+					class: java.lang.Float
+					value: 672
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 428.73328
+				}
+				x: {
+					class: java.lang.Float
+					value: 905.2667
+				}
+				h: {
+					class: java.lang.Float
+					value: 80.93872
+				}
+				y: {
+					class: java.lang.Float
+					value: 650
+				}
+			}
+			maxVelocity: {
+				class: java.lang.Float
+				value: 800
+			}
+			tempDir: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -0.99563473
+				}
+				y: {
+					class: java.lang.Float
+					value: 0.09333563
+				}
+			}
+			tempForce: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -0.4925883
+				}
+				y: {
+					class: java.lang.Float
+					value: 0.04617762
+				}
+			}
+			segmentLength: {
+				class: java.lang.Float
+				value: 12
+			}
+			time: {
+				class: java.lang.Float
+				value: 5.5336204
+			}
+			lifeTwitchFrequency: {
+				class: java.lang.Float
+				value: 2.2
+			}
+			curlDetectionThreshold: {
+				class: java.lang.Float
+				value: 0.6
+			}
+		}
+	}
+	{
+		className: Tentacle
+		fullClassName: com.jjmc.chromashift.environment.enemy.Tentacle
+		uniqueId: Tentacle_1086_650
+		x: 1086.4609
+		y: 650
+		fields: {
+			class: java.util.HashMap
+			hitPointsRemaining: {
+				class: java.lang.Integer
+				value: 6
+			}
+			mouseInfluence: {
+				class: java.lang.Float
+				value: 0.3
+			}
+			tempTarget: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 259.26447
+				}
+				y: {
+					class: java.lang.Float
+					value: 764.6782
+				}
+			}
+			stiffnessModAmplitude: {
+				class: java.lang.Float
+				value: 0.12
+			}
+			lifeTwitchAmplitude: {
+				class: java.lang.Float
+				value: 8
+			}
+			tipFollowLerp: {
+				class: java.lang.Float
+				value: 0.18
+			}
+			wasCurledLastFrame: {
+				class: java.lang.Boolean
+				value: false
+			}
+			dead: {
+				class: java.lang.Boolean
+				value: false
+			}
+			idleWavePropagation: {
+				class: java.lang.Float
+				value: 0.25
+			}
+			curlCenter: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 1108.6328
+				}
+				y: {
+					class: java.lang.Float
+					value: 703.3633
+				}
+			}
+			maxHits: {
+				class: java.lang.Integer
+				value: 6
+			}
+			sleeping: {
+				class: java.lang.Boolean
+				value: false
+			}
+			segments: {
+				class: java.lang.Integer
+				value: 30
+			}
+			waveTipFactor: {
+				class: java.lang.Float
+				value: 3
+			}
+			isPlayerCaptured: {
+				class: java.lang.Boolean
+				value: false
+			}
+			tempDiff: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -11.962358
+				}
+				y: {
+					class: java.lang.Float
+					value: 0.9497296
+				}
+			}
+			waveBaseAmplitude: {
+				class: java.lang.Float
+				value: 200
+			}
+			springStiffness: {
+				class: java.lang.Float
+				value: 10
+			}
+			idleWaveFrequency: {
+				class: java.lang.Float
+				value: 1.4
+			}
+			staticMode: {
+				class: java.lang.Boolean
+				value: false
+			}
+			curlRadius: {
+				class: java.lang.Float
+				value: 40
+			}
+			suctionWaveOffset: {
+				class: java.lang.Float
+				value: 0.35
+			}
+			springDamping: {
+				class: java.lang.Float
+				value: 8
+			}
+			hasFullCurlCached: {
+				class: java.lang.Boolean
+				value: false
+			}
+			stiffnessModFrequency: {
+				class: java.lang.Float
+				value: 0.5
+			}
+			isCurledCached: {
+				class: java.lang.Boolean
+				value: false
+			}
+			mouseDistanceThreshold: {
+				class: java.lang.Float
+				value: 140
+			}
+			globalDamping: {
+				class: java.lang.Float
+				value: 0.992
+			}
+			suctionWaveSpeed: {
+				class: java.lang.Float
+				value: 3
+			}
+			targetAttract: {
+				class: java.lang.Float
+				value: 100
+			}
+			neighborVelocityBlend: {
+				class: java.lang.Float
+				value: 0.08
+			}
+			prevMouse: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 259.26447
+				}
+				y: {
+					class: java.lang.Float
+					value: 764.6782
+				}
+			}
+			hasCapturedThisCurl: {
+				class: java.lang.Boolean
+				value: false
+			}
+			captureHitCounter: {
+				class: java.lang.Integer
+				value: 0
+			}
+			anchor: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 1504
+				}
+				y: {
+					class: java.lang.Float
+					value: 672
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 439.53906
+				}
+				x: {
+					class: java.lang.Float
+					value: 1086.4609
+				}
+				h: {
+					class: java.lang.Float
+					value: 76.04083
+				}
+				y: {
+					class: java.lang.Float
+					value: 650
+				}
+			}
+			maxVelocity: {
+				class: java.lang.Float
+				value: 800
+			}
+			tempDir: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -0.9968631
+				}
+				y: {
+					class: java.lang.Float
+					value: 0.07914413
+				}
+			}
+			tempForce: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -0.49319607
+				}
+				y: {
+					class: java.lang.Float
+					value: 0.0391564
+				}
+			}
+			segmentLength: {
+				class: java.lang.Float
+				value: 12
+			}
+			time: {
+				class: java.lang.Float
+				value: 5.5336204
+			}
+			lifeTwitchFrequency: {
+				class: java.lang.Float
+				value: 2.2
+			}
+			curlDetectionThreshold: {
+				class: java.lang.Float
+				value: 0.6
+			}
+		}
+	}
+	{
+		className: Tentacle
+		fullClassName: com.jjmc.chromashift.environment.enemy.Tentacle
+		uniqueId: Tentacle_1267_650
+		x: 1267.8175
+		y: 650
+		fields: {
+			class: java.util.HashMap
+			hitPointsRemaining: {
+				class: java.lang.Integer
+				value: 6
+			}
+			mouseInfluence: {
+				class: java.lang.Float
+				value: 0.3
+			}
+			tempTarget: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 259.26447
+				}
+				y: {
+					class: java.lang.Float
+					value: 764.6782
+				}
+			}
+			stiffnessModAmplitude: {
+				class: java.lang.Float
+				value: 0.12
+			}
+			lifeTwitchAmplitude: {
+				class: java.lang.Float
+				value: 8
+			}
+			tipFollowLerp: {
+				class: java.lang.Float
+				value: 0.18
+			}
+			wasCurledLastFrame: {
+				class: java.lang.Boolean
+				value: false
+			}
+			dead: {
+				class: java.lang.Boolean
+				value: false
+			}
+			idleWavePropagation: {
+				class: java.lang.Float
+				value: 0.25
+			}
+			curlCenter: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 1289.9978
+				}
+				y: {
+					class: java.lang.Float
+					value: 699.7907
+				}
+			}
+			maxHits: {
+				class: java.lang.Integer
+				value: 6
+			}
+			sleeping: {
+				class: java.lang.Boolean
+				value: false
+			}
+			segments: {
+				class: java.lang.Integer
+				value: 30
+			}
+			waveTipFactor: {
+				class: java.lang.Float
+				value: 3
+			}
+			isPlayerCaptured: {
+				class: java.lang.Boolean
+				value: false
+			}
+			tempDiff: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -11.971706
+				}
+				y: {
+					class: java.lang.Float
+					value: 0.82355565
+				}
+			}
+			waveBaseAmplitude: {
+				class: java.lang.Float
+				value: 200
+			}
+			springStiffness: {
+				class: java.lang.Float
+				value: 10
+			}
+			idleWaveFrequency: {
+				class: java.lang.Float
+				value: 1.4
+			}
+			staticMode: {
+				class: java.lang.Boolean
+				value: false
+			}
+			curlRadius: {
+				class: java.lang.Float
+				value: 40
+			}
+			suctionWaveOffset: {
+				class: java.lang.Float
+				value: 0.35
+			}
+			springDamping: {
+				class: java.lang.Float
+				value: 8
+			}
+			hasFullCurlCached: {
+				class: java.lang.Boolean
+				value: false
+			}
+			stiffnessModFrequency: {
+				class: java.lang.Float
+				value: 0.5
+			}
+			isCurledCached: {
+				class: java.lang.Boolean
+				value: false
+			}
+			mouseDistanceThreshold: {
+				class: java.lang.Float
+				value: 140
+			}
+			globalDamping: {
+				class: java.lang.Float
+				value: 0.992
+			}
+			suctionWaveSpeed: {
+				class: java.lang.Float
+				value: 3
+			}
+			targetAttract: {
+				class: java.lang.Float
+				value: 100
+			}
+			neighborVelocityBlend: {
+				class: java.lang.Float
+				value: 0.08
+			}
+			prevMouse: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 259.26447
+				}
+				y: {
+					class: java.lang.Float
+					value: 764.6782
+				}
+			}
+			hasCapturedThisCurl: {
+				class: java.lang.Boolean
+				value: false
+			}
+			captureHitCounter: {
+				class: java.lang.Integer
+				value: 0
+			}
+			anchor: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: 1696
+				}
+				y: {
+					class: java.lang.Float
+					value: 672
+				}
+			}
+			bounds: {
+				class: java.util.HashMap
+				w: {
+					class: java.lang.Float
+					value: 450.1825
+				}
+				x: {
+					class: java.lang.Float
+					value: 1267.8175
+				}
+				h: {
+					class: java.lang.Float
+					value: 72.435
+				}
+				y: {
+					class: java.lang.Float
+					value: 650
+				}
+			}
+			maxVelocity: {
+				class: java.lang.Float
+				value: 800
+			}
+			tempDir: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -0.9976423
+				}
+				y: {
+					class: java.lang.Float
+					value: 0.068629645
+				}
+			}
+			tempForce: {
+				class: java.util.HashMap
+				x: {
+					class: java.lang.Float
+					value: -0.49358153
+				}
+				y: {
+					class: java.lang.Float
+					value: 0.033954382
+				}
+			}
+			segmentLength: {
+				class: java.lang.Float
+				value: 12
+			}
+			time: {
+				class: java.lang.Float
+				value: 5.5336204
+			}
+			lifeTwitchFrequency: {
+				class: java.lang.Float
+				value: 2.2
+			}
+			curlDetectionThreshold: {
+				class: java.lang.Float
+				value: 0.6
+			}
+		}
+	}
 ]
 removedObjectIds: [
-	Diamond_448_384
-	Diamond_448_384
-	Diamond_448_384
-	Diamond_448_416
-	Diamond_448_416
-	Diamond_448_416
-	Diamond_448_416
-	Diamond_448_384
-	Diamond_448_384
-	Diamond_448_384
-	Diamond_448_416
-	Diamond_448_384
-	Diamond_416_384
-	Diamond_416_416
-	Diamond_416_416
-	Diamond_384_416
-	Diamond_384_384
-	Diamond_352_384
-	Diamond_352_416
-	Diamond_352_352
-	Diamond_384_352
-	Diamond_384_352
-	Key_320_384
-	Key_384_448
+	Tentacle_0_0
 	Tentacle_0_0
 	Tentacle_0_0
 ]

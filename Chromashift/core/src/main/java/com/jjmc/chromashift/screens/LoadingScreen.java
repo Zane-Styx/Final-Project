@@ -4,6 +4,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
@@ -31,6 +33,15 @@ public class LoadingScreen implements Screen {
 	private SpriteBatch batch;
 	private ShapeRenderer shape;
 	private SpriteFont font;
+	
+	// Player character animation
+	private Texture playerTexture;
+	private float playerAnimTimer = 0f;
+	private int playerFrame = 0;
+	private float playerAnimSpeed = 0.1f; // seconds per frame
+	private static final int PLAYER_FRAME_WIDTH = 32;
+	private static final int PLAYER_FRAME_HEIGHT = 32;
+	private static final int PLAYER_FRAMES = 9; // walking animation frames
 
 	// Fade control
 	// -- Durations (seconds) -- tweak here
@@ -90,6 +101,10 @@ public class LoadingScreen implements Screen {
 	// Loading logic
 	private boolean assetsQueued = false;
 	private boolean assetsLoaded = false;
+	
+	// Loading throttle to slow down asset loading
+	private float loadingThrottle = 0f;
+	private float loadingThrottleDelay = 0.05f; // Only update loading every 0.05 seconds (slows it down)
 
 	// Scratch (to avoid per-frame allocations)
 	private final Color scratchColor = new Color();
@@ -113,6 +128,15 @@ public class LoadingScreen implements Screen {
 			Gdx.app.error("LoadingScreen", "Failed to load sprite font", e);
 			font = null;
 		}
+		
+		// Load player sprite for walking animation (not through AssetManager to avoid circular dependency)
+		try {
+			playerTexture = new Texture(Gdx.files.internal("player/player-red.png"));
+		} catch (Exception e) {
+			Gdx.app.error("LoadingScreen", "Failed to load player texture", e);
+			playerTexture = null;
+		}
+		
 		// Do NOT queue assets yet; wait until fade-in finishes per new requirement.
 
 		buildLettersLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -165,10 +189,14 @@ public class LoadingScreen implements Screen {
 
 	@Override
 	public void render(float delta) {
-		Assets.loadAll();
 		// Update loading progress ONLY after fade-in finished and assets queued.
 		if (!fadingIn && assetsQueued && !assetsLoaded) {
-			assetsLoaded = Assets.manager.update();
+			// Throttle loading updates to slow down the progress
+			loadingThrottle += delta;
+			if (loadingThrottle >= loadingThrottleDelay) {
+				loadingThrottle = 0f;
+				assetsLoaded = Assets.manager.update();
+			}
 		}
 
 		// Update fades, letters, and loading bar state
@@ -177,6 +205,15 @@ public class LoadingScreen implements Screen {
 			updateLetters(delta);
 		}
 		updateLoadingBar(delta); // nothing to store; progress read live
+		
+		// Update player walking animation
+		if (assetsQueued && !assetsLoaded) {
+			playerAnimTimer += delta;
+			if (playerAnimTimer >= playerAnimSpeed) {
+				playerAnimTimer -= playerAnimSpeed;
+				playerFrame = (playerFrame + 1) % PLAYER_FRAMES;
+			}
+		}
 
 		// Clear and draw
 		Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
@@ -184,6 +221,8 @@ public class LoadingScreen implements Screen {
 
 		batch.begin();
 		drawLetters();
+		drawPlayerCharacter();
+		drawCurrentAsset();
 		batch.end();
 
 		shape.begin(ShapeRenderer.ShapeType.Filled);
@@ -193,8 +232,8 @@ public class LoadingScreen implements Screen {
 		// Fade overlay on top (handles both fade-in and fade-out)
 		drawFadeOverlay();
 
-		// Start fading out immediately after the title settles
-		if (!fadingOut && lettersSettled) {
+		// Start fading out only after BOTH title settles AND assets are loaded
+		if (!fadingOut && lettersSettled && assetsLoaded) {
 			fadingOut = true;
 			fadeTimer = 0f;
 		}
@@ -337,6 +376,65 @@ public class LoadingScreen implements Screen {
 		}
 	}
 
+	private void drawPlayerCharacter() {
+		if (playerTexture == null || !assetsQueued) return;
+		
+		float w = Gdx.graphics.getWidth();
+		float barW = Math.max(160f, w * barWidthRatio);
+		float barX = (w - barW) * 0.5f;
+		float barY = barBottomMargin;
+		
+		// Position player character along the progress bar
+		float progress = assetsQueued ? Assets.manager.getProgress() : 0f;
+		float scale = 3f; // 3x scale for better visibility
+		float playerX = barX + (barW * progress) - (PLAYER_FRAME_WIDTH * scale / 2f); // Center on position
+		float playerY = barY + barHeight + 8f; // Just above the bar
+		
+		// Draw current frame of run animation from row 0 (frames 0-8)
+		int srcX = playerFrame * PLAYER_FRAME_WIDTH;
+		int srcY = 0; // First row is run animation
+		
+		batch.draw(playerTexture, 
+			playerX, playerY, 
+			PLAYER_FRAME_WIDTH * scale, PLAYER_FRAME_HEIGHT * scale, // Draw size (3x scale)
+			srcX, srcY, 
+			PLAYER_FRAME_WIDTH, PLAYER_FRAME_HEIGHT, 
+			false, false);
+	}
+	
+	private void drawCurrentAsset() {
+		if (font == null || !assetsQueued) return;
+		
+		float w = Gdx.graphics.getWidth();
+		float barY = barBottomMargin;
+		
+		// Get current asset being loaded
+		String currentAsset = "Loading...";
+		if (!assetsLoaded && Assets.manager.getQueuedAssets() > 0) {
+			try {
+				// Get the asset names and find first not loaded
+				com.badlogic.gdx.utils.Array<String> assetNames = Assets.manager.getAssetNames();
+				for (String name : assetNames) {
+					if (!Assets.manager.isLoaded(name)) {
+						// Extract just the filename
+						String[] parts = name.split("/");
+						currentAsset = parts[parts.length - 1];
+						break;
+					}
+				}
+			} catch (Exception e) {
+				// If we can't get asset names, just show generic loading
+			}
+		} else if (assetsLoaded) {
+			currentAsset = "Complete!";
+		}
+		
+		// Draw asset name below the progress bar
+		font.setColor(new Color(0.7f, 0.7f, 0.7f, 1f));
+		float textWidth = font.getWidth(currentAsset, 1.0f);
+		font.draw(batch, currentAsset, (w - textWidth) * 0.5f, barY - 12f, 1.0f);
+	}
+	
 	private void drawLoadingBar() {
 		float w = Gdx.graphics.getWidth();
 		@SuppressWarnings("unused")
@@ -395,6 +493,7 @@ public class LoadingScreen implements Screen {
 	public void dispose() {
 		if (batch != null) batch.dispose();
 		if (shape != null) shape.dispose();
+		if (playerTexture != null) playerTexture.dispose();
 		// SpriteFont is managed by SpriteFontManager, don't dispose directly
 	}
 }

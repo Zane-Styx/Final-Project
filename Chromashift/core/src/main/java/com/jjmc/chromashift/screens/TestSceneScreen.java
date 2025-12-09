@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.jjmc.chromashift.environment.Solid;
 import com.jjmc.chromashift.environment.Wall;
@@ -25,8 +26,10 @@ import com.jjmc.chromashift.environment.interactable.Orb;
 import com.jjmc.chromashift.environment.Spawn;
 import com.jjmc.chromashift.player.Player;
 import com.jjmc.chromashift.player.PlayerConfig;
-import com.jjmc.chromashift.entity.boss.BossInstance;
+import com.jjmc.chromashift.entity.boss.BossGuardian;
+import com.jjmc.chromashift.entity.boss.FinalBoss;
 import com.chromashift.helper.CameraController;
+import com.chromashift.helper.SpriteAnimator;
 
 /**
  * Test scene specifically designed to exercise Doors, Buttons and Levers.
@@ -41,9 +44,11 @@ public class TestSceneScreen implements Screen {
     private SpriteBatch batch;
     private ShapeRenderer shape;
     private BitmapFont font;
+    private SpriteAnimator backgroundAnimator;
 
     public Player player;
-    private BossInstance boss;
+    private FinalBoss boss;
+    private BossGuardian bossGuardian;
     private Initialize.Context ctx;
     private Stage uiStage;
 
@@ -66,7 +71,7 @@ public class TestSceneScreen implements Screen {
     private float groundY = -64f;
 
     // Current level path for save/load and visited levels tracking
-    private String currentLevelPath = "levels/level1.json";
+    private String currentLevelPath = "levels/bossroom.json";
     public Array<String> visitedLevels = new Array<>();
     private com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode loadMode =
         com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL;
@@ -79,10 +84,15 @@ public class TestSceneScreen implements Screen {
     private Array<com.jjmc.chromashift.environment.enemy.TentacleCapture> tentacleCaptures;
     // Cache enemies list so we can perform a post-tentacle-update collision pass.
     private Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies;
+    
+    // Level loading system
+    private com.jjmc.chromashift.screens.levels.LevelLoadingManager loadingManager;
+    private com.jjmc.chromashift.screens.levels.LoadingOverlay loadingOverlay;
+    private boolean gameplayEnabled = false;
 
     // Constructor with default level (NEW GAME - always load original)
     public TestSceneScreen() {
-        this("levels/level1.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+        this("levels/bossroom.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
         try {
             font = new BitmapFont(Gdx.files.internal("ui/default.fnt"));
         } catch (Exception e) {
@@ -118,6 +128,15 @@ public class TestSceneScreen implements Screen {
         batch = ctx.batch;
         shape = ctx.shape;
         font = ctx.font;
+        
+        // Initialize loading system
+        loadingManager = new com.jjmc.chromashift.screens.levels.LevelLoadingManager();
+        loadingOverlay = new com.jjmc.chromashift.screens.levels.LoadingOverlay(
+            loadingManager, batch, shape, font, new com.badlogic.gdx.utils.viewport.ScreenViewport());
+        gameplayEnabled = false;
+        
+        // Initialize background animator for bossroom levels
+        backgroundAnimator = null;
 
         // Load everything via the unified LevelLoader
         // Track current level and mark visited for save/load (use currentLevelPath from constructor)
@@ -150,17 +169,53 @@ public class TestSceneScreen implements Screen {
         multiplexer.addProcessor(uiStage);
         Gdx.input.setInputProcessor(multiplexer);
 
-        // Boss (only for BossRoom level)
+        // Boss selection based on level
         if (loaded.boss != null) {
-            this.boss = loaded.boss;
-        } else if (currentLevelPath.contains("bossroom")) {
-            this.boss = new BossInstance();
-            // place default boss above the first wall if available
+            // Use loaded boss (could be FinalBoss or BossGuardian)
+            if (loaded.boss instanceof FinalBoss) {
+                this.boss = (FinalBoss) loaded.boss;
+            } else if (loaded.boss instanceof BossGuardian) {
+                this.bossGuardian = (BossGuardian) loaded.boss;
+            }
+        } else if (currentLevelPath.contains("bossroom1")) {
+            // FinalBoss for bossroom1
+            this.boss = new FinalBoss();
             Wall base = (walls.size > 0) ? walls.first() : new Wall(0, groundY, 10, 1);
             boss.setPosition(base.bounds.x + base.bounds.width / 2f, base.bounds.y + base.bounds.height + 200f);
             boss.setEnvironment(solids, walls);
+        } else if (currentLevelPath.contains("bossroom")) {
+            // BossGuardian for other bossroom levels
+            this.bossGuardian = new BossGuardian();
+            Wall base = (walls.size > 0) ? walls.first() : new Wall(0, groundY, 10, 1);
+            bossGuardian.setPosition(base.bounds.x + base.bounds.width / 2f, base.bounds.y + base.bounds.height + 400f);
+            bossGuardian.setEnvironment(solids, walls);
+            
+            // Setup spawn sequence completion callback
+            bossGuardian.setOnSpawnSequenceComplete(() -> {
+                gameplayEnabled = true;
+                Gdx.app.log("TestSceneScreen", "BossGuardian spawn sequence complete - fight begins!");
+            });
+            
+            // Start spawn sequence
+            bossGuardian.startSpawn();
+            gameplayEnabled = false; // Disable gameplay until spawn completes
         } else {
             this.boss = null;
+            this.bossGuardian = null;
+        }
+
+        // Setup background animator for bossroom levels
+        if (currentLevelPath.contains("bossroom1")) {
+            try {
+                backgroundAnimator = new SpriteAnimator("entity/boss1/finalboss_bg.png", 1, 77);
+                backgroundAnimator.addAnimation("bg", 0, 0, 77, 0.033f, true); // 77 frames total, ~30fps, looping
+                backgroundAnimator.play("bg", false);
+                Gdx.app.log("TestSceneScreen", "Loaded background animator for bossroom1");
+            } catch (Exception e) {
+                Gdx.app.error("TestSceneScreen", "Failed to load bossroom1 background: " + e.getMessage());
+                e.printStackTrace();
+                backgroundAnimator = null;
+            }
         }
 
         // Player at spawn
@@ -169,9 +224,14 @@ public class TestSceneScreen implements Screen {
         player.setRespawnPoint(player.getX(), player.getY());
         playerSpawnX = player.getX();
         playerSpawnY = player.getY();
+        
+        // Set player reference in boss if it's BossGuardian
+        if (bossGuardian != null) {
+            bossGuardian.setPlayer(player);
+        }
 
         // Initialize player skills
-        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.ShurikenSkill(player), 'Q');
+        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.DashSkill(player), 'Q');
         player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.SplitSkill(player), 'E');
 
         // Visible spawn marker (static frame by default)
@@ -215,13 +275,71 @@ public class TestSceneScreen implements Screen {
                 portal.setOnPlayerEnter(() -> advanceToNextLevel());
             }
         }
+        
+        // Register all objects with loading manager
+        registerLoadableObjects();
+        
+        // Start loading sequence
+        loadingManager.setOnLoadingComplete(() -> {
+            gameplayEnabled = true;
+            Gdx.app.log("TestSceneScreen", "Level loading complete - gameplay enabled!");
+        });
+        loadingManager.startLoading();
+    }
+    
+    /**
+     * Register all level objects with the loading manager.
+     */
+    private void registerLoadableObjects() {
+        // Register environment (walls, solids, interactables, collectibles)
+        loadingManager.registerLoadableObject(
+            new com.jjmc.chromashift.screens.levels.LoadableEnvironment(
+                "Environment", walls, solids, interactables, collectibles));
+        
+        // Register enemies
+        if (tentacles != null && tentacles.size > 0) {
+            loadingManager.registerLoadableObject(
+                new com.jjmc.chromashift.screens.levels.LoadableEnemies(tentacles));
+        }
+        
+        // Register boss
+        if (boss != null) {
+            loadingManager.registerLoadableObject(
+                new com.jjmc.chromashift.screens.levels.LoadableBoss(boss));
+        }
+        if (bossGuardian != null) {
+            loadingManager.registerLoadableObject(
+                new com.jjmc.chromashift.screens.levels.LoadableBoss(bossGuardian));
+        }
+        
+        // Register player (last so everything is ready when player activates)
+        if (player != null) {
+            loadingManager.registerLoadableObject(
+                new com.jjmc.chromashift.screens.levels.LoadablePlayer(player));
+        }
     }
 
     @Override
     public void render(float delta) {
-        // Basic input: ESC returns to test menu
+        // Update loading manager first
+        if (loadingManager != null && !loadingManager.isReady()) {
+            loadingManager.update(delta);
+        }
+        
+        // Update background animator if present
+        if (backgroundAnimator != null) {
+            backgroundAnimator.update(delta);
+        }
+        
+        // Basic input: ESC returns to test menu (always allow escape)
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new TestMenuScreen());
+            return;
+        }
+        
+        // Skip gameplay updates during loading
+        if (!gameplayEnabled || (loadingManager != null && !loadingManager.isReady())) {
+            renderLoadingScreen(delta);
             return;
         }
 
@@ -252,7 +370,7 @@ public class TestSceneScreen implements Screen {
                 result.interactables.addAll(interactables);
                 result.collectibles.addAll(collectibles);
                 result.tentacles.addAll(tentacles);
-                result.boss = boss;
+                result.boss = (boss != null) ? boss : bossGuardian;
                 boolean levelOk = com.jjmc.chromashift.screens.levels.GameLevelSave.saveLevelOverrides(currentLevelPath, result);
                 Gdx.app.log("TestSceneScreen", "Level state " + (levelOk ? "saved" : "failed"));
             }
@@ -361,7 +479,42 @@ public class TestSceneScreen implements Screen {
         // Boss update - set target to player position
         if (boss != null) {
             boss.setTarget(player.getX() + player.getHitboxWidth() / 2, player.getY() + player.getHitboxHeight() / 2);
+            
+            // Check if player is in any trigger zone and notify boss
+            // Also find trigger_6 to set as boundary zone
+            String activeTrigger = null;
+            Rectangle playerRect = player.getHitboxRect();
+            for (int i = 0; i < interactables.size; i++) {
+                Interactable it = interactables.get(i);
+                if (it instanceof com.jjmc.chromashift.environment.TriggerZone tz) {
+                    String triggerId = tz.getId();
+                    
+                    // Set trigger_6 as boundary zone (only needs to be done once but harmless to repeat)
+                    if ("trigger_6".equalsIgnoreCase(triggerId) && tz.getBounds() != null) {
+                        boss.setTrigger6Bounds(tz.getBounds());
+                        // Don't set trigger_6 as active trigger - it's boundary only
+                        continue;
+                    }
+                    
+                    // Check if player is in this trigger (excluding trigger_6)
+                    if (tz.getBounds() != null && tz.getBounds().overlaps(playerRect)) {
+                        activeTrigger = triggerId;
+                        // Don't break - continue to find trigger_6 if not found yet
+                    }
+                }
+            }
+            boss.setActiveTriggerZone(activeTrigger);
+            
             boss.update(delta);
+        }
+        
+        // BossGuardian update (skip if currently spawning)
+        if (bossGuardian != null && !bossGuardian.isSpawning()) {
+            bossGuardian.setTarget(player.getX() + player.getHitboxWidth() / 2, player.getY() + player.getHitboxHeight() / 2);
+            bossGuardian.update(delta);
+        } else if (bossGuardian != null && bossGuardian.isSpawning()) {
+            // Update spawn sequence (handled in boss.update() during spawn)
+            bossGuardian.update(delta);
         }
 
         // Check laser beams against the player hitbox; if intersecting, kill the player
@@ -387,18 +540,31 @@ public class TestSceneScreen implements Screen {
             }
         }
 
-        // Camera update / follow
-        Vector2 playerCenter = new Vector2(player.getX() + player.getHitboxWidth() / 2f,
-                player.getY() + player.getHitboxHeight() / 2f);
-        camController.setTarget(playerCenter);
+        // Handle camera effects during BossGuardian spawn sequence
+        if (bossGuardian != null && bossGuardian.isSpawning()) {
+            // Lock camera to boss center during spawn
+            Vector2 spawnFocus = bossGuardian.getSpawnCameraFocus();
+            if (spawnFocus != null) {
+                Vector3 spawnLockPos = new Vector3(spawnFocus.x, spawnFocus.y, 0);
+                camController.lockCamera(spawnLockPos);
+            }
+            // Apply spawn zoom
+            float spawnZoom = bossGuardian.getSpawnCameraZoom();
+            camController.setTargetZoom(spawnZoom, 0.1f);
+        } else {
+            // Normal gameplay - follow player
+            camController.unlockCamera();
+            Vector2 playerCenter = new Vector2(player.getX() + player.getHitboxWidth() / 2f,
+                    player.getY() + player.getHitboxHeight() / 2f);
+            camController.setTarget(playerCenter);
+            camController.setTargetZoom(desiredZoom, zoomLerpSpeed);
+        }
+        
         camController.update(delta);
 
         // Smoothly adjust camera zoom toward desiredZoom so view focuses slightly on
         // player
         if (camera != null) {
-            float cur = camera.zoom;
-            float t = Math.min(1f, zoomLerpSpeed * delta);
-            camera.zoom = cur + (desiredZoom - cur) * t;
             camera.update();
         }
 
@@ -419,6 +585,13 @@ public class TestSceneScreen implements Screen {
 
         batch.setProjectionMatrix(camController.getCamera().combined);
         batch.begin();
+        
+        // Render background first (behind everything) using SpriteAnimator
+        if (backgroundAnimator != null) {
+            batch.setColor(1f, 1f, 1f, 1f); // Ensure full white color (no tint)
+            backgroundAnimator.render(batch, 0, 0, 1600, 900);
+        }
+
         // Draw world: walls first, then interactables, collectibles, spawn marker,
         // boss, and player
         for (Wall w : walls)
@@ -435,8 +608,12 @@ public class TestSceneScreen implements Screen {
                 spawnMarker.render(batch);
             }
         }
+        // Render boss between environment and player so it appears above environment but behind player
         if (boss != null) {
             boss.render(batch);
+        }
+        if (bossGuardian != null) {
+            bossGuardian.render(batch);
         }
         player.render(batch);
 
@@ -531,6 +708,11 @@ public class TestSceneScreen implements Screen {
             for (Interactable i : interactables)
                 i.debugDraw(shape);
             player.debugDrawHitbox(shape);
+            
+            // Draw BossGuardian debug info
+            if (bossGuardian != null) {
+                bossGuardian.renderDebug(shape);
+            }
 
             // Draw tentacle segment hitboxes and curl detection
             for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
@@ -591,6 +773,13 @@ public class TestSceneScreen implements Screen {
                 }
             }
             shape.end();
+            
+            // Render debug text for BossGuardian
+            if (bossGuardian != null) {
+                batch.begin();
+                bossGuardian.renderDebugText(batch);
+                batch.end();
+            }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
             player.getHealthSystem().damage(100f, null);
@@ -601,6 +790,31 @@ public class TestSceneScreen implements Screen {
         }
         if (boss != null && Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             boss.getHealthSystem().heal(100f);
+        }
+        if (bossGuardian != null && Gdx.input.isKeyJustPressed(Input.Keys.K)) {
+            bossGuardian.getHealthSystem().damage(100f, null);
+        }
+        if (bossGuardian != null && Gdx.input.isKeyJustPressed(Input.Keys.L)) {
+            bossGuardian.getHealthSystem().heal(100f);
+        }
+        
+        // Render loading overlay on top of everything if still loading
+        if (loadingManager != null && loadingOverlay != null && !loadingManager.isReady()) {
+            loadingOverlay.render();
+        }
+    }
+    
+    /**
+     * Render the loading screen while level is initializing.
+     */
+    private void renderLoadingScreen(float delta) {
+        // Clear screen
+        Gdx.gl.glClearColor(0.0f, 0.0f, 0.0f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        
+        // Render loading overlay
+        if (loadingOverlay != null) {
+            loadingOverlay.render();
         }
     }
 
@@ -684,7 +898,7 @@ public class TestSceneScreen implements Screen {
             result.solids.addAll(solids);
             result.interactables.addAll(interactables);
             result.collectibles.addAll(collectibles);
-            result.boss = boss;
+            result.boss = (boss != null) ? boss : bossGuardian;
             result.spawnX = playerSpawnX;
             result.spawnY = playerSpawnY;
             
@@ -762,6 +976,11 @@ public class TestSceneScreen implements Screen {
         player.dispose();
         if (boss != null)
             boss.disposeParts();
+        if (bossGuardian != null)
+            bossGuardian.dispose();
+        if (backgroundAnimator != null) {
+            backgroundAnimator.dispose();
+        }
         // dispose button sprites
         for (Interactable i : interactables)
             if (i instanceof Button b)

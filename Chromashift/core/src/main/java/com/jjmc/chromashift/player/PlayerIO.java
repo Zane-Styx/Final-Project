@@ -66,7 +66,11 @@ public class PlayerIO {
     private static final Json json = new Json();
 
     static {
-        try { json.setIgnoreUnknownFields(true); } catch (Throwable ignored) {}
+        try { 
+            json.setIgnoreUnknownFields(true);
+            json.setOutputType(com.badlogic.gdx.utils.JsonWriter.OutputType.json);
+            json.setUsePrototypes(false);
+        } catch (Throwable ignored) {}
     }
 
     /**
