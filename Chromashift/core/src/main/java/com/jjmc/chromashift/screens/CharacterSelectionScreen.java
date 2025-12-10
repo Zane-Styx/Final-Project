@@ -1,8 +1,7 @@
 package com.jjmc.chromashift.screens;
-
 import com.badlogic.gdx.Screen;
 
-public class SettingsScreen implements Screen {
+public class CharacterSelectionScreen implements Screen {
     @Override
     public void show() {
 
@@ -37,4 +36,5 @@ public class SettingsScreen implements Screen {
     public void dispose() {
 
     }
+    
 }

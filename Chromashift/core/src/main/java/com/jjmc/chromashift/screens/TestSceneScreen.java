@@ -76,8 +76,8 @@ public class TestSceneScreen implements Screen {
     private com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode loadMode =
         com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL;
     // Camera zoom settings
-    private float desiredZoom = 1f;// <1 = zoom in a bit
-    private float zoomLerpSpeed = 2.5f; // how fast camera zooms to target
+    private float desiredZoom = .8f;// <1 = zoom in a bit
+    private float zoomLerpSpeed = 5f; // how fast camera zooms to target
 
     // Tentacle System
     private Array<com.jjmc.chromashift.environment.enemy.Tentacle> tentacles;
@@ -333,7 +333,7 @@ public class TestSceneScreen implements Screen {
         
         // Basic input: ESC returns to test menu (always allow escape)
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new TestMenuScreen());
+            ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new MainMenuScreen());
             return;
         }
         
