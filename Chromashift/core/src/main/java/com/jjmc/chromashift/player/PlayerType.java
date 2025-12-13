@@ -35,4 +35,15 @@ public enum PlayerType {
     public String getAttackSpritePath() {
         return attackSpritePath;
     }
+
+    public static PlayerType fromName(String name) {
+        if (name == null) return PURPLE;
+        String n = name.trim();
+        for (PlayerType pt : values()) {
+            if (pt.colorName.equalsIgnoreCase(n)) return pt;
+        }
+        // Fallbacks for common variants
+        if (n.equalsIgnoreCase("violet")) return PURPLE;
+        return PURPLE;
+    }
 }

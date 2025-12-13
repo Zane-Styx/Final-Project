@@ -3,12 +3,40 @@ package com.jjmc.chromashift.database;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.jjmc.chromashift.save.PlayerSaveData;
+import com.jjmc.chromashift.player.PlayerIO;
+import com.jjmc.chromashift.player.Player;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
 public class PlayerDAO {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        /** Save preferred player color (by name) into players table. */
+        public static void savePreferredColor(int playerId, String colorName) throws SQLException {
+            String sql = "UPDATE players SET preferred_color=? WHERE player_id=?";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, colorName);
+                ps.setInt(2, playerId);
+                ps.executeUpdate();
+                System.out.println("✓ Preferred color saved for player " + playerId + ": " + colorName);
+            }
+        }
+
+        /** Load preferred player color name from players table. Returns null if not set. */
+        public static String loadPreferredColor(int playerId) throws SQLException {
+            String sql = "SELECT preferred_color FROM players WHERE player_id=?";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, playerId);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    String v = rs.getString("preferred_color");
+                    return (v != null && !v.isEmpty()) ? v : null;
+                }
+            }
+            return null;
+        }
     
     /**
      * Create a new player and return the player_id
@@ -34,43 +62,177 @@ public class PlayerDAO {
     }
     
     /**
-     * Save player state to database
+     * Save player state to database using PlayerIO.PlayerState schema only.
+     * This removes any fields not present in PlayerIO capture.
      */
-    public static void savePlayer(int playerId, PlayerSaveData playerData) throws SQLException {
-        // First, check if save exists
-        String checkSql = "SELECT COUNT(*) FROM player_saves WHERE player_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(checkSql)) {
-            
+    public static void savePlayerState(int playerId, PlayerIO.PlayerState state) throws SQLException {
+        Connection conn = DatabaseConnection.getConnection();
+        try {
+            String checkSql = "SELECT COUNT(*) FROM player_saves WHERE player_id = ?";
+            PreparedStatement ps = conn.prepareStatement(checkSql);
             ps.setInt(1, playerId);
             ResultSet rs = ps.executeQuery();
             rs.next();
             boolean exists = rs.getInt(1) > 0;
+            ps.close();
+            
+            if (exists) {
+                updatePlayerSaveState(conn, playerId, state);
+            } else {
+                insertPlayerSaveState(conn, playerId, state);
+            }
+        } finally {
+            try { conn.close(); } catch (Exception ignored) {}
+        }
+    }
+
+    private static void insertPlayerSaveState(Connection conn, int playerId, PlayerIO.PlayerState s) throws SQLException {
+        String sql = "INSERT INTO player_saves (" +
+                "player_id, x, y, velocity_x, velocity_y, facing_left, " +
+                "on_ground, can_jump, dashing, dash_timer, dash_cooldown_timer, dash_used, dash_hover_remaining, " +
+                "attacking, air_attacking, air_attack_timer, attack_cooldown_timer, " +
+                "health_current, health_max, is_stunned, respawn_invul_remaining, respawn_stun_remaining, " +
+                "diamonds, shield, key_count, potion_count, " +
+                "skill_q_json, skill_e_json, active_skill_json, " +
+                "respawn_x, respawn_y, current_level, visited_levels_json, " +
+                "save_data_json, save_timestamp" +
+                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int i = 1;
+            ps.setInt(i++, playerId);
+            ps.setFloat(i++, s.x);
+            ps.setFloat(i++, s.y);
+            ps.setFloat(i++, s.velocityX);
+            ps.setFloat(i++, s.velocityY);
+            ps.setBoolean(i++, s.facingLeft);
+            ps.setBoolean(i++, s.onGround);
+            ps.setBoolean(i++, s.canJump);
+            ps.setBoolean(i++, s.dashing);
+            ps.setFloat(i++, s.dashTimer);
+            ps.setFloat(i++, s.dashCooldownTimer);
+            ps.setBoolean(i++, s.dashUsed);
+            ps.setFloat(i++, s.dashHoverRemaining);
+            ps.setBoolean(i++, s.attacking);
+            ps.setBoolean(i++, s.airAttacking);
+            ps.setFloat(i++, s.airAttackTimer);
+            ps.setFloat(i++, s.attackCooldownTimer);
+            ps.setFloat(i++, s.healthCurrent);
+            ps.setFloat(i++, s.healthMax);
+            ps.setBoolean(i++, s.isStunned);
+            ps.setFloat(i++, s.respawnInvulRemaining);
+            ps.setFloat(i++, s.respawnStunRemaining);
+            ps.setInt(i++, s.diamonds);
+            ps.setInt(i++, s.shield);
+            ps.setInt(i++, s.keyCount);
+            ps.setInt(i++, s.potionCount);
+            ps.setString(i++, s.skillQ != null ? gson.toJson(s.skillQ) : null);
+            ps.setString(i++, s.skillE != null ? gson.toJson(s.skillE) : null);
+            ps.setString(i++, s.activeSkill != null ? gson.toJson(s.activeSkill) : null);
+            ps.setFloat(i++, s.respawnX);
+            ps.setFloat(i++, s.respawnY);
+            ps.setString(i++, s.currentLevel);
+            ps.setString(i++, gson.toJson(s.visitedLevels));
+            ps.setString(i++, gson.toJson(s));
+            ps.setLong(i++, System.currentTimeMillis());
+            ps.executeUpdate();
+            System.out.println("✓ PlayerIO state inserted (ID: " + playerId + ")");
+        }
+    }
+
+    private static void updatePlayerSaveState(Connection conn, int playerId, PlayerIO.PlayerState s) throws SQLException {
+        String sql = "UPDATE player_saves SET " +
+                "x=?, y=?, velocity_x=?, velocity_y=?, facing_left=?, " +
+                "on_ground=?, can_jump=?, dashing=?, dash_timer=?, dash_cooldown_timer=?, dash_used=?, dash_hover_remaining=?, " +
+                "attacking=?, air_attacking=?, air_attack_timer=?, attack_cooldown_timer=?, " +
+                "health_current=?, health_max=?, is_stunned=?, respawn_invul_remaining=?, respawn_stun_remaining=?, " +
+                "diamonds=?, shield=?, key_count=?, potion_count=?, " +
+                "skill_q_json=?, skill_e_json=?, active_skill_json=?, " +
+                "respawn_x=?, respawn_y=?, current_level=?, visited_levels_json=?, " +
+                "save_data_json=?, save_timestamp=?, updated_at=NOW() " +
+                "WHERE player_id=?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int i = 1;
+            ps.setFloat(i++, s.x);
+            ps.setFloat(i++, s.y);
+            ps.setFloat(i++, s.velocityX);
+            ps.setFloat(i++, s.velocityY);
+            ps.setBoolean(i++, s.facingLeft);
+            ps.setBoolean(i++, s.onGround);
+            ps.setBoolean(i++, s.canJump);
+            ps.setBoolean(i++, s.dashing);
+            ps.setFloat(i++, s.dashTimer);
+            ps.setFloat(i++, s.dashCooldownTimer);
+            ps.setBoolean(i++, s.dashUsed);
+            ps.setFloat(i++, s.dashHoverRemaining);
+            ps.setBoolean(i++, s.attacking);
+            ps.setBoolean(i++, s.airAttacking);
+            ps.setFloat(i++, s.airAttackTimer);
+            ps.setFloat(i++, s.attackCooldownTimer);
+            ps.setFloat(i++, s.healthCurrent);
+            ps.setFloat(i++, s.healthMax);
+            ps.setBoolean(i++, s.isStunned);
+            ps.setFloat(i++, s.respawnInvulRemaining);
+            ps.setFloat(i++, s.respawnStunRemaining);
+            ps.setInt(i++, s.diamonds);
+            ps.setInt(i++, s.shield);
+            ps.setInt(i++, s.keyCount);
+            ps.setInt(i++, s.potionCount);
+            ps.setString(i++, s.skillQ != null ? gson.toJson(s.skillQ) : null);
+            ps.setString(i++, s.skillE != null ? gson.toJson(s.skillE) : null);
+            ps.setString(i++, s.activeSkill != null ? gson.toJson(s.activeSkill) : null);
+            ps.setFloat(i++, s.respawnX);
+            ps.setFloat(i++, s.respawnY);
+            ps.setString(i++, s.currentLevel);
+            ps.setString(i++, gson.toJson(s.visitedLevels));
+            ps.setString(i++, gson.toJson(s));
+            ps.setLong(i++, System.currentTimeMillis());
+            ps.setInt(i++, playerId);
+            ps.executeUpdate();
+            System.out.println("✓ PlayerIO state updated (ID: " + playerId + ")");
+        }
+    }
+    /**
+     * Save player state to database
+     */
+    public static void savePlayer(int playerId, PlayerSaveData playerData) throws SQLException {
+        Connection conn = DatabaseConnection.getConnection();
+        try {
+            // First, check if save exists
+            String checkSql = "SELECT COUNT(*) FROM player_saves WHERE player_id = ?";
+            PreparedStatement ps = conn.prepareStatement(checkSql);
+            ps.setInt(1, playerId);
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            boolean exists = rs.getInt(1) > 0;
+            ps.close();
             
             if (exists) {
                 updatePlayerSave(conn, playerId, playerData);
             } else {
                 insertPlayerSave(conn, playerId, playerData);
             }
+        } finally {
+            try { conn.close(); } catch (Exception ignored) {}
         }
     }
     
     /**
-     * Insert new player save
+     * Insert new player save (PlayerIO-aligned fields only)
      */
     private static void insertPlayerSave(Connection conn, int playerId, PlayerSaveData playerData) throws SQLException {
         String sql = "INSERT INTO player_saves (" +
                 "player_id, x, y, velocity_x, velocity_y, facing_left, " +
                 "on_ground, can_jump, dashing, dash_timer, dash_cooldown_timer, dash_used, dash_hover_remaining, " +
-                "attacking, air_attacking, air_attack_timer, attack_cooldown_timer, current_combo, " +
-                "health_current, health_max, mana_current, mana_max, stamina_current, stamina_max, " +
+                "attacking, air_attacking, air_attack_timer, attack_cooldown_timer, " +
+                "health_current, health_max, " +
                 "is_stunned, respawn_invul_remaining, respawn_stun_remaining, " +
-                "diamonds, shield, key_count, potion_count, held_object_id, " +
-                "skill_q_json, skill_e_json, active_skill_json, unlocked_skill_names_json, " +
+                "diamonds, shield, key_count, potion_count, " +
+                "skill_q_json, skill_e_json, active_skill_json, " +
                 "respawn_x, respawn_y, current_level, visited_levels_json, " +
-                "timer_map_json, int_counter_map_json, flag_map_json, float_map_json, " +
-                "save_data_json, save_timestamp, save_slot" +
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "save_data_json, save_timestamp" +
+                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int paramIndex = 1;
@@ -91,13 +253,8 @@ public class PlayerDAO {
             ps.setBoolean(paramIndex++, playerData.airAttacking);
             ps.setFloat(paramIndex++, playerData.airAttackTimer);
             ps.setFloat(paramIndex++, playerData.attackCooldownTimer);
-            ps.setInt(paramIndex++, playerData.currentCombo);
             ps.setFloat(paramIndex++, playerData.healthCurrent);
             ps.setFloat(paramIndex++, playerData.healthMax);
-            ps.setFloat(paramIndex++, playerData.manaCurrent);
-            ps.setFloat(paramIndex++, playerData.manaMax);
-            ps.setFloat(paramIndex++, playerData.staminaCurrent);
-            ps.setFloat(paramIndex++, playerData.staminaMax);
             ps.setBoolean(paramIndex++, playerData.isStunned);
             ps.setFloat(paramIndex++, playerData.respawnInvulRemaining);
             ps.setFloat(paramIndex++, playerData.respawnStunRemaining);
@@ -105,22 +262,15 @@ public class PlayerDAO {
             ps.setInt(paramIndex++, playerData.shield);
             ps.setInt(paramIndex++, playerData.keyCount);
             ps.setInt(paramIndex++, playerData.potionCount);
-            ps.setString(paramIndex++, playerData.heldObjectId);
             ps.setString(paramIndex++, playerData.skillQ != null ? gson.toJson(playerData.skillQ) : null);
             ps.setString(paramIndex++, playerData.skillE != null ? gson.toJson(playerData.skillE) : null);
             ps.setString(paramIndex++, playerData.activeSkill != null ? gson.toJson(playerData.activeSkill) : null);
-            ps.setString(paramIndex++, gson.toJson(playerData.unlockedSkillNames));
             ps.setFloat(paramIndex++, playerData.respawnX);
             ps.setFloat(paramIndex++, playerData.respawnY);
             ps.setString(paramIndex++, playerData.currentLevel);
             ps.setString(paramIndex++, gson.toJson(playerData.visitedLevels));
-            ps.setString(paramIndex++, gson.toJson(playerData.timerMap));
-            ps.setString(paramIndex++, gson.toJson(playerData.intCounterMap));
-            ps.setString(paramIndex++, gson.toJson(playerData.flagMap));
-            ps.setString(paramIndex++, gson.toJson(playerData.floatMap));
             ps.setString(paramIndex++, gson.toJson(playerData));
             ps.setLong(paramIndex++, playerData.saveTimestamp);
-            ps.setInt(paramIndex++, playerData.saveSlot);
             
             ps.executeUpdate();
             System.out.println("✓ Player save inserted (ID: " + playerId + ")");
@@ -128,20 +278,19 @@ public class PlayerDAO {
     }
     
     /**
-     * Update existing player save
+     * Update existing player save (PlayerIO-aligned fields only)
      */
     private static void updatePlayerSave(Connection conn, int playerId, PlayerSaveData playerData) throws SQLException {
         String sql = "UPDATE player_saves SET " +
                 "x=?, y=?, velocity_x=?, velocity_y=?, facing_left=?, " +
                 "on_ground=?, can_jump=?, dashing=?, dash_timer=?, dash_cooldown_timer=?, dash_used=?, dash_hover_remaining=?, " +
-                "attacking=?, air_attacking=?, air_attack_timer=?, attack_cooldown_timer=?, current_combo=?, " +
-                "health_current=?, health_max=?, mana_current=?, mana_max=?, stamina_current=?, stamina_max=?, " +
+                "attacking=?, air_attacking=?, air_attack_timer=?, attack_cooldown_timer=?, " +
+                "health_current=?, health_max=?, " +
                 "is_stunned=?, respawn_invul_remaining=?, respawn_stun_remaining=?, " +
-                "diamonds=?, shield=?, key_count=?, potion_count=?, held_object_id=?, " +
-                "skill_q_json=?, skill_e_json=?, active_skill_json=?, unlocked_skill_names_json=?, " +
+                "diamonds=?, shield=?, key_count=?, potion_count=?, " +
+                "skill_q_json=?, skill_e_json=?, active_skill_json=?, " +
                 "respawn_x=?, respawn_y=?, current_level=?, visited_levels_json=?, " +
-                "timer_map_json=?, int_counter_map_json=?, flag_map_json=?, float_map_json=?, " +
-                "save_data_json=?, save_timestamp=?, save_slot=?, updated_at=NOW() " +
+                "save_data_json=?, save_timestamp=?, updated_at=NOW() " +
                 "WHERE player_id=?";
         
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -162,13 +311,8 @@ public class PlayerDAO {
             ps.setBoolean(paramIndex++, playerData.airAttacking);
             ps.setFloat(paramIndex++, playerData.airAttackTimer);
             ps.setFloat(paramIndex++, playerData.attackCooldownTimer);
-            ps.setInt(paramIndex++, playerData.currentCombo);
             ps.setFloat(paramIndex++, playerData.healthCurrent);
             ps.setFloat(paramIndex++, playerData.healthMax);
-            ps.setFloat(paramIndex++, playerData.manaCurrent);
-            ps.setFloat(paramIndex++, playerData.manaMax);
-            ps.setFloat(paramIndex++, playerData.staminaCurrent);
-            ps.setFloat(paramIndex++, playerData.staminaMax);
             ps.setBoolean(paramIndex++, playerData.isStunned);
             ps.setFloat(paramIndex++, playerData.respawnInvulRemaining);
             ps.setFloat(paramIndex++, playerData.respawnStunRemaining);
@@ -176,22 +320,15 @@ public class PlayerDAO {
             ps.setInt(paramIndex++, playerData.shield);
             ps.setInt(paramIndex++, playerData.keyCount);
             ps.setInt(paramIndex++, playerData.potionCount);
-            ps.setString(paramIndex++, playerData.heldObjectId);
             ps.setString(paramIndex++, playerData.skillQ != null ? gson.toJson(playerData.skillQ) : null);
             ps.setString(paramIndex++, playerData.skillE != null ? gson.toJson(playerData.skillE) : null);
             ps.setString(paramIndex++, playerData.activeSkill != null ? gson.toJson(playerData.activeSkill) : null);
-            ps.setString(paramIndex++, gson.toJson(playerData.unlockedSkillNames));
             ps.setFloat(paramIndex++, playerData.respawnX);
             ps.setFloat(paramIndex++, playerData.respawnY);
             ps.setString(paramIndex++, playerData.currentLevel);
             ps.setString(paramIndex++, gson.toJson(playerData.visitedLevels));
-            ps.setString(paramIndex++, gson.toJson(playerData.timerMap));
-            ps.setString(paramIndex++, gson.toJson(playerData.intCounterMap));
-            ps.setString(paramIndex++, gson.toJson(playerData.flagMap));
-            ps.setString(paramIndex++, gson.toJson(playerData.floatMap));
             ps.setString(paramIndex++, gson.toJson(playerData));
             ps.setLong(paramIndex++, playerData.saveTimestamp);
-            ps.setInt(paramIndex++, playerData.saveSlot);
             ps.setInt(paramIndex++, playerId);
             
             ps.executeUpdate();
@@ -200,7 +337,7 @@ public class PlayerDAO {
     }
     
     /**
-     * Load player save from database
+     * Load player save from database (PlayerIO-aligned fields only)
      */
     public static PlayerSaveData loadPlayer(int playerId) throws SQLException {
         String sql = "SELECT save_data_json FROM player_saves WHERE player_id = ?";
@@ -240,6 +377,71 @@ public class PlayerDAO {
         throw new SQLException("Player not found: " + playerName);
     }
     
+    /**
+     * Load player state from database and return as PlayerIO.PlayerState object.
+     * @param playerId player ID
+     * @return PlayerIO.PlayerState loaded from database
+     */
+    public static com.jjmc.chromashift.player.PlayerIO.PlayerState loadPlayerStateFromDB(int playerId) throws SQLException {
+        String sql = "SELECT save_data_json FROM player_saves WHERE player_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, playerId);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                String jsonData = rs.getString("save_data_json");
+                com.jjmc.chromashift.player.PlayerIO.PlayerState state = 
+                    gson.fromJson(jsonData, com.jjmc.chromashift.player.PlayerIO.PlayerState.class);
+                System.out.println("✓ PlayerState loaded from database (ID: " + playerId + ")");
+                return state;
+            }
+        }
+        throw new SQLException("Player save not found for ID: " + playerId);
+    }
+
+    /**
+     * Load player state from database and apply it directly to a Player instance.
+     * @param playerId player ID
+     * @param player Player instance to update
+     */
+    public static void loadPlayerStateFromDB(int playerId, com.jjmc.chromashift.player.Player player) throws SQLException {
+        com.jjmc.chromashift.player.PlayerIO.PlayerState state = loadPlayerStateFromDB(playerId);
+        if (state != null && player != null) {
+            com.jjmc.chromashift.player.PlayerIO.applyToPlayer(player, state);
+            System.out.println("✓ Player state applied (ID: " + playerId + ")");
+        }
+    }
+
+    /**
+     * Load visited levels from database for a player.
+     * @param playerId player ID
+     * @return Array of visited level paths
+     */
+    public static com.badlogic.gdx.utils.Array<String> loadVisitedLevelsFromDB(int playerId) throws SQLException {
+        String sql = "SELECT visited_levels_json FROM player_saves WHERE player_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, playerId);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                String jsonData = rs.getString("visited_levels_json");
+                if (jsonData != null && !jsonData.isEmpty()) {
+                    com.badlogic.gdx.utils.Array<String> visitedLevels = 
+                        gson.fromJson(jsonData, com.badlogic.gdx.utils.Array.class);
+                    System.out.println("✓ Visited levels loaded from database (ID: " + playerId + "): " + visitedLevels.size + " levels");
+                    return visitedLevels != null ? visitedLevels : new com.badlogic.gdx.utils.Array<>();
+                }
+            }
+        }
+        return new com.badlogic.gdx.utils.Array<>();
+    }
+
     /**
      * Delete player and all associated saves
      */

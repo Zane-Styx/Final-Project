@@ -139,7 +139,7 @@ public class TestMenuScreen implements Screen {
                     if (loaded != null && loaded.currentLevel != null) {
                         System.out.println("Continuing from saved game: " + loaded.currentLevel);
                         // Create TestSceneScreen with saved level using SAVED_IF_EXISTS mode
-                        TestSceneScreen screen = new TestSceneScreen(
+                        GameSceneScreen screen = new GameSceneScreen(
                             loaded.currentLevel, 
                             com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS
                         );
@@ -161,11 +161,11 @@ public class TestMenuScreen implements Screen {
                         });
                     } else {
                         System.out.println("No save found, starting new game");
-                        ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new TestSceneScreen());
+                        ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new GameSceneScreen());
                     }
                 } catch (Exception ex) {
                     System.err.println("Failed to load save: " + ex.getMessage());
-                    ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new TestSceneScreen());
+                    ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new GameSceneScreen());
                 }
             }
         });
@@ -176,7 +176,7 @@ public class TestMenuScreen implements Screen {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 System.out.println("Opening Test Scene...");
-                ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new TestSceneScreen());
+                ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new GameSceneScreen());
             }
         });
         rootTable.add(testSceneBtn).colspan(2).width(260).height(48).row();

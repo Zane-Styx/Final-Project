@@ -467,7 +467,7 @@ public class LevelMakerScreen implements Screen {
 		} catch (Throwable ignored) {
 		}
 		// Ensure culling disabled in editor so off-screen objects remain visible
-		try { com.jjmc.chromashift.helper.VisibilityCuller.setEnabled(false); } catch (Throwable ignored) {}
+		try { com.chromashift.helper.VisibilityCuller.setEnabled(false); } catch (Throwable ignored) {}
 		// Initialize editor mode flags to false (will be set true only when delete mode
 		// active)
 		com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;

@@ -304,6 +304,67 @@ public class PlayerIO {
         return null;
     }
 
+    /**
+     * Sanitize an existing player save by parsing into PlayerState and re-writing.
+     * This removes any fields not defined in PlayerState (using Json.ignoreUnknownFields).
+     * Returns true if the file was found and successfully sanitized.
+     */
+    public static boolean sanitizeSave(String filename) {
+        try {
+            String relative = ("saves/" + filename).replace('\\', '/');
+            File assetsDir = findProjectAssetsDir();
+            File out = null;
+            String text = null;
+            if (assetsDir != null) {
+                File candidate = new File(assetsDir, relative.replace('/', File.separatorChar));
+                if (candidate.exists()) {
+                    text = Gdx.files.absolute(candidate.getAbsolutePath()).readString();
+                    out = candidate;
+                }
+            }
+            if (text == null) {
+                FileHandle internal = Gdx.files.internal(relative);
+                if (internal != null && internal.exists()) {
+                    text = internal.readString();
+                }
+            }
+            if (text == null) {
+                Gdx.app.error("PlayerIO", "No save found to sanitize: " + filename);
+                return false;
+            }
+            PlayerState s;
+            try {
+                s = json.fromJson(PlayerState.class, text);
+            } catch (Exception ex) {
+                Gdx.app.error("PlayerIO", "Failed to parse save for sanitize: " + ex.getMessage(), ex);
+                return false;
+            }
+            // Basic normalization: ensure arrays not null
+            if (s.visitedLevels == null) s.visitedLevels = new com.badlogic.gdx.utils.Array<>();
+            String sanitized = json.prettyPrint(s);
+            if (out != null) {
+                Gdx.files.absolute(out.getAbsolutePath()).writeString(sanitized, false);
+                Gdx.app.log("PlayerIO", "Sanitized workspace save: " + out.getAbsolutePath());
+                try { boolean ok = writeToBuildResources(relative, sanitized); if (ok) Gdx.app.log("PlayerIO","Mirrored sanitized save to build resources: " + filename); } catch (Exception ignored) {}
+                return true;
+            } else {
+                // If only internal existed, attempt to write to workspace if possible
+                File assetsDir2 = findProjectAssetsDir();
+                if (assetsDir2 != null) {
+                    File target = new File(assetsDir2, relative.replace('/', File.separatorChar));
+                    File parent = target.getParentFile(); if (parent != null && !parent.exists()) parent.mkdirs();
+                    Gdx.files.absolute(target.getAbsolutePath()).writeString(sanitized, false);
+                    Gdx.app.log("PlayerIO", "Sanitized save written to workspace: " + target.getAbsolutePath());
+                    try { boolean ok = writeToBuildResources(relative, sanitized); if (ok) Gdx.app.log("PlayerIO","Mirrored sanitized save to build resources: " + filename); } catch (Exception ignored) {}
+                    return true;
+                }
+            }
+        } catch (Exception ex) {
+            Gdx.app.error("PlayerIO", "Error sanitizing player save: " + ex.getMessage(), ex);
+        }
+        return false;
+    }
+
     // --- Utilities copied from LevelIO for locating the workspace assets and build resources ---
     private static File findProjectAssetsDir() {
         try {

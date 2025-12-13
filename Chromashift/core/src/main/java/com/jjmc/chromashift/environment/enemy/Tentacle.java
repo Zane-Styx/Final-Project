@@ -3,8 +3,8 @@ package com.jjmc.chromashift.environment.enemy;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.jjmc.chromashift.helper.PerformanceProfiler;
-import com.jjmc.chromashift.helper.VisibilityCuller;
+import com.chromashift.helper.PerformanceProfiler;
+import com.chromashift.helper.VisibilityCuller;
 
 /**
  * Flexible spring-driven tentacle; tip follows mouse.

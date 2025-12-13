@@ -6,9 +6,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.chromashift.helper.PerformanceProfiler;
 import com.jjmc.chromashift.Assets;
 import com.jjmc.chromashift.environment.Solid;
-import com.jjmc.chromashift.helper.PerformanceProfiler;
+
 import java.util.ArrayList;
 
 public class LaserRay implements Interactable {

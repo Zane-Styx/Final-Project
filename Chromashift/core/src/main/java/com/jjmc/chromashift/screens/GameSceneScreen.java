@@ -26,6 +26,7 @@ import com.jjmc.chromashift.environment.interactable.Orb;
 import com.jjmc.chromashift.environment.Spawn;
 import com.jjmc.chromashift.player.Player;
 import com.jjmc.chromashift.player.PlayerConfig;
+import com.jjmc.chromashift.screens.ui.MainMenuScreen;
 import com.jjmc.chromashift.entity.boss.BossGuardian;
 import com.jjmc.chromashift.entity.boss.FinalBoss;
 import com.chromashift.helper.CameraController;
@@ -38,7 +39,7 @@ import com.chromashift.helper.SpriteAnimator;
  * - Right: Independent door/obstacles for edge cases
  * Provides on-screen instructions and debug visuals.
  */
-public class TestSceneScreen implements Screen {
+public class GameSceneScreen implements Screen {
     private OrthographicCamera camera;
     private CameraController camController;
     private SpriteBatch batch;
@@ -91,8 +92,8 @@ public class TestSceneScreen implements Screen {
     private boolean gameplayEnabled = false;
 
     // Constructor with default level (NEW GAME - always load original)
-    public TestSceneScreen() {
-        this("levels/bossroom.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+    public GameSceneScreen() {
+        this("levels/level1.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
         try {
             font = new BitmapFont(Gdx.files.internal("ui/default.fnt"));
         } catch (Exception e) {
@@ -101,12 +102,12 @@ public class TestSceneScreen implements Screen {
     }
 
     // Constructor with custom level path (NEW GAME - always load original)
-    public TestSceneScreen(String levelPath) {
+    public GameSceneScreen(String levelPath) {
         this(levelPath, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
     }
 
     // Constructor with custom level path andx load mode (for CONTINUE)
-    public TestSceneScreen(String levelPath, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode mode) {
+    public GameSceneScreen(String levelPath, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode mode) {
         this.currentLevelPath = levelPath;
         this.loadMode = mode;
     }
@@ -119,7 +120,7 @@ public class TestSceneScreen implements Screen {
         com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;
         com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = false;
         // Enable gameplay-only visibility culling
-        try { com.jjmc.chromashift.helper.VisibilityCuller.setEnabled(true); } catch (Throwable ignored) {}
+        try { com.chromashift.helper.VisibilityCuller.setEnabled(true); } catch (Throwable ignored) {}
 
         // Use Initialize helper to create common systems
         ctx = Initialize.createCommon(500, 180, null);
@@ -221,9 +222,42 @@ public class TestSceneScreen implements Screen {
         // Player at spawn
         PlayerConfig cfg = new PlayerConfig();
         player = ctx.createPlayer(loaded.spawnX, loaded.spawnY, cfg);
+        // Apply preferred color from DB
+        try {
+            String preferredName = com.jjmc.chromashift.database.PlayerDAO.loadPreferredColor(1);
+            if (preferredName != null && !preferredName.isEmpty()) {
+                com.jjmc.chromashift.player.PlayerType pt = com.jjmc.chromashift.player.PlayerType.fromName(preferredName);
+                player.setType(pt);
+                Gdx.app.log("TestSceneScreen", "Applied preferred player color: " + preferredName);
+            }
+        } catch (Exception e) {
+            Gdx.app.error("TestSceneScreen", "Failed to apply preferred color: " + e.getMessage());
+        }
         player.setRespawnPoint(player.getX(), player.getY());
         playerSpawnX = player.getX();
         playerSpawnY = player.getY();
+        
+        // Load saved player state from database to restore diamonds, position, and other stats
+        try {
+            com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
+            
+            // Also restore visited levels
+            com.badlogic.gdx.utils.Array<String> loadedVisited = 
+                com.jjmc.chromashift.database.PlayerDAO.loadVisitedLevelsFromDB(1);
+            if (loadedVisited != null && loadedVisited.size > 0) {
+                this.visitedLevels.clear();
+                this.visitedLevels.addAll(loadedVisited);
+            }
+            
+            Gdx.app.log("TestSceneScreen", "✓ Player state restored from database");
+            // Reset level-specific keys when starting a new level
+            if (player != null) {
+                player.setKeyCount(0);
+            }
+        } catch (Exception ex) {
+            Gdx.app.log("TestSceneScreen", "Could not restore player state (first run?): " + ex.getMessage());
+            // Continue with default new player
+        }
         
         // Set player reference in boss if it's BossGuardian
         if (bossGuardian != null) {
@@ -333,6 +367,8 @@ public class TestSceneScreen implements Screen {
         
         // Basic input: ESC returns to test menu (always allow escape)
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            // Autosave before returning to menu
+            saveAllState(currentLevelPath);
             ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new MainMenuScreen());
             return;
         }
@@ -356,13 +392,35 @@ public class TestSceneScreen implements Screen {
             }
         }
 
-        // Quick save/load: F11 = save, F12 = load
+        // Quick save/load: F11 = save, F12 = load (via DAO)
         try {
             if (Gdx.input.isKeyJustPressed(Input.Keys.F11)) {
-                // Save player state
+                // Ensure player record exists in database
+                try {
+                    com.jjmc.chromashift.database.PlayerDAO.getPlayerIdByName("DefaultPlayer");
+                } catch (Exception e) {
+                    // Player doesn't exist, create it
+                    try {
+                        System.out.println("[DEBUG] Creating default player record");
+                        com.jjmc.chromashift.database.PlayerDAO.createPlayer("DefaultPlayer", currentLevelPath);
+                    } catch (Exception ex2) {
+                        System.err.println("[ERROR] Failed to create player: " + ex2.getMessage());
+                    }
+                }
+                
+                // Save player state to database
                 com.jjmc.chromashift.player.PlayerIO.PlayerState state = com.jjmc.chromashift.player.PlayerIO.capture(player, currentLevelPath, visitedLevels);
-                boolean ok = com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", state);
-                Gdx.app.log("TestSceneScreen", "Player save " + (ok ? "saved" : "failed"));
+                try {
+                    System.out.println("[DEBUG] Attempting to save player state for ID: 1");
+                    System.out.println("[DEBUG] Player state: x=" + state.x + ", y=" + state.y + ", diamonds=" + state.diamonds);
+                    com.jjmc.chromashift.database.PlayerDAO.savePlayerState(1, state);
+                    System.out.println("[DEBUG] Save completed successfully");
+                    Gdx.app.log("TestSceneScreen", "✓ Player save saved to database");
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Failed to save player state: " + ex.getMessage());
+                    ex.printStackTrace();
+                    Gdx.app.error("TestSceneScreen", "Player save failed: " + ex.getMessage());
+                }
 
                 // Save current level state with all GameObjects
                 com.jjmc.chromashift.screens.levels.LevelLoader.Result result = new com.jjmc.chromashift.screens.levels.LevelLoader.Result();
@@ -375,14 +433,25 @@ public class TestSceneScreen implements Screen {
                 Gdx.app.log("TestSceneScreen", "Level state " + (levelOk ? "saved" : "failed"));
             }
             if (Gdx.input.isKeyJustPressed(Input.Keys.F12)) {
-                com.jjmc.chromashift.player.PlayerIO.PlayerState loaded = com.jjmc.chromashift.player.PlayerIO.load("player_save.json");
-                if (loaded != null) {
-                    com.jjmc.chromashift.player.PlayerIO.applyToPlayer(player, loaded);
-                    if (loaded.currentLevel != null) currentLevelPath = loaded.currentLevel;
-                    if (loaded.visitedLevels != null) visitedLevels = loaded.visitedLevels;
-                    Gdx.app.log("TestSceneScreen", "Player loaded from save");
-                } else {
-                    Gdx.app.log("TestSceneScreen", "No player save found to load");
+                try {
+                    System.out.println("[DEBUG] Attempting to load player state for ID: 1");
+                    com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
+                    
+                    // Also restore visited levels
+                    com.badlogic.gdx.utils.Array<String> loadedVisited = 
+                        com.jjmc.chromashift.database.PlayerDAO.loadVisitedLevelsFromDB(1);
+                    if (loadedVisited != null && loadedVisited.size > 0) {
+                        visitedLevels.clear();
+                        visitedLevels.addAll(loadedVisited);
+                        System.out.println("[DEBUG] Restored " + visitedLevels.size + " visited levels");
+                    }
+                    
+                    System.out.println("[DEBUG] Load completed successfully");
+                    Gdx.app.log("TestSceneScreen", "✓ Player loaded from database with " + visitedLevels.size + " visited levels");
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Failed to load player: " + ex.getMessage());
+                    ex.printStackTrace();
+                    Gdx.app.error("TestSceneScreen", "Failed to load player: " + ex.getMessage());
                 }
             }
         } catch (Exception ignored) {}
@@ -884,34 +953,12 @@ public class TestSceneScreen implements Screen {
         
         Gdx.app.log("TestSceneScreen", "Advancing from " + currentLevelPath + " to " + nextLevel);
         
-        // Save current player state and level progress
-        try {
-            com.jjmc.chromashift.player.PlayerIO.PlayerState playerState = 
-                com.jjmc.chromashift.player.PlayerIO.capture(player, nextLevel, visitedLevels);
-            boolean saved = com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", playerState);
-            Gdx.app.log("TestSceneScreen", "Player state saved: " + saved);
-            
-            // Save current level state
-            com.jjmc.chromashift.screens.levels.LevelLoader.Result result = 
-                new com.jjmc.chromashift.screens.levels.LevelLoader.Result();
-            result.walls.addAll(walls);
-            result.solids.addAll(solids);
-            result.interactables.addAll(interactables);
-            result.collectibles.addAll(collectibles);
-            result.boss = (boss != null) ? boss : bossGuardian;
-            result.spawnX = playerSpawnX;
-            result.spawnY = playerSpawnY;
-            
-            boolean levelSaved = com.jjmc.chromashift.screens.levels.GameLevelSave.saveLevelOverrides(
-                currentLevelPath, result);
-            Gdx.app.log("TestSceneScreen", "Level state saved: " + levelSaved);
-        } catch (Exception e) {
-            Gdx.app.log("TestSceneScreen", "Error saving state: " + e.getMessage());
-        }
+        // Auto-save all state before transitioning
+        saveAllState(nextLevel);
         
         // Transition to next level (load saved state since we just saved)
         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(
-            new TestSceneScreen(nextLevel, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS));
+            new GameSceneScreen(nextLevel, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS));
     }
     
     /**
@@ -945,6 +992,44 @@ public class TestSceneScreen implements Screen {
         return null;
     }
 
+    /**
+     * Centralized auto-save routine for player and level.
+     * Saves to workspace JSON and attempts DB writes via DAOs.
+     */
+    private void saveAllState(String nextLevelPath) {
+        try {
+            // Capture player with next level context and visited levels
+            com.jjmc.chromashift.player.PlayerIO.PlayerState playerState =
+                com.jjmc.chromashift.player.PlayerIO.capture(player, nextLevelPath, visitedLevels);
+
+            // Save player to workspace (legacy) and DAO (DB)
+            com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", playerState);
+            try {
+                com.jjmc.chromashift.database.PlayerDAO.savePlayerState(1, playerState);
+                Gdx.app.log("TestSceneScreen", "✓ Player auto-saved to database");
+            } catch (Exception dbEx) {
+                Gdx.app.log("TestSceneScreen", "Player DB save failed: " + dbEx.getMessage());
+            }
+
+            // Prepare level result snapshot
+            com.jjmc.chromashift.screens.levels.LevelLoader.Result result =
+                new com.jjmc.chromashift.screens.levels.LevelLoader.Result();
+            result.walls.addAll(walls);
+            result.solids.addAll(solids);
+            result.interactables.addAll(interactables);
+            result.collectibles.addAll(collectibles);
+            result.boss = (boss != null) ? boss : bossGuardian;
+            result.spawnX = playerSpawnX;
+            result.spawnY = playerSpawnY;
+
+            boolean levelSaved = com.jjmc.chromashift.screens.levels.GameLevelSave.saveLevelOverrides(
+                currentLevelPath, result);
+            Gdx.app.log("TestSceneScreen", "Level state saved: " + levelSaved);
+        } catch (Exception e) {
+            Gdx.app.log("TestSceneScreen", "Error during auto-save: " + e.getMessage());
+        }
+    }
+
     @Override
     public void resize(int width, int height) {
         if (width <= 0 || height <= 0)
@@ -965,12 +1050,16 @@ public class TestSceneScreen implements Screen {
 
     @Override
     public void hide() {
+        // Autosave when leaving the screen (e.g., going to menu)
+        try { saveAllState(currentLevelPath); } catch (Throwable t) { Gdx.app.log("TestSceneScreen", "Autosave on hide failed: " + t.getMessage()); }
         // Disable culling when leaving gameplay (e.g., to editor/menu)
-        try { com.jjmc.chromashift.helper.VisibilityCuller.setEnabled(false); } catch (Throwable ignored) {}
+        try { com.chromashift.helper.VisibilityCuller.setEnabled(false); } catch (Throwable ignored) {}
     }
 
     @Override
     public void dispose() {
+        // Autosave on application/window close
+        try { saveAllState(currentLevelPath); } catch (Throwable t) { Gdx.app.log("TestSceneScreen", "Autosave on dispose failed: " + t.getMessage()); }
         if (ctx != null)
             ctx.dispose();
         player.dispose();

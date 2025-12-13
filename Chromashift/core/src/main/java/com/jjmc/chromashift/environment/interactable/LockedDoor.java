@@ -7,8 +7,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.chromashift.helper.SoundManager;
 import com.chromashift.helper.SpriteAnimator;
+import com.chromashift.helper.VisibilityCuller;
 import com.jjmc.chromashift.player.Player;
-import com.jjmc.chromashift.helper.VisibilityCuller;
 import com.jjmc.chromashift.environment.Solid;
 
 /**

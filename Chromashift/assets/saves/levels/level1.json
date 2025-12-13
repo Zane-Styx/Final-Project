@@ -1,3135 +1,1448 @@
 {
-levelPath: levels/level1.json
-timestamp: 1765342828250
-objects: [
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_-224_160
-		x: -224
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 352
-				}
-				x: {
-					class: java.lang.Float
-					value: -224
-				}
-				h: {
-					class: java.lang.Float
-					value: 480
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_128_160
-		x: 128
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 896
-				}
-				x: {
-					class: java.lang.Float
-					value: 128
-				}
-				h: {
-					class: java.lang.Float
-					value: 160
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_480_320
-		x: 480
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 480
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_512_320
-		x: 512
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 512
-				}
-				h: {
-					class: java.lang.Float
-					value: 64
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_544_320
-		x: 544
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 544
-				}
-				h: {
-					class: java.lang.Float
-					value: 96
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_576_320
-		x: 576
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 576
-				}
-				h: {
-					class: java.lang.Float
-					value: 128
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_608_320
-		x: 608
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 608
-				}
-				h: {
-					class: java.lang.Float
-					value: 160
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_640_320
-		x: 640
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 640
-				}
-				h: {
-					class: java.lang.Float
-					value: 192
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_672_320
-		x: 672
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 672
-				}
-				h: {
-					class: java.lang.Float
-					value: 224
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_704_320
-		x: 704
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 704
-				}
-				h: {
-					class: java.lang.Float
-					value: 256
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_736_320
-		x: 736
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 736
-				}
-				h: {
-					class: java.lang.Float
-					value: 288
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_768_320
-		x: 768
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 768
-				}
-				h: {
-					class: java.lang.Float
-					value: 320
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_800_320
-		x: 800
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 800
-				}
-				h: {
-					class: java.lang.Float
-					value: 320
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_960_384
-		x: 960
-		y: 384
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 960
-				}
-				h: {
-					class: java.lang.Float
-					value: 256
-				}
-				y: {
-					class: java.lang.Float
-					value: 384
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_128_960
-		x: 128
-		y: 960
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 896
-				}
-				x: {
-					class: java.lang.Float
-					value: 128
-				}
-				h: {
-					class: java.lang.Float
-					value: 64
-				}
-				y: {
-					class: java.lang.Float
-					value: 960
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_-224_640
-		x: -224
-		y: 640
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 352
-				}
-				x: {
-					class: java.lang.Float
-					value: -224
-				}
-				h: {
-					class: java.lang.Float
-					value: 384
-				}
-				y: {
-					class: java.lang.Float
-					value: 640
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1024_288
-		x: 1024
-		y: 288
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 128
-				}
-				x: {
-					class: java.lang.Float
-					value: 1024
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 288
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1536_288
-		x: 1536
-		y: 288
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 1536
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 288
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1984_288
-		x: 1984
-		y: 288
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 1984
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 288
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1024_992
-		x: 1024
-		y: 992
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 192
-				}
-				x: {
-					class: java.lang.Float
-					value: 1024
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 992
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1024_160
-		x: 1024
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 1024
-				}
-				h: {
-					class: java.lang.Float
-					value: 128
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1088_160
-		x: 1088
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 1088
-				}
-				h: {
-					class: java.lang.Float
-					value: 128
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1536_160
-		x: 1536
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 448
-				}
-				x: {
-					class: java.lang.Float
-					value: 1536
-				}
-				h: {
-					class: java.lang.Float
-					value: 96
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1984_160
-		x: 1984
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 448
-				}
-				x: {
-					class: java.lang.Float
-					value: 1984
-				}
-				h: {
-					class: java.lang.Float
-					value: 96
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2432_160
-		x: 2432
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 448
-				}
-				x: {
-					class: java.lang.Float
-					value: 2432
-				}
-				h: {
-					class: java.lang.Float
-					value: 96
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2848_256
-		x: 2848
-		y: 256
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 2848
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 256
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2368_416
-		x: 2368
-		y: 416
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 2368
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 416
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2816_288
-		x: 2816
-		y: 288
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 2816
-				}
-				h: {
-					class: java.lang.Float
-					value: 128
-				}
-				y: {
-					class: java.lang.Float
-					value: 288
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2816_448
-		x: 2816
-		y: 448
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 2816
-				}
-				h: {
-					class: java.lang.Float
-					value: 224
-				}
-				y: {
-					class: java.lang.Float
-					value: 448
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2848_416
-		x: 2848
-		y: 416
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 2848
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 416
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_960_800
-		x: 960
-		y: 800
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 960
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 800
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_960_832
-		x: 960
-		y: 832
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 960
-				}
-				h: {
-					class: java.lang.Float
-					value: 128
-				}
-				y: {
-					class: java.lang.Float
-					value: 832
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_960_640
-		x: 960
-		y: 640
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 960
-				}
-				h: {
-					class: java.lang.Float
-					value: 160
-				}
-				y: {
-					class: java.lang.Float
-					value: 640
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1120_160
-		x: 1120
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 1120
-				}
-				h: {
-					class: java.lang.Float
-					value: 96
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1216_160
-		x: 1216
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 320
-				}
-				x: {
-					class: java.lang.Float
-					value: 1216
-				}
-				h: {
-					class: java.lang.Float
-					value: 96
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1216_992
-		x: 1216
-		y: 992
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 1312
-				}
-				x: {
-					class: java.lang.Float
-					value: 1216
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 992
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_3008_736
-		x: 3008
-		y: 736
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 384
-				}
-				x: {
-					class: java.lang.Float
-					value: 3008
-				}
-				h: {
-					class: java.lang.Float
-					value: 256
-				}
-				y: {
-					class: java.lang.Float
-					value: 736
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2848_768
-		x: 2848
-		y: 768
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 2848
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 768
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2880_768
-		x: 2880
-		y: 768
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 2880
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 768
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2912_768
-		x: 2912
-		y: 768
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 2912
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 768
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2528_992
-		x: 2528
-		y: 992
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 416
-				}
-				x: {
-					class: java.lang.Float
-					value: 2528
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 992
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_3008_992
-		x: 3008
-		y: 992
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 384
-				}
-				x: {
-					class: java.lang.Float
-					value: 3008
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 992
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1152_160
-		x: 1152
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 1152
-				}
-				h: {
-					class: java.lang.Float
-					value: 96
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2880_-352
-		x: 2880
-		y: -352
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 512
-				}
-				x: {
-					class: java.lang.Float
-					value: 2880
-				}
-				h: {
-					class: java.lang.Float
-					value: 512
-				}
-				y: {
-					class: java.lang.Float
-					value: -352
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_1120_-352
-		x: 1120
-		y: -352
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 1760
-				}
-				x: {
-					class: java.lang.Float
-					value: 1120
-				}
-				h: {
-					class: java.lang.Float
-					value: 512
-				}
-				y: {
-					class: java.lang.Float
-					value: -352
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_-224_-352
-		x: -224
-		y: -352
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 1344
-				}
-				x: {
-					class: java.lang.Float
-					value: -224
-				}
-				h: {
-					class: java.lang.Float
-					value: 512
-				}
-				y: {
-					class: java.lang.Float
-					value: -352
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_-576_992
-		x: -576
-		y: 992
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 352
-				}
-				x: {
-					class: java.lang.Float
-					value: -576
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 992
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_-576_-352
-		x: -576
-		y: -352
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 352
-				}
-				x: {
-					class: java.lang.Float
-					value: -576
-				}
-				h: {
-					class: java.lang.Float
-					value: 1344
-				}
-				y: {
-					class: java.lang.Float
-					value: -352
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_2880_160
-		x: 2880
-		y: 160
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 512
-				}
-				x: {
-					class: java.lang.Float
-					value: 2880
-				}
-				h: {
-					class: java.lang.Float
-					value: 512
-				}
-				y: {
-					class: java.lang.Float
-					value: 160
-				}
-			}
-		}
-	}
-	{
-		className: Wall
-		fullClassName: com.jjmc.chromashift.environment.Wall
-		uniqueId: Wall_3008_672
-		x: 3008
-		y: 672
-		fields: {
-			class: java.util.HashMap
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 384
-				}
-				x: {
-					class: java.lang.Float
-					value: 3008
-				}
-				h: {
-					class: java.lang.Float
-					value: 64
-				}
-				y: {
-					class: java.lang.Float
-					value: 672
-				}
-			}
-		}
-	}
-	{
-		className: Door
-		fullClassName: com.jjmc.chromashift.environment.interactable.Door
-		uniqueId: Door_832_608
-		x: 832
-		y: 608
-		fields: {
-			class: java.util.HashMap
-			openProgress: {
-				class: java.lang.Float
-				value: 0
-			}
-			openDirection: {
-				class: java.lang.String
-				value: LEFT
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 128
-				}
-				x: {
-					class: java.lang.Float
-					value: 832
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 608
-				}
-			}
-			closeSpeed: {
-				class: java.lang.Float
-				value: 1.5454537
-			}
-			openSpeed: {
-				class: java.lang.Float
-				value: 3
-			}
-			open: {
-				class: java.lang.Boolean
-				value: false
-			}
-		}
-	}
-	{
-		className: Door
-		fullClassName: com.jjmc.chromashift.environment.interactable.Door
-		uniqueId: Door_832_576
-		x: 832
-		y: 576
-		fields: {
-			class: java.util.HashMap
-			openProgress: {
-				class: java.lang.Float
-				value: 1
-			}
-			openDirection: {
-				class: java.lang.String
-				value: RIGHT
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 128
-				}
-				x: {
-					class: java.lang.Float
-					value: 832
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 576
-				}
-			}
-			closeSpeed: {
-				class: java.lang.Float
-				value: 3
-			}
-			openSpeed: {
-				class: java.lang.Float
-				value: 3
-			}
-			open: {
-				class: java.lang.Boolean
-				value: true
-			}
-		}
-	}
-	{
-		className: Door
-		fullClassName: com.jjmc.chromashift.environment.interactable.Door
-		uniqueId: Door_704_576
-		x: 704
-		y: 576
-		fields: {
-			class: java.util.HashMap
-			openProgress: {
-				class: java.lang.Float
-				value: 1
-			}
-			openDirection: {
-				class: java.lang.String
-				value: UP
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 704
-				}
-				h: {
-					class: java.lang.Float
-					value: 384
-				}
-				y: {
-					class: java.lang.Float
-					value: 576
-				}
-			}
-			closeSpeed: {
-				class: java.lang.Float
-				value: 0.5
-			}
-			openSpeed: {
-				class: java.lang.Float
-				value: 3
-			}
-			open: {
-				class: java.lang.Boolean
-				value: true
-			}
-		}
-	}
-	{
-		className: Mirror
-		fullClassName: com.jjmc.chromashift.environment.interactable.Mirror
-		uniqueId: Mirror_416_480
-		x: 416
-		y: 480
-		fields: {
-			class: java.util.HashMap
-			angleDeg: {
-				class: java.lang.Float
-				value: 225
-			}
-			playerNearby: {
-				class: java.lang.Boolean
-				value: false
-			}
-			start: {
-				class: java.util.HashMap
-				x: {
-					class: java.lang.Float
-					value: 443.31372
-				}
-				y: {
-					class: java.lang.Float
-					value: 507.31372
-				}
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 416
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 480
-				}
-			}
-			end: {
-				class: java.util.HashMap
-				x: {
-					class: java.lang.Float
-					value: 420.68628
-				}
-				y: {
-					class: java.lang.Float
-					value: 484.68628
-				}
-			}
-		}
-	}
-	{
-		className: Mirror
-		fullClassName: com.jjmc.chromashift.environment.interactable.Mirror
-		uniqueId: Mirror_416_736
-		x: 416
-		y: 736
-		fields: {
-			class: java.util.HashMap
-			angleDeg: {
-				class: java.lang.Float
-				value: 45
-			}
-			playerNearby: {
-				class: java.lang.Boolean
-				value: false
-			}
-			start: {
-				class: java.util.HashMap
-				x: {
-					class: java.lang.Float
-					value: 420.68628
-				}
-				y: {
-					class: java.lang.Float
-					value: 740.6863
-				}
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 416
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 736
-				}
-			}
-			end: {
-				class: java.util.HashMap
-				x: {
-					class: java.lang.Float
-					value: 443.31372
-				}
-				y: {
-					class: java.lang.Float
-					value: 763.3137
-				}
-			}
-		}
-	}
-	{
-		className: Button
-		fullClassName: com.jjmc.chromashift.environment.interactable.Button
-		uniqueId: button_1
-		x: 768
-		y: 640
-		fields: {
-			class: java.util.HashMap
-			solidBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 52
-				}
-				x: {
-					class: java.lang.Float
-					value: 774
-				}
-				h: {
-					class: java.lang.Float
-					value: 7
-				}
-				y: {
-					class: java.lang.Float
-					value: 640
-				}
-			}
-			color: {
-				class: java.lang.String
-				value: GREEN
-			}
-			pressed: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 768
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 640
-				}
-			}
-			activationBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 784
-				}
-				h: {
-					class: java.lang.Float
-					value: 10
-				}
-				y: {
-					class: java.lang.Float
-					value: 647
-				}
-			}
-			id: {
-				class: java.lang.String
-				value: button_1
-			}
-			collisionBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 52
-				}
-				x: {
-					class: java.lang.Float
-					value: 774
-				}
-				h: {
-					class: java.lang.Float
-					value: 7
-				}
-				y: {
-					class: java.lang.Float
-					value: 640
-				}
-			}
-		}
-	}
-	{
-		className: Lever
-		fullClassName: com.jjmc.chromashift.environment.interactable.Lever
-		uniqueId: lever_1
-		x: 928
-		y: 864
-		fields: {
-			class: java.util.HashMap
-			onToggle: null
-			horizontal: {
-				class: java.lang.Boolean
-				value: false
-			}
-			playerNearby: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 26
-				}
-				x: {
-					class: java.lang.Float
-					value: 928
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 864
-				}
-			}
-			id: {
-				class: java.lang.String
-				value: lever_1
-			}
-			on: {
-				class: java.lang.Boolean
-				value: true
-			}
-		}
-	}
-	{
-		className: Target
-		fullClassName: com.jjmc.chromashift.environment.interactable.Target
-		uniqueId: Target_544_736
-		x: 544
-		y: 736
-		fields: {
-			class: java.util.HashMap
-			color: {
-				class: java.lang.String
-				value: BLUE
-			}
-			hitThisFrame: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 544
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 736
-				}
-			}
-			active: {
-				class: java.lang.Boolean
-				value: true
-			}
-		}
-	}
-	{
-		className: Button
-		fullClassName: com.jjmc.chromashift.environment.interactable.Button
-		uniqueId: button_2
-		x: 256
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			solidBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 52
-				}
-				x: {
-					class: java.lang.Float
-					value: 262
-				}
-				h: {
-					class: java.lang.Float
-					value: 7
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			linkedDoor: null
-			color: {
-				class: java.lang.String
-				value: GREEN
-			}
-			pressed: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 256
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			activationBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 272
-				}
-				h: {
-					class: java.lang.Float
-					value: 10
-				}
-				y: {
-					class: java.lang.Float
-					value: 327
-				}
-			}
-			id: {
-				class: java.lang.String
-				value: button_2
-			}
-			collisionBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 52
-				}
-				x: {
-					class: java.lang.Float
-					value: 262
-				}
-				h: {
-					class: java.lang.Float
-					value: 7
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-		}
-	}
-	{
-		className: Lever
-		fullClassName: com.jjmc.chromashift.environment.interactable.Lever
-		uniqueId: lever_2
-		x: 1056
-		y: 416
-		fields: {
-			class: java.util.HashMap
-			horizontal: {
-				class: java.lang.Boolean
-				value: false
-			}
-			playerNearby: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 26
-				}
-				x: {
-					class: java.lang.Float
-					value: 1056
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 416
-				}
-			}
-			id: {
-				class: java.lang.String
-				value: lever_2
-			}
-			on: {
-				class: java.lang.Boolean
-				value: true
-			}
-		}
-	}
-	{
-		className: Lever
-		fullClassName: com.jjmc.chromashift.environment.interactable.Lever
-		uniqueId: lever_3
-		x: 1088
-		y: 416
-		fields: {
-			class: java.util.HashMap
-			horizontal: {
-				class: java.lang.Boolean
-				value: false
-			}
-			playerNearby: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 26
-				}
-				x: {
-					class: java.lang.Float
-					value: 1088
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 416
-				}
-			}
-			id: {
-				class: java.lang.String
-				value: lever_3
-			}
-			on: {
-				class: java.lang.Boolean
-				value: true
-			}
-		}
-	}
-	{
-		className: Portal
-		fullClassName: com.jjmc.chromashift.environment.interactable.Portal
-		uniqueId: Portal_1215_319
-		x: 1215
-		y: 319
-		fields: {
-			class: java.util.HashMap
-			playerNearby: {
-				class: java.lang.Boolean
-				value: true
-			}
-			lever2Active: {
-				class: java.lang.Boolean
-				value: true
-			}
-			interactionCooldown: {
-				class: java.lang.Float
-				value: 1
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 225
-				}
-				x: {
-					class: java.lang.Float
-					value: 1215
-				}
-				h: {
-					class: java.lang.Float
-					value: 225
-				}
-				y: {
-					class: java.lang.Float
-					value: 319
-				}
-			}
-			requiredLeverId2: {
-				class: java.lang.String
-				value: lever_3
-			}
-			state: {
-				class: java.lang.String
-				value: ACTIVE
-			}
-			lever1Active: {
-				class: java.lang.Boolean
-				value: true
-			}
-			hitbox: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 140
-				}
-				x: {
-					class: java.lang.Float
-					value: 1257
-				}
-				h: {
-					class: java.lang.Float
-					value: 154
-				}
-				y: {
-					class: java.lang.Float
-					value: 349
-				}
-			}
-			requiredLeverId1: {
-				class: java.lang.String
-				value: lever_2
-			}
-		}
-	}
-	{
-		className: Box
-		fullClassName: com.jjmc.chromashift.environment.interactable.Box
-		uniqueId: Box_2916_672
-		x: 2916
-		y: 672
-		fields: {
-			class: java.util.HashMap
-			vx: {
-				class: java.lang.Float
-				value: 0
-			}
-			vy: {
-				class: java.lang.Float
-				value: 0
-			}
-			holdOffsetX: {
-				class: java.lang.Float
-				value: 0
-			}
-			held: {
-				class: java.lang.Boolean
-				value: false
-			}
-			holdOffsetY: {
-				class: java.lang.Float
-				value: 6
-			}
-			boxColor: {
-				class: java.util.HashMap
-				a: {
-					class: java.lang.Float
-					value: 1
-				}
-				r: {
-					class: java.lang.Float
-					value: 1
-				}
-				b: {
-					class: java.lang.Float
-					value: 0
-				}
-				g: {
-					class: java.lang.Float
-					value: 0
-				}
-			}
-			spawnX: {
-				class: java.lang.Float
-				value: 2916
-			}
-			holder: null
-			spawnY: {
-				class: java.lang.Float
-				value: 676
-			}
-			inRange: {
-				class: java.lang.Boolean
-				value: false
-			}
-			x: {
-				class: java.lang.Float
-				value: 2916
-			}
-			width: {
-				class: java.lang.Float
-				value: 24
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 24
-				}
-				x: {
-					class: java.lang.Float
-					value: 2916
-				}
-				h: {
-					class: java.lang.Float
-					value: 24
-				}
-				y: {
-					class: java.lang.Float
-					value: 672
-				}
-			}
-			respawnArea: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 200
-				}
-				x: {
-					class: java.lang.Float
-					value: 2816
-				}
-				h: {
-					class: java.lang.Float
-					value: 400
-				}
-				y: {
-					class: java.lang.Float
-					value: 476
-				}
-			}
-			y: {
-				class: java.lang.Float
-				value: 672
-			}
-			gameCamera: null
-			interactables: null
-			height: {
-				class: java.lang.Float
-				value: 24
-			}
-		}
-	}
-	{
-		className: Launchpad
-		fullClassName: com.jjmc.chromashift.environment.Launchpad
-		uniqueId: Launchpad_1088_320
-		x: 1088
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			solidBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 42
-				}
-				x: {
-					class: java.lang.Float
-					value: 1099
-				}
-				h: {
-					class: java.lang.Float
-					value: 16
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			launchCooldown: {
-				class: java.lang.Float
-				value: 0
-			}
-			isLaunching: {
-				class: java.lang.Boolean
-				value: false
-			}
-			activationArmed: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 1088
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			launchSpeed: {
-				class: java.lang.Float
-				value: 600
-			}
-			detectionBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 36
-				}
-				x: {
-					class: java.lang.Float
-					value: 1102
-				}
-				h: {
-					class: java.lang.Float
-					value: 2
-				}
-				y: {
-					class: java.lang.Float
-					value: 336
-				}
-			}
-			direction: {
-				class: java.lang.String
-				value: UP
-			}
-		}
-	}
-	{
-		className: Launchpad
-		fullClassName: com.jjmc.chromashift.environment.Launchpad
-		uniqueId: Launchpad_1536_320
-		x: 1536
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			solidBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 42
-				}
-				x: {
-					class: java.lang.Float
-					value: 1547
-				}
-				h: {
-					class: java.lang.Float
-					value: 16
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			launchCooldown: {
-				class: java.lang.Float
-				value: 0
-			}
-			isLaunching: {
-				class: java.lang.Boolean
-				value: false
-			}
-			activationArmed: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 1536
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			launchSpeed: {
-				class: java.lang.Float
-				value: 600
-			}
-			detectionBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 36
-				}
-				x: {
-					class: java.lang.Float
-					value: 1550
-				}
-				h: {
-					class: java.lang.Float
-					value: 2
-				}
-				y: {
-					class: java.lang.Float
-					value: 336
-				}
-			}
-			direction: {
-				class: java.lang.String
-				value: UP
-			}
-		}
-	}
-	{
-		className: Launchpad
-		fullClassName: com.jjmc.chromashift.environment.Launchpad
-		uniqueId: Launchpad_1984_320
-		x: 1984
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			solidBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 42
-				}
-				x: {
-					class: java.lang.Float
-					value: 1995
-				}
-				h: {
-					class: java.lang.Float
-					value: 16
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			launchCooldown: {
-				class: java.lang.Float
-				value: 0
-			}
-			isLaunching: {
-				class: java.lang.Boolean
-				value: false
-			}
-			activationArmed: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 1984
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			launchSpeed: {
-				class: java.lang.Float
-				value: 600
-			}
-			detectionBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 36
-				}
-				x: {
-					class: java.lang.Float
-					value: 1998
-				}
-				h: {
-					class: java.lang.Float
-					value: 2
-				}
-				y: {
-					class: java.lang.Float
-					value: 336
-				}
-			}
-			direction: {
-				class: java.lang.String
-				value: UP
-			}
-		}
-	}
-	{
-		className: Launchpad
-		fullClassName: com.jjmc.chromashift.environment.Launchpad
-		uniqueId: Launchpad_2368_448
-		x: 2368
-		y: 448
-		fields: {
-			class: java.util.HashMap
-			solidBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 42
-				}
-				x: {
-					class: java.lang.Float
-					value: 2379
-				}
-				h: {
-					class: java.lang.Float
-					value: 16
-				}
-				y: {
-					class: java.lang.Float
-					value: 448
-				}
-			}
-			launchCooldown: {
-				class: java.lang.Float
-				value: 0
-			}
-			isLaunching: {
-				class: java.lang.Boolean
-				value: false
-			}
-			activationArmed: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 64
-				}
-				x: {
-					class: java.lang.Float
-					value: 2368
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 448
-				}
-			}
-			launchSpeed: {
-				class: java.lang.Float
-				value: 600
-			}
-			detectionBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 36
-				}
-				x: {
-					class: java.lang.Float
-					value: 2382
-				}
-				h: {
-					class: java.lang.Float
-					value: 2
-				}
-				y: {
-					class: java.lang.Float
-					value: 464
-				}
-			}
-			direction: {
-				class: java.lang.String
-				value: UP
-			}
-		}
-	}
-	{
-		className: Launchpad
-		fullClassName: com.jjmc.chromashift.environment.Launchpad
-		uniqueId: Launchpad_1024_576
-		x: 1024
-		y: 576
-		fields: {
-			class: java.util.HashMap
-			solidBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 16
-				}
-				x: {
-					class: java.lang.Float
-					value: 1024
-				}
-				h: {
-					class: java.lang.Float
-					value: 42
-				}
-				y: {
-					class: java.lang.Float
-					value: 587
-				}
-			}
-			launchCooldown: {
-				class: java.lang.Float
-				value: 0
-			}
-			isLaunching: {
-				class: java.lang.Boolean
-				value: false
-			}
-			activationArmed: {
-				class: java.lang.Boolean
-				value: false
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 1024
-				}
-				h: {
-					class: java.lang.Float
-					value: 64
-				}
-				y: {
-					class: java.lang.Float
-					value: 576
-				}
-			}
-			launchSpeed: {
-				class: java.lang.Float
-				value: 600
-			}
-			detectionBounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 16
-				}
-				x: {
-					class: java.lang.Float
-					value: 1040
-				}
-				h: {
-					class: java.lang.Float
-					value: 20
-				}
-				y: {
-					class: java.lang.Float
-					value: 598
-				}
-			}
-			direction: {
-				class: java.lang.String
-				value: LEFT
-			}
-		}
-	}
-	{
-		className: Laser
-		fullClassName: com.jjmc.chromashift.environment.interactable.Laser
-		uniqueId: Laser_2816_416
-		x: 2816
-		y: 416
-		fields: {
-			class: java.util.HashMap
-			rotation: {
-				class: java.lang.Float
-				value: 180
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 2816
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 416
-				}
-			}
-			maxLength: {
-				class: java.lang.Float
-				value: 1000
-			}
-			maxBounces: {
-				class: java.lang.Integer
-				value: 8
-			}
-		}
-	}
-	{
-		className: Laser
-		fullClassName: com.jjmc.chromashift.environment.interactable.Laser
-		uniqueId: Laser_992_800
-		x: 992
-		y: 800
-		fields: {
-			class: java.util.HashMap
-			rotation: {
-				class: java.lang.Float
-				value: 0
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 992
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 800
-				}
-			}
-			maxLength: {
-				class: java.lang.Float
-				value: 1000
-			}
-			maxBounces: {
-				class: java.lang.Integer
-				value: 8
-			}
-		}
-	}
-	{
-		className: LaserRay
-		fullClassName: com.jjmc.chromashift.environment.interactable.LaserRay
-		uniqueId: LaserRay_288_480
-		x: 288
-		y: 480
-		fields: {
-			class: java.util.HashMap
-			playerNearby: {
-				class: java.lang.Boolean
-				value: false
-			}
-			rotation: {
-				class: java.lang.Float
-				value: 0
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 288
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 480
-				}
-			}
-			rotateStep: {
-				class: java.lang.Float
-				value: 90
-			}
-			position: {
-				class: java.util.HashMap
-				x: {
-					class: java.lang.Float
-					value: 304
-				}
-				y: {
-					class: java.lang.Float
-					value: 496
-				}
-			}
-			maxLength: {
-				class: java.lang.Float
-				value: 1000000
-			}
-			maxBounces: {
-				class: java.lang.Integer
-				value: 8
-			}
-		}
-	}
-	{
-		className: Laser
-		fullClassName: com.jjmc.chromashift.environment.interactable.Laser
-		uniqueId: Laser_2816_256
-		x: 2816
-		y: 256
-		fields: {
-			class: java.util.HashMap
-			rotation: {
-				class: java.lang.Float
-				value: 180
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 2816
-				}
-				h: {
-					class: java.lang.Float
-					value: 32
-				}
-				y: {
-					class: java.lang.Float
-					value: 256
-				}
-			}
-			maxLength: {
-				class: java.lang.Float
-				value: 1000
-			}
-			maxBounces: {
-				class: java.lang.Integer
-				value: 8
-			}
-		}
-	}
-	{
-		className: Glass
-		fullClassName: com.jjmc.chromashift.environment.interactable.Glass
-		uniqueId: Glass_424_616
-		x: 424
-		y: 616
-		fields: {
-			class: java.util.HashMap
-			tintStrength: {
-				class: java.lang.Float
-				value: 1
-			}
-			rainbow: {
-				class: java.lang.Boolean
-				value: false
-			}
-			color: {
-				class: java.util.HashMap
-				a: {
-					class: java.lang.Float
-					value: 1
-				}
-				r: {
-					class: java.lang.Float
-					value: 0
-				}
-				b: {
-					class: java.lang.Float
-					value: 1
-				}
-				g: {
-					class: java.lang.Float
-					value: 0
-				}
-			}
-			start: {
-				class: java.util.HashMap
-				x: {
-					class: java.lang.Float
-					value: 424
-				}
-				y: {
-					class: java.lang.Float
-					value: 616
-				}
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 16
-				}
-				x: {
-					class: java.lang.Float
-					value: 424
-				}
-				h: {
-					class: java.lang.Float
-					value: 16
-				}
-				y: {
-					class: java.lang.Float
-					value: 616
-				}
-			}
-			end: {
-				class: java.util.HashMap
-				x: {
-					class: java.lang.Float
-					value: 440
-				}
-				y: {
-					class: java.lang.Float
-					value: 632
-				}
-			}
-			tintLaser: {
-				class: java.lang.Boolean
-				value: true
-			}
-			speed: {
-				class: java.lang.Float
-				value: 1.5
-			}
-		}
-	}
-	{
-		className: LockedDoor
-		fullClassName: com.jjmc.chromashift.environment.interactable.LockedDoor
-		uniqueId: LockedDoor_960_320
-		x: 960
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			orientation: {
-				class: java.lang.String
-				value: VERTICAL
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 960
-				}
-				h: {
-					class: java.lang.Float
-					value: 64
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			open: {
-				class: java.lang.Boolean
-				value: true
-			}
-		}
-	}
-	{
-		className: LockedDoor
-		fullClassName: com.jjmc.chromashift.environment.interactable.LockedDoor
-		uniqueId: LockedDoor_992_320
-		x: 992
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			orientation: {
-				class: java.lang.String
-				value: VERTICAL
-			}
-			bounds: {
-				class: java.util.HashMap
-				w: {
-					class: java.lang.Float
-					value: 32
-				}
-				x: {
-					class: java.lang.Float
-					value: 992
-				}
-				h: {
-					class: java.lang.Float
-					value: 64
-				}
-				y: {
-					class: java.lang.Float
-					value: 320
-				}
-			}
-			open: {
-				class: java.lang.Boolean
-				value: true
-			}
-		}
-	}
-	{
-		className: Shop
-		fullClassName: com.jjmc.chromashift.environment.interactable.Shop
-		uniqueId: Shop_864_320
-		x: 864
-		y: 320
-		fields: {
-			class: java.util.HashMap
-			savedVelocityY: {
-				class: java.lang.Float
-				value: 0
-			}
-			isOpen: {
-				class: java.lang.Boolean
-				value: false
-			}
-			savedVelocityX: {
-				class: java.lang.Float
-				value: 0
-			}
-			playerNearby: {
-				class: java.lang.Boolean
-				value: false
-			}
-			potionStock: {
-				class: java.lang.Integer
-				value: 5
-			}
-			x: {
-				class: java.lang.Float
-				value: 864
-			}
-			width: {
-				class: java.lang.Float
-				value: 64
-			}
-			y: {
-				class: java.lang.Float
-				value: 320
-			}
-			playerWasMovable: {
-				class: java.lang.Boolean
-				value: true
-			}
-			height: {
-				class: java.lang.Float
-				value: 64
-			}
-		}
-	}
-]
-removedObjectIds: [
-	Diamond_448_384
-	Diamond_448_416
-	Diamond_416_384
-	Diamond_416_416
-	Diamond_384_416
-	Diamond_384_384
-	Diamond_352_384
-	Diamond_352_416
-	Diamond_352_352
-	Diamond_384_352
-	Key_320_384
-	Key_384_448
-	HealthPotion_192_512
-	Tentacle_0_0
-	Tentacle_0_0
-	Tentacle_0_0
-]
+  "levelPath": "levels/level1.json",
+  "timestamp": 1765620100629,
+  "objects": {
+    "items": [
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-224_160",
+        "x": -224.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 352.0,
+            "x": -224.0,
+            "h": 480.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_128_160",
+        "x": 128.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 896.0,
+            "x": 128.0,
+            "h": 160.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_480_320",
+        "x": 480.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 480.0,
+            "h": 32.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_512_320",
+        "x": 512.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 512.0,
+            "h": 64.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_544_320",
+        "x": 544.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 544.0,
+            "h": 96.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_576_320",
+        "x": 576.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 576.0,
+            "h": 128.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_608_320",
+        "x": 608.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 608.0,
+            "h": 160.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_640_320",
+        "x": 640.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 640.0,
+            "h": 192.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_672_320",
+        "x": 672.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 672.0,
+            "h": 224.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_704_320",
+        "x": 704.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 704.0,
+            "h": 256.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_736_320",
+        "x": 736.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 736.0,
+            "h": 288.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_768_320",
+        "x": 768.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 768.0,
+            "h": 320.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_800_320",
+        "x": 800.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 800.0,
+            "h": 320.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_960_384",
+        "x": 960.0,
+        "y": 384.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 960.0,
+            "h": 256.0,
+            "y": 384.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_128_960",
+        "x": 128.0,
+        "y": 960.0,
+        "fields": {
+          "bounds": {
+            "w": 896.0,
+            "x": 128.0,
+            "h": 64.0,
+            "y": 960.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-224_640",
+        "x": -224.0,
+        "y": 640.0,
+        "fields": {
+          "bounds": {
+            "w": 352.0,
+            "x": -224.0,
+            "h": 384.0,
+            "y": 640.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1024_288",
+        "x": 1024.0,
+        "y": 288.0,
+        "fields": {
+          "bounds": {
+            "w": 128.0,
+            "x": 1024.0,
+            "h": 32.0,
+            "y": 288.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1536_288",
+        "x": 1536.0,
+        "y": 288.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 1536.0,
+            "h": 32.0,
+            "y": 288.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1984_288",
+        "x": 1984.0,
+        "y": 288.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 1984.0,
+            "h": 32.0,
+            "y": 288.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1024_992",
+        "x": 1024.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 192.0,
+            "x": 1024.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1024_160",
+        "x": 1024.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 1024.0,
+            "h": 128.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1088_160",
+        "x": 1088.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 1088.0,
+            "h": 128.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1536_160",
+        "x": 1536.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 448.0,
+            "x": 1536.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1984_160",
+        "x": 1984.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 448.0,
+            "x": 1984.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2432_160",
+        "x": 2432.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 448.0,
+            "x": 2432.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2848_256",
+        "x": 2848.0,
+        "y": 256.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2848.0,
+            "h": 32.0,
+            "y": 256.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2368_416",
+        "x": 2368.0,
+        "y": 416.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 2368.0,
+            "h": 32.0,
+            "y": 416.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2816_288",
+        "x": 2816.0,
+        "y": 288.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 2816.0,
+            "h": 128.0,
+            "y": 288.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2816_448",
+        "x": 2816.0,
+        "y": 448.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 2816.0,
+            "h": 224.0,
+            "y": 448.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2848_416",
+        "x": 2848.0,
+        "y": 416.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2848.0,
+            "h": 32.0,
+            "y": 416.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_960_800",
+        "x": 960.0,
+        "y": 800.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 960.0,
+            "h": 32.0,
+            "y": 800.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_960_832",
+        "x": 960.0,
+        "y": 832.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 960.0,
+            "h": 128.0,
+            "y": 832.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_960_640",
+        "x": 960.0,
+        "y": 640.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 960.0,
+            "h": 160.0,
+            "y": 640.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1120_160",
+        "x": 1120.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 1120.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1216_160",
+        "x": 1216.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 320.0,
+            "x": 1216.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1216_992",
+        "x": 1216.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 1312.0,
+            "x": 1216.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3008_736",
+        "x": 3008.0,
+        "y": 736.0,
+        "fields": {
+          "bounds": {
+            "w": 384.0,
+            "x": 3008.0,
+            "h": 256.0,
+            "y": 736.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2848_768",
+        "x": 2848.0,
+        "y": 768.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2848.0,
+            "h": 32.0,
+            "y": 768.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2880_768",
+        "x": 2880.0,
+        "y": 768.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2880.0,
+            "h": 32.0,
+            "y": 768.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2912_768",
+        "x": 2912.0,
+        "y": 768.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2912.0,
+            "h": 32.0,
+            "y": 768.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2528_992",
+        "x": 2528.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 416.0,
+            "x": 2528.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3008_992",
+        "x": 3008.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 384.0,
+            "x": 3008.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1152_160",
+        "x": 1152.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 1152.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2880_-352",
+        "x": 2880.0,
+        "y": -352.0,
+        "fields": {
+          "bounds": {
+            "w": 512.0,
+            "x": 2880.0,
+            "h": 512.0,
+            "y": -352.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1120_-352",
+        "x": 1120.0,
+        "y": -352.0,
+        "fields": {
+          "bounds": {
+            "w": 1760.0,
+            "x": 1120.0,
+            "h": 512.0,
+            "y": -352.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-224_-352",
+        "x": -224.0,
+        "y": -352.0,
+        "fields": {
+          "bounds": {
+            "w": 1344.0,
+            "x": -224.0,
+            "h": 512.0,
+            "y": -352.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-576_992",
+        "x": -576.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 352.0,
+            "x": -576.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-576_-352",
+        "x": -576.0,
+        "y": -352.0,
+        "fields": {
+          "bounds": {
+            "w": 352.0,
+            "x": -576.0,
+            "h": 1344.0,
+            "y": -352.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2880_160",
+        "x": 2880.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 512.0,
+            "x": 2880.0,
+            "h": 512.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3008_672",
+        "x": 3008.0,
+        "y": 672.0,
+        "fields": {
+          "bounds": {
+            "w": 384.0,
+            "x": 3008.0,
+            "h": 64.0,
+            "y": 672.0
+          }
+        }
+      },
+      {
+        "className": "Door",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Door",
+        "uniqueId": "Door_832_608",
+        "x": 832.0,
+        "y": 608.0,
+        "fields": {
+          "openProgress": 0.0,
+          "openDirection": "LEFT",
+          "bounds": {
+            "w": 128.0,
+            "x": 832.0,
+            "h": 32.0,
+            "y": 608.0
+          },
+          "closeSpeed": 1.5454537,
+          "openSpeed": 3.0,
+          "open": false
+        }
+      },
+      {
+        "className": "Door",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Door",
+        "uniqueId": "Door_832_576",
+        "x": 832.0,
+        "y": 576.0,
+        "fields": {
+          "openProgress": 0.0,
+          "openDirection": "RIGHT",
+          "bounds": {
+            "w": 128.0,
+            "x": 832.0,
+            "h": 32.0,
+            "y": 576.0
+          },
+          "closeSpeed": 3.0,
+          "openSpeed": 3.0,
+          "open": false
+        }
+      },
+      {
+        "className": "Door",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Door",
+        "uniqueId": "Door_704_576",
+        "x": 704.0,
+        "y": 576.0,
+        "fields": {
+          "openProgress": 1.0,
+          "openDirection": "UP",
+          "bounds": {
+            "w": 32.0,
+            "x": 704.0,
+            "h": 384.0,
+            "y": 576.0
+          },
+          "closeSpeed": 0.5,
+          "openSpeed": 3.0,
+          "open": true
+        }
+      },
+      {
+        "className": "Mirror",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Mirror",
+        "uniqueId": "Mirror_416_480",
+        "x": 416.0,
+        "y": 480.0,
+        "fields": {
+          "angleDeg": 225.0,
+          "playerNearby": false,
+          "start": {
+            "x": 443.31372,
+            "y": 507.31372
+          },
+          "bounds": {
+            "w": 32.0,
+            "x": 416.0,
+            "h": 32.0,
+            "y": 480.0
+          },
+          "end": {
+            "x": 420.68628,
+            "y": 484.68628
+          }
+        }
+      },
+      {
+        "className": "Mirror",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Mirror",
+        "uniqueId": "Mirror_416_736",
+        "x": 416.0,
+        "y": 736.0,
+        "fields": {
+          "angleDeg": 45.0,
+          "playerNearby": false,
+          "start": {
+            "x": 420.68628,
+            "y": 740.6863
+          },
+          "bounds": {
+            "w": 32.0,
+            "x": 416.0,
+            "h": 32.0,
+            "y": 736.0
+          },
+          "end": {
+            "x": 443.31372,
+            "y": 763.3137
+          }
+        }
+      },
+      {
+        "className": "Button",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Button",
+        "uniqueId": "button_1",
+        "x": 768.0,
+        "y": 640.0,
+        "fields": {
+          "solidBounds": {
+            "w": 52.0,
+            "x": 774.0,
+            "h": 7.0,
+            "y": 640.0
+          },
+          "color": "GREEN",
+          "pressed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 768.0,
+            "h": 32.0,
+            "y": 640.0
+          },
+          "activationBounds": {
+            "w": 32.0,
+            "x": 784.0,
+            "h": 10.0,
+            "y": 647.0
+          },
+          "id": "button_1",
+          "collisionBounds": {
+            "w": 52.0,
+            "x": 774.0,
+            "h": 7.0,
+            "y": 640.0
+          }
+        }
+      },
+      {
+        "className": "Lever",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Lever",
+        "uniqueId": "lever_1",
+        "x": 928.0,
+        "y": 864.0,
+        "fields": {
+          "horizontal": false,
+          "playerNearby": false,
+          "bounds": {
+            "w": 26.0,
+            "x": 928.0,
+            "h": 32.0,
+            "y": 864.0
+          },
+          "id": "lever_1",
+          "on": false
+        }
+      },
+      {
+        "className": "Target",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Target",
+        "uniqueId": "Target_544_736",
+        "x": 544.0,
+        "y": 736.0,
+        "fields": {
+          "color": "BLUE",
+          "hitThisFrame": false,
+          "bounds": {
+            "w": 32.0,
+            "x": 544.0,
+            "h": 32.0,
+            "y": 736.0
+          },
+          "active": true
+        }
+      },
+      {
+        "className": "Button",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Button",
+        "uniqueId": "button_2",
+        "x": 256.0,
+        "y": 320.0,
+        "fields": {
+          "solidBounds": {
+            "w": 52.0,
+            "x": 262.0,
+            "h": 7.0,
+            "y": 320.0
+          },
+          "color": "GREEN",
+          "pressed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 256.0,
+            "h": 32.0,
+            "y": 320.0
+          },
+          "activationBounds": {
+            "w": 32.0,
+            "x": 272.0,
+            "h": 10.0,
+            "y": 327.0
+          },
+          "id": "button_2",
+          "collisionBounds": {
+            "w": 52.0,
+            "x": 262.0,
+            "h": 7.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Lever",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Lever",
+        "uniqueId": "lever_2",
+        "x": 1056.0,
+        "y": 416.0,
+        "fields": {
+          "horizontal": false,
+          "playerNearby": false,
+          "bounds": {
+            "w": 26.0,
+            "x": 1056.0,
+            "h": 32.0,
+            "y": 416.0
+          },
+          "id": "lever_2",
+          "on": true
+        }
+      },
+      {
+        "className": "Lever",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Lever",
+        "uniqueId": "lever_3",
+        "x": 1088.0,
+        "y": 416.0,
+        "fields": {
+          "horizontal": false,
+          "playerNearby": false,
+          "bounds": {
+            "w": 26.0,
+            "x": 1088.0,
+            "h": 32.0,
+            "y": 416.0
+          },
+          "id": "lever_3",
+          "on": true
+        }
+      },
+      {
+        "className": "Portal",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Portal",
+        "uniqueId": "Portal_1215_319",
+        "x": 1215.0,
+        "y": 319.0,
+        "fields": {
+          "playerNearby": true,
+          "lever2Active": true,
+          "interactionCooldown": 1.0,
+          "bounds": {
+            "w": 225.0,
+            "x": 1215.0,
+            "h": 225.0,
+            "y": 319.0
+          },
+          "requiredLeverId2": "lever_3",
+          "state": "ACTIVE",
+          "lever1Active": true,
+          "hitbox": {
+            "w": 140.0,
+            "x": 1257.0,
+            "h": 154.0,
+            "y": 349.0
+          },
+          "requiredLeverId1": "lever_2"
+        }
+      },
+      {
+        "className": "Box",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Box",
+        "uniqueId": "Box_2916_672",
+        "x": 2916.0,
+        "y": 672.0,
+        "fields": {
+          "vx": 0.0,
+          "vy": 0.0,
+          "holdOffsetX": 0.0,
+          "held": false,
+          "holdOffsetY": 6.0,
+          "boxColor": {
+            "a": 1.0,
+            "r": 1.0,
+            "b": 0.0,
+            "g": 0.0
+          },
+          "spawnX": 2916.0,
+          "spawnY": 676.0,
+          "inRange": false,
+          "x": 2916.0,
+          "width": 24.0,
+          "bounds": {
+            "w": 24.0,
+            "x": 2916.0,
+            "h": 24.0,
+            "y": 672.0
+          },
+          "respawnArea": {
+            "w": 200.0,
+            "x": 2816.0,
+            "h": 400.0,
+            "y": 476.0
+          },
+          "y": 672.0,
+          "height": 24.0
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_1088_320",
+        "x": 1088.0,
+        "y": 320.0,
+        "fields": {
+          "solidBounds": {
+            "w": 42.0,
+            "x": 1099.0,
+            "h": 16.0,
+            "y": 320.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 1088.0,
+            "h": 32.0,
+            "y": 320.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 36.0,
+            "x": 1102.0,
+            "h": 2.0,
+            "y": 336.0
+          },
+          "direction": "UP"
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_1536_320",
+        "x": 1536.0,
+        "y": 320.0,
+        "fields": {
+          "solidBounds": {
+            "w": 42.0,
+            "x": 1547.0,
+            "h": 16.0,
+            "y": 320.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 1536.0,
+            "h": 32.0,
+            "y": 320.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 36.0,
+            "x": 1550.0,
+            "h": 2.0,
+            "y": 336.0
+          },
+          "direction": "UP"
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_1984_320",
+        "x": 1984.0,
+        "y": 320.0,
+        "fields": {
+          "solidBounds": {
+            "w": 42.0,
+            "x": 1995.0,
+            "h": 16.0,
+            "y": 320.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 1984.0,
+            "h": 32.0,
+            "y": 320.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 36.0,
+            "x": 1998.0,
+            "h": 2.0,
+            "y": 336.0
+          },
+          "direction": "UP"
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_2368_448",
+        "x": 2368.0,
+        "y": 448.0,
+        "fields": {
+          "solidBounds": {
+            "w": 42.0,
+            "x": 2379.0,
+            "h": 16.0,
+            "y": 448.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 2368.0,
+            "h": 32.0,
+            "y": 448.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 36.0,
+            "x": 2382.0,
+            "h": 2.0,
+            "y": 464.0
+          },
+          "direction": "UP"
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_1024_576",
+        "x": 1024.0,
+        "y": 576.0,
+        "fields": {
+          "solidBounds": {
+            "w": 16.0,
+            "x": 1024.0,
+            "h": 42.0,
+            "y": 587.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 32.0,
+            "x": 1024.0,
+            "h": 64.0,
+            "y": 576.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 16.0,
+            "x": 1040.0,
+            "h": 20.0,
+            "y": 598.0
+          },
+          "direction": "LEFT"
+        }
+      },
+      {
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_2816_416",
+        "x": 2816.0,
+        "y": 416.0,
+        "fields": {
+          "rotation": 180.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 2816.0,
+            "h": 32.0,
+            "y": 416.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_992_800",
+        "x": 992.0,
+        "y": 800.0,
+        "fields": {
+          "rotation": 0.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 992.0,
+            "h": 32.0,
+            "y": 800.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "LaserRay",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.LaserRay",
+        "uniqueId": "LaserRay_288_480",
+        "x": 288.0,
+        "y": 480.0,
+        "fields": {
+          "playerNearby": false,
+          "rotation": 0.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 288.0,
+            "h": 32.0,
+            "y": 480.0
+          },
+          "rotateStep": 90.0,
+          "position": {
+            "x": 304.0,
+            "y": 496.0
+          },
+          "maxLength": 1000000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_2816_256",
+        "x": 2816.0,
+        "y": 256.0,
+        "fields": {
+          "rotation": 180.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 2816.0,
+            "h": 32.0,
+            "y": 256.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "Glass",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Glass",
+        "uniqueId": "Glass_424_616",
+        "x": 424.0,
+        "y": 616.0,
+        "fields": {
+          "tintStrength": 1.0,
+          "rainbow": false,
+          "color": {
+            "a": 1.0,
+            "r": 0.0,
+            "b": 1.0,
+            "g": 0.0
+          },
+          "start": {
+            "x": 424.0,
+            "y": 616.0
+          },
+          "bounds": {
+            "w": 16.0,
+            "x": 424.0,
+            "h": 16.0,
+            "y": 616.0
+          },
+          "end": {
+            "x": 440.0,
+            "y": 632.0
+          },
+          "tintLaser": true,
+          "speed": 1.5
+        }
+      },
+      {
+        "className": "LockedDoor",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.LockedDoor",
+        "uniqueId": "LockedDoor_960_320",
+        "x": 960.0,
+        "y": 320.0,
+        "fields": {
+          "orientation": "VERTICAL",
+          "bounds": {
+            "w": 32.0,
+            "x": 960.0,
+            "h": 64.0,
+            "y": 320.0
+          },
+          "open": false
+        }
+      },
+      {
+        "className": "LockedDoor",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.LockedDoor",
+        "uniqueId": "LockedDoor_992_320",
+        "x": 992.0,
+        "y": 320.0,
+        "fields": {
+          "orientation": "VERTICAL",
+          "bounds": {
+            "w": 32.0,
+            "x": 992.0,
+            "h": 64.0,
+            "y": 320.0
+          },
+          "open": false
+        }
+      },
+      {
+        "className": "Shop",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Shop",
+        "uniqueId": "Shop_864_320",
+        "x": 864.0,
+        "y": 320.0,
+        "fields": {
+          "savedVelocityY": 0.0,
+          "isOpen": false,
+          "savedVelocityX": 0.0,
+          "playerNearby": false,
+          "potionStock": 5,
+          "x": 864.0,
+          "width": 64.0,
+          "y": 320.0,
+          "playerWasMovable": true,
+          "height": 64.0
+        }
+      },
+      {
+        "className": "HealthPotion",
+        "fullClassName": "com.jjmc.chromashift.environment.collectible.HealthPotion",
+        "uniqueId": "HealthPotion_192_512",
+        "x": 0.0,
+        "y": 0.0,
+        "fields": {
+          "x": 192.0,
+          "width": 32.0,
+          "y": 512.0,
+          "collected": false,
+          "id": "HealthPotion_192_512",
+          "height": 32.0
+        }
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "size": 77,
+    "ordered": true
+  },
+  "removedObjectIds": [
+    "Diamond_448_384",
+    "Diamond_448_416",
+    "Diamond_416_384",
+    "Diamond_416_416",
+    "Diamond_384_416",
+    "Diamond_384_384",
+    "Diamond_352_384",
+    "Diamond_352_416",
+    "Diamond_352_352",
+    "Diamond_384_352",
+    "Key_320_384",
+    "Key_384_448",
+    "Tentacle_0_0",
+    "Tentacle_0_0",
+    "Tentacle_0_0"
+  ]
 }

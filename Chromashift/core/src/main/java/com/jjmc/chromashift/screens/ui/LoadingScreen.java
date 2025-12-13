@@ -1,4 +1,4 @@
-package com.jjmc.chromashift.screens;
+package com.jjmc.chromashift.screens.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
@@ -26,7 +26,7 @@ import com.jjmc.chromashift.ChromashiftGame;
  *
  * Tweakable parameters are grouped near the top.
  */
-public class LoadingScreen implements Screen {
+public class LoadingScreen extends AbstractMenuScreen implements Screen {
 	private final ChromashiftGame game;
 
 	// Rendering
@@ -115,6 +115,7 @@ public class LoadingScreen implements Screen {
 
 	@Override
 	public void show() {
+		super.show();
 		batch = new SpriteBatch();
 		shape = new ShapeRenderer();
 		
@@ -215,7 +216,7 @@ public class LoadingScreen implements Screen {
 			}
 		}
 
-		// Clear and draw
+		// For loading: keep a plain black background so assets can load first
 		Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 

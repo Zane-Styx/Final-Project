@@ -3,9 +3,9 @@ package com.jjmc.chromashift.environment.collectible;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.chromashift.helper.SpriteAnimator;
+import com.chromashift.helper.VisibilityCuller;
 import com.jjmc.chromashift.player.Player;
 import com.chromashift.helper.SoundManager;
-import com.jjmc.chromashift.helper.VisibilityCuller;
 
 /**
  * Diamond collectible that animates and can be collected by the player.

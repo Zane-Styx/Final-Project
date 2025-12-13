@@ -228,6 +228,26 @@ public class Player {
         });
     }
 
+    public void setType(PlayerType newType) {
+        if (newType == null) return;
+        this.type = newType;
+        try {
+            // Rebuild animator with new sprite/attack sheets
+            anim = new SpriteAnimator(this.type.getSpritePath(), rows, cols);
+            anim.addAnimation("run", 0, 0, 9, 0.1f, true);
+            anim.addAnimation("jump", 1, 0, 8, 0.1f, true);
+            anim.addAnimation("fall", 2, 0, 8, 0.1f, true);
+            anim.addAnimation("idle", 3, 0, 1, 0.1f, true);
+            anim.addAnimation("wallslide", 4, 0, 8, 0.1f, true);
+            anim.addAnimation("dash", 5, 0, 9, 0.05f, false);
+            anim.addAnimationFromTexture("attack", type.getAttackSpritePath(), attackFrameW, attackFrameH, attackFrames,
+                    0.08f, false);
+            setAnimation("idle", false);
+        } catch (Exception e) {
+            Gdx.app.error("Player", "Failed to apply player type: " + newType + ", " + e.getMessage());
+        }
+    }
+
     // Held object
     private com.jjmc.chromashift.environment.interactable.Pickable heldObject = null;
     // Throw pointer (arrow)

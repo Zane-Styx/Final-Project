@@ -98,22 +98,22 @@ public class Initialize {
             try { c.font = new BitmapFont(); } catch (Exception ignored) { c.font = null; }
         }
 
-        // --- SOUND MANAGER INIT & SOUND LOADING ---
+        // --- SOUND MANAGER LEVEL-SPECIFIC SOUNDS ---
+        // UI sounds (UISelect, Button) are initialized early in ChromashiftGame.create()
+        // Here we add the gameplay-specific sounds for this level
         try {
-            SoundManager.init(false);
             SoundManager.addSound("Dash", "sounds/Dash.wav");
             SoundManager.addSound("Defeat1", "sounds/Defeat1.wav");
             SoundManager.addSound("Defeat2", "sounds/Defeat2.wav");
-            SoundManager.addSound("Button", "sounds/Button.wav");
             SoundManager.addSound("Lever", "sounds/Lever.wav");
             SoundManager.addSound("Launchpad", "sounds/Launchpad.wav");
-            SoundManager.addSound("UISelect", "sounds/UISelect.wav");
             SoundManager.addSound("PickUpItem", "sounds/PickUpItem.wav");
             SoundManager.addSound("DoorOpen", "sounds/DoorOpen.wav");
             SoundManager.addSound("DashSkill", "sounds/DashSkill.wav");
             SoundManager.addSound("JumpSkill", "sounds/JumpSkill.wav");
             SoundManager.addSound("SlashSkill", "sounds/SlashSkill.wav");
             SoundManager.addLoopingSfx("Walking", "sounds/Walking.wav");
+            
             // Add ambient background music
             SoundManager.addMusic("ambience", "sounds/Ambience1.wav", false);
             SoundManager.addMusic("ambience", "sounds/Ambience2.wav", false);
@@ -122,9 +122,8 @@ public class Initialize {
             
             // Start playing ambient music with 2sec crossfade, random selection
             SoundManager.playPlaylist("ambience", 2f, true);
-            SoundManager.init(false);
         } catch (Exception e) {
-            System.err.println("[SoundManager] Failed to load one or more sounds: " + e.getMessage());
+            System.err.println("[Initialize] Failed to load level sounds: " + e.getMessage());
         }
 
         // Optionally create a player instance (not forced)

@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.jjmc.chromashift.player.Player;
 import com.chromashift.helper.SoundManager;
-import com.jjmc.chromashift.helper.VisibilityCuller;
+import com.chromashift.helper.VisibilityCuller;
 
 /**
  * Health Potion collectible that restores player health when collected.

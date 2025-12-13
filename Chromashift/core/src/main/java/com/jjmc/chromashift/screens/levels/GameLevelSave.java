@@ -7,12 +7,16 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
+import java.sql.SQLException;
+import com.jjmc.chromashift.database.LevelDAO;
 
 /**
  * Save/load level overrides per visited level.
@@ -22,11 +26,7 @@ import java.util.Map;
  */
 public class GameLevelSave {
 
-    private static final Json json = new Json();
-
-    static {
-        try { json.setIgnoreUnknownFields(true); } catch (Throwable ignored) {}
-    }
+    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     public static class SavedLevel {
         public String levelPath;
@@ -41,6 +41,33 @@ public class GameLevelSave {
         public String uniqueId; // unique ID
         public float x, y;
         public Map<String, Object> fields = new HashMap<>();
+    }
+
+    /**
+     * Extract level ID from level path.
+     * Examples: "levels/level1.json" → 1, "levels/bossroom.json" → 99, etc.
+     */
+    private static int getLevelIdFromPath(String levelPath) {
+        // Extract filename without extension
+        String filename = new File(levelPath).getName();
+        filename = filename.replace(".json", "");
+        
+        // Try to extract numeric ID from end of filename
+        if (filename.matches(".*\\d+$")) {
+            // Extract trailing digits
+            String digits = filename.replaceAll("[^0-9]", "");
+            try {
+                return Integer.parseInt(digits);
+            } catch (NumberFormatException ignored) {}
+        }
+        
+        // Special cases for non-numeric level names
+        if (filename.equals("tutorial")) return 0;
+        if (filename.equals("bossroom")) return 98;
+        if (filename.equals("bossroom1")) return 99;
+        
+        // Fallback: hash the filename to get a stable ID
+        return Math.abs(filename.hashCode()) % 1000;
     }
 
     /** Save overrides to workspace saves folder. */
@@ -184,7 +211,7 @@ public class GameLevelSave {
             // Write JSON into workspace saves/levels
             Gdx.app.log("GameLevelSave", "BEFORE SERIALIZATION - removedObjectIds size: " + sl.removedObjectIds.size());
             Gdx.app.log("GameLevelSave", "BEFORE SERIALIZATION - removedObjectIds content: " + sl.removedObjectIds.toString());
-            String text = json.prettyPrint(sl);
+            String text = gson.toJson(sl);
             Gdx.app.log("GameLevelSave", "JSON output length: " + text.length());
             File assetsDir = findProjectAssetsDir();
             if (assetsDir == null) {
@@ -202,6 +229,19 @@ public class GameLevelSave {
                 Gdx.app.log("GameLevelSave", "  - " + id);
             }
             try { writeToBuildResources(("saves/levels/" + new File(levelPath).getName()).replace('\\','/'), text); } catch (Exception ignored) {}
+            
+            // Also save to database
+            try {
+                int levelId = getLevelIdFromPath(levelPath);
+                int playerId = 1; // Default player ID
+                
+                LevelDAO.saveLevelStateJson(playerId, levelId, levelPath, text);
+                Gdx.app.log("GameLevelSave", "✓ Level saved to database (Level: " + levelId + ")");
+            } catch (SQLException e) {
+                Gdx.app.error("GameLevelSave", "Failed to save level to database: " + e.getMessage(), e);
+                // Don't fail the save just because DB write failed - still return true
+            }
+            
             return true;
         } catch (Exception ex) {
             Gdx.app.error("GameLevelSave", "Failed to save level overrides: " + ex.getMessage(), ex);
@@ -345,7 +385,7 @@ public class GameLevelSave {
                 File candidate = new File(assetsDir, rel.replace('/', File.separatorChar));
                 if (candidate.exists()) {
                     String text = Gdx.files.absolute(candidate.getAbsolutePath()).readString();
-                    SavedLevel sl = json.fromJson(SavedLevel.class, text);
+                    SavedLevel sl = gson.fromJson(text, SavedLevel.class);
                     if (sl != null && sl.objects != null) applySavedLevelToResult(sl, result);
                     Gdx.app.log("GameLevelSave","Applied overrides from workspace: " + candidate.getAbsolutePath());
                     return true;
@@ -355,7 +395,7 @@ public class GameLevelSave {
             FileHandle internal = Gdx.files.internal(rel);
             if (internal != null && internal.exists()) {
                 String text = internal.readString();
-                SavedLevel sl = json.fromJson(SavedLevel.class, text);
+                SavedLevel sl = gson.fromJson(text, SavedLevel.class);
                 if (sl != null && sl.objects != null) applySavedLevelToResult(sl, result);
                 Gdx.app.log("GameLevelSave","Applied overrides from internal: " + rel);
                 return true;

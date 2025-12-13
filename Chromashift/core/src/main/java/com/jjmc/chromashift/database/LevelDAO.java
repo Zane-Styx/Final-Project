@@ -42,7 +42,94 @@ public class LevelDAO {
     }
     
     /**
-     * Save level state to database
+     * Save level state to database with raw JSON string (from GameLevelSave).
+     * This stores the SavedLevel JSON directly in level_data_json column.
+     * Automatically registers the level if it doesn't exist.
+     */
+    public static void saveLevelStateJson(int playerId, int levelId, String levelPath, String levelDataJson) throws SQLException {
+        // First, ensure the level exists in the database
+        ensureLevelExists(levelId, levelPath);
+        
+        String checkSql = "SELECT save_id FROM level_saves WHERE player_id = ? AND level_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(checkSql)) {
+            
+            ps.setInt(1, playerId);
+            ps.setInt(2, levelId);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                // Update existing save
+                int saveId = rs.getInt("save_id");
+                String updateSql = "UPDATE level_saves SET level_data_json=?, save_timestamp=?, updated_at=NOW() WHERE save_id=?";
+                try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
+                    updatePs.setString(1, levelDataJson);
+                    updatePs.setLong(2, System.currentTimeMillis());
+                    updatePs.setInt(3, saveId);
+                    updatePs.executeUpdate();
+                    System.out.println("✓ Level save updated (Player: " + playerId + ", Level: " + levelId + ")");
+                }
+            } else {
+                // Insert new save
+                String insertSql = "INSERT INTO level_saves (player_id, level_id, level_data_json, save_timestamp) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement insertPs = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
+                    insertPs.setInt(1, playerId);
+                    insertPs.setInt(2, levelId);
+                    insertPs.setString(3, levelDataJson);
+                    insertPs.setLong(4, System.currentTimeMillis());
+                    insertPs.executeUpdate();
+                    System.out.println("✓ Level save inserted (Player: " + playerId + ", Level: " + levelId + ")");
+                }
+            }
+        }
+    }
+    
+    /**
+     * Ensure a level record exists in the database.
+     * If it doesn't exist, create it with default values.
+     */
+    private static void ensureLevelExists(int levelId, String levelPath) throws SQLException {
+        String checkSql = "SELECT level_id FROM levels WHERE level_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
+            
+            checkPs.setInt(1, levelId);
+            ResultSet rs = checkPs.executeQuery();
+            
+            if (!rs.next()) {
+                // Level doesn't exist, create it
+                String insertSql = "INSERT INTO levels (level_id, level_name, level_path, spawn_x, spawn_y, arena_left, arena_right) " +
+                                   "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement insertPs = conn.prepareStatement(insertSql)) {
+                    insertPs.setInt(1, levelId);
+                    // Extract level name from path (e.g., "levels/level1.json" -> "level1")
+                    String levelName = new java.io.File(levelPath).getName().replace(".json", "");
+                    insertPs.setString(2, levelName);
+                    insertPs.setString(3, levelPath);
+                    insertPs.setFloat(4, 0); // default spawn_x
+                    insertPs.setFloat(5, 0); // default spawn_y
+                    insertPs.setFloat(6, -288); // default arena_left
+                    insertPs.setFloat(7, 1024); // default arena_right
+                    insertPs.executeUpdate();
+                    System.out.println("✓ Auto-registered level: " + levelName + " (ID: " + levelId + ")");
+                }
+            }
+        }
+    }
+    
+    /**
+     * Save level state to database with raw JSON string (from GameLevelSave).
+     * This stores the SavedLevel JSON directly in level_data_json column.
+     */
+    public static void saveLevelStateJson(int playerId, int levelId, String levelDataJson) throws SQLException {
+        // This is the old signature for backward compatibility
+        saveLevelStateJson(playerId, levelId, "", levelDataJson);
+    }
+    
+    /**
+     * Save level state to database (unchanged schema). Note: PlayerIO governs player data only.
      */
     public static void saveLevelState(int playerId, int levelId, LevelSaveData levelData) throws SQLException {
         String checkSql = "SELECT save_id FROM level_saves WHERE player_id = ? AND level_id = ?";

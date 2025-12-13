@@ -1,0 +1,11 @@
+{
+  "masterVolume": 1.0,
+  "musicVolume": 1.0,
+  "sfxVolume": 1.0,
+  "preferredColor": {
+    "r": 0.0,
+    "g": 0.0,
+    "b": 1.0,
+    "a": 1.0
+  }
+}

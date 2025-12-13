@@ -1,4 +1,4 @@
-package com.jjmc.chromashift.helper;
+package com.chromashift.helper;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;

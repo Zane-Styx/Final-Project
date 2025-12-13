@@ -1,4 +1,4 @@
-package com.jjmc.chromashift.helper;
+package com.chromashift.helper;
 
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
