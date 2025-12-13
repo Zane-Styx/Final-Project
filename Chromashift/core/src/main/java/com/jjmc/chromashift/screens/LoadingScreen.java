@@ -104,7 +104,7 @@ public class LoadingScreen implements Screen {
 	
 	// Loading throttle to slow down asset loading
 	private float loadingThrottle = 0f;
-	private float loadingThrottleDelay = 0.05f; // Only update loading every 0.05 seconds (slows it down)
+	private float loadingThrottleDelay = 0.005f; // Only update loading every 0.05 seconds (slows it down)
 
 	// Scratch (to avoid per-frame allocations)
 	private final Color scratchColor = new Color();
@@ -249,7 +249,7 @@ public class LoadingScreen implements Screen {
 					postBlackHoldTimer += delta;
 					if (postBlackHoldTimer >= postBlackHoldDuration) {
 						try {
-							game.setScreen(new TestMenuScreen());
+							game.setScreen(new MainMenuScreen());
 						} catch (Exception e) {
 							Gdx.app.error("LoadingScreen", "Failed to switch to start screen", e);
 						}

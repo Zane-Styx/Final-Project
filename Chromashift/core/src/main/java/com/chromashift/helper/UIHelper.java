@@ -2,7 +2,6 @@ package com.chromashift.helper;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -331,6 +330,65 @@ public class UIHelper {
         container.setSize(BUTTON_MIN_WIDTH, BUTTON_MIN_HEIGHT);
         
         return container;
+    }
+
+    // ========================================================================
+    // 2. IMAGE-ONLY BUTTON (PNG / ICON)
+    // ========================================================================
+    /**
+     * Creates an image-only button using a TextureRegion (e.g. from a PNG).
+     * Returns a Container wrapping a Table so it matches the other button APIs.
+     * The button will play the UISelect sound when clicked and call the provided listener.
+     *
+     * @param icon The texture region to use as the button image (can be null)
+     * @param skin The UI skin used to provide the button background drawable
+     * @param onClick Click listener invoked when the button is clicked
+     * @return A Container<Table> acting as an image button
+     */
+    public static Container<Table> createImageButton(TextureRegion icon, Skin skin, ClickListener onClick) {
+        Table buttonTable = new Table(skin);
+        // Use the same button background as other buttons
+        try {
+            buttonTable.setBackground(skin.getDrawable("button"));
+        } catch (Exception e) {
+            // If skin has no "button" drawable, ignore and keep transparent background
+        }
+
+        if (icon != null) {
+            Image iconImage = new Image(new TextureRegionDrawable(icon));
+            // Give the icon a reasonable default size
+            iconImage.setSize(ICON_SIZE * 2f, ICON_SIZE * 2f);
+            buttonTable.add(iconImage).size(ICON_SIZE * 2f, ICON_SIZE * 2f);
+        }
+
+        buttonTable.pad(BUTTON_PAD_Y, BUTTON_PAD_X, BUTTON_PAD_Y, BUTTON_PAD_X);
+
+        if (onClick != null) {
+            buttonTable.addListener(new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    onClick.clicked(event, x, y);
+                }
+            });
+        }
+
+        Container<Table> container = new Container<>(buttonTable);
+        container.setSize(BUTTON_MIN_WIDTH, BUTTON_MIN_HEIGHT);
+        return container;
+    }
+
+    /**
+     * Convenience overload: create an image-only button from a PNG file path.
+     * The path should be relative to the assets root (e.g. "ui/mybtn.png").
+     * Note: this will create a new Texture; if you intend to reuse the texture elsewhere,
+     * consider creating a TextureRegion once and calling the other overload.
+     */
+    public static Container<Table> createImageButton(String pngPath, Skin skin, ClickListener onClick) {
+        if (pngPath == null) return createImageButton((TextureRegion) null, skin, onClick);
+        com.badlogic.gdx.graphics.Texture tex = new com.badlogic.gdx.graphics.Texture(Gdx.files.internal(pngPath));
+        TextureRegion region = new TextureRegion(tex);
+        return createImageButton(region, skin, onClick);
     }
 
     // ========================================================================
@@ -1431,6 +1489,59 @@ public class UIHelper {
         }
         
         return button;
+    }
+
+    // ========================================================================
+    // 18. IMAGE BUTTON WITH STATE-BASED PNG BACKGROUNDS
+    // ========================================================================
+    
+    /**
+     * Creates an image-only button with custom PNGs for inactive, pressed, and hover states.
+     * Each state can have its own PNG texture.
+     * 
+     * @param iconPath Path to the PNG for the button's icon (centered image)
+     * @param inactivePath Path to the PNG for the inactive/normal state background
+     * @param pressedPath Path to the PNG for the pressed state background
+     * @param hoverPath Path to the PNG for the hover state background
+     * @param skin The UI skin (for sizing, fallback, etc.)
+     * @param onClick Click listener for button
+     * @return A Container<Table> acting as an image button with state-based backgrounds
+     */
+    public static ImageButton createImageButton(String iconPath, String inactivePath, String pressedPath, String hoverPath, Skin skin, ClickListener onClick) {
+        ImageButton.ImageButtonStyle style = new ImageButton.ImageButtonStyle();
+        
+        // Create TextureRegionDrawables from paths with proper scaling
+        TextureRegionDrawable upDrawable = new TextureRegionDrawable(new TextureRegion(new com.badlogic.gdx.graphics.Texture(Gdx.files.internal(inactivePath))));
+        TextureRegionDrawable downDrawable = new TextureRegionDrawable(new TextureRegion(new com.badlogic.gdx.graphics.Texture(Gdx.files.internal(pressedPath))));
+        TextureRegionDrawable overDrawable = new TextureRegionDrawable(new TextureRegion(new com.badlogic.gdx.graphics.Texture(Gdx.files.internal(hoverPath))));
+        
+        // Enable scaling for drawables
+        upDrawable.setMinWidth(50);
+        upDrawable.setMinHeight(50);
+        downDrawable.setMinWidth(50);
+        downDrawable.setMinHeight(50);
+        overDrawable.setMinWidth(50);
+        overDrawable.setMinHeight(50);
+        
+        style.up = upDrawable;
+        style.down = downDrawable;
+        style.over = overDrawable;
+        
+        // Create and configure the button
+        ImageButton imageButton = new ImageButton(style);
+        
+        // Add click listener with sound
+        if (onClick != null) {
+            imageButton.addListener(new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    com.chromashift.helper.SoundManager.play("UISelect");
+                    onClick.clicked(event, x, y);
+                }
+            });
+        }
+
+        return imageButton;
     }
 }
 
