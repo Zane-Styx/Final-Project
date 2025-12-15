@@ -58,6 +58,8 @@ public class PlayerSaveData {
     // === Skills ===
     public SkillSaveData skillQ;
     public SkillSaveData skillE;
+    public SkillSaveData skillR;
+    public SkillSaveData skillC;
     public SkillSaveData activeSkill;
     public List<String> unlockedSkillNames; // e.g., ["DashSkill", "SlashSkill"]
     
@@ -116,6 +118,8 @@ public class PlayerSaveData {
         heldObjectId = null;
         skillQ = null;
         skillE = null;
+        skillR = null;
+        skillC = null;
         activeSkill = null;
         unlockedSkillNames = new ArrayList<>();
         respawnX = 0;
@@ -211,6 +215,8 @@ public class PlayerSaveData {
         map.put("unlockedSkillNames", unlockedSkillNames);
         map.put("skillQ", skillQ != null ? skillQ.toMap() : null);
         map.put("skillE", skillE != null ? skillE.toMap() : null);
+        map.put("skillR", skillR != null ? skillR.toMap() : null);
+        map.put("skillC", skillC != null ? skillC.toMap() : null);
         map.put("activeSkill", activeSkill != null ? activeSkill.toMap() : null);
         map.put("saveTimestamp", saveTimestamp);
         map.put("saveSlot", saveSlot);
@@ -265,6 +271,26 @@ public class PlayerSaveData {
         Object unlockedObj = map.get("unlockedSkillNames");
         if (unlockedObj instanceof List) {
             data.unlockedSkillNames = new ArrayList<>((List<String>) unlockedObj);
+        }
+        Object skillQMap = map.get("skillQ");
+        if (skillQMap instanceof Map) {
+            data.skillQ = SkillSaveData.fromMap((Map<String, Object>) skillQMap);
+        }
+        Object skillEMap = map.get("skillE");
+        if (skillEMap instanceof Map) {
+            data.skillE = SkillSaveData.fromMap((Map<String, Object>) skillEMap);
+        }
+        Object skillRMap = map.get("skillR");
+        if (skillRMap instanceof Map) {
+            data.skillR = SkillSaveData.fromMap((Map<String, Object>) skillRMap);
+        }
+        Object skillCMap = map.get("skillC");
+        if (skillCMap instanceof Map) {
+            data.skillC = SkillSaveData.fromMap((Map<String, Object>) skillCMap);
+        }
+        Object activeSkillMap = map.get("activeSkill");
+        if (activeSkillMap instanceof Map) {
+            data.activeSkill = SkillSaveData.fromMap((Map<String, Object>) activeSkillMap);
         }
         data.saveTimestamp = ((Number) map.getOrDefault("saveTimestamp", System.currentTimeMillis())).longValue();
         data.saveSlot = ((Number) map.getOrDefault("saveSlot", 0)).intValue();

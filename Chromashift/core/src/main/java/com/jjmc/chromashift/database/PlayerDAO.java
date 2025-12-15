@@ -93,10 +93,10 @@ public class PlayerDAO {
                 "attacking, air_attacking, air_attack_timer, attack_cooldown_timer, " +
                 "health_current, health_max, is_stunned, respawn_invul_remaining, respawn_stun_remaining, " +
                 "diamonds, shield, key_count, potion_count, " +
-                "skill_q_json, skill_e_json, active_skill_json, " +
+                "skill_q_json, skill_e_json, skill_r_json, skill_c_json, active_skill_json, " +
                 "respawn_x, respawn_y, current_level, visited_levels_json, " +
                 "save_data_json, save_timestamp" +
-                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 1;
@@ -128,6 +128,8 @@ public class PlayerDAO {
             ps.setInt(i++, s.potionCount);
             ps.setString(i++, s.skillQ != null ? gson.toJson(s.skillQ) : null);
             ps.setString(i++, s.skillE != null ? gson.toJson(s.skillE) : null);
+            ps.setString(i++, s.skillR != null ? gson.toJson(s.skillR) : null);
+            ps.setString(i++, s.skillC != null ? gson.toJson(s.skillC) : null);
             ps.setString(i++, s.activeSkill != null ? gson.toJson(s.activeSkill) : null);
             ps.setFloat(i++, s.respawnX);
             ps.setFloat(i++, s.respawnY);
@@ -147,7 +149,7 @@ public class PlayerDAO {
                 "attacking=?, air_attacking=?, air_attack_timer=?, attack_cooldown_timer=?, " +
                 "health_current=?, health_max=?, is_stunned=?, respawn_invul_remaining=?, respawn_stun_remaining=?, " +
                 "diamonds=?, shield=?, key_count=?, potion_count=?, " +
-                "skill_q_json=?, skill_e_json=?, active_skill_json=?, " +
+                "skill_q_json=?, skill_e_json=?, skill_r_json=?, skill_c_json=?, active_skill_json=?, " +
                 "respawn_x=?, respawn_y=?, current_level=?, visited_levels_json=?, " +
                 "save_data_json=?, save_timestamp=?, updated_at=NOW() " +
                 "WHERE player_id=?";
@@ -181,6 +183,8 @@ public class PlayerDAO {
             ps.setInt(i++, s.potionCount);
             ps.setString(i++, s.skillQ != null ? gson.toJson(s.skillQ) : null);
             ps.setString(i++, s.skillE != null ? gson.toJson(s.skillE) : null);
+            ps.setString(i++, s.skillR != null ? gson.toJson(s.skillR) : null);
+            ps.setString(i++, s.skillC != null ? gson.toJson(s.skillC) : null);
             ps.setString(i++, s.activeSkill != null ? gson.toJson(s.activeSkill) : null);
             ps.setFloat(i++, s.respawnX);
             ps.setFloat(i++, s.respawnY);
@@ -229,10 +233,10 @@ public class PlayerDAO {
                 "health_current, health_max, " +
                 "is_stunned, respawn_invul_remaining, respawn_stun_remaining, " +
                 "diamonds, shield, key_count, potion_count, " +
-                "skill_q_json, skill_e_json, active_skill_json, " +
+                "skill_q_json, skill_e_json, skill_r_json, skill_c_json, active_skill_json, " +
                 "respawn_x, respawn_y, current_level, visited_levels_json, " +
                 "save_data_json, save_timestamp" +
-                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int paramIndex = 1;
@@ -264,6 +268,8 @@ public class PlayerDAO {
             ps.setInt(paramIndex++, playerData.potionCount);
             ps.setString(paramIndex++, playerData.skillQ != null ? gson.toJson(playerData.skillQ) : null);
             ps.setString(paramIndex++, playerData.skillE != null ? gson.toJson(playerData.skillE) : null);
+            ps.setString(paramIndex++, playerData.skillR != null ? gson.toJson(playerData.skillR) : null);
+            ps.setString(paramIndex++, playerData.skillC != null ? gson.toJson(playerData.skillC) : null);
             ps.setString(paramIndex++, playerData.activeSkill != null ? gson.toJson(playerData.activeSkill) : null);
             ps.setFloat(paramIndex++, playerData.respawnX);
             ps.setFloat(paramIndex++, playerData.respawnY);
@@ -288,7 +294,7 @@ public class PlayerDAO {
                 "health_current=?, health_max=?, " +
                 "is_stunned=?, respawn_invul_remaining=?, respawn_stun_remaining=?, " +
                 "diamonds=?, shield=?, key_count=?, potion_count=?, " +
-                "skill_q_json=?, skill_e_json=?, active_skill_json=?, " +
+                "skill_q_json=?, skill_e_json=?, skill_r_json=?, skill_c_json=?, active_skill_json=?, " +
                 "respawn_x=?, respawn_y=?, current_level=?, visited_levels_json=?, " +
                 "save_data_json=?, save_timestamp=?, updated_at=NOW() " +
                 "WHERE player_id=?";
@@ -322,6 +328,8 @@ public class PlayerDAO {
             ps.setInt(paramIndex++, playerData.potionCount);
             ps.setString(paramIndex++, playerData.skillQ != null ? gson.toJson(playerData.skillQ) : null);
             ps.setString(paramIndex++, playerData.skillE != null ? gson.toJson(playerData.skillE) : null);
+            ps.setString(paramIndex++, playerData.skillR != null ? gson.toJson(playerData.skillR) : null);
+            ps.setString(paramIndex++, playerData.skillC != null ? gson.toJson(playerData.skillC) : null);
             ps.setString(paramIndex++, playerData.activeSkill != null ? gson.toJson(playerData.activeSkill) : null);
             ps.setFloat(paramIndex++, playerData.respawnX);
             ps.setFloat(paramIndex++, playerData.respawnY);
@@ -454,6 +462,33 @@ public class PlayerDAO {
             ps.setInt(1, playerId);
             ps.executeUpdate();
             System.out.println("✓ Player deleted (ID: " + playerId + ")");
+        }
+    }
+
+    /**
+     * Check if a player has a saved state row.
+     */
+    public static boolean hasPlayerSave(int playerId) throws SQLException {
+        String sql = "SELECT 1 FROM player_saves WHERE player_id = ? LIMIT 1";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, playerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /**
+     * Delete only the player's save row, keeping the player record.
+     */
+    public static void deletePlayerSave(int playerId) throws SQLException {
+        String sql = "DELETE FROM player_saves WHERE player_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, playerId);
+            ps.executeUpdate();
+            System.out.println("✓ Player save deleted (ID: " + playerId + ")");
         }
     }
 }

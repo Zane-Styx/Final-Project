@@ -60,8 +60,9 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
         leftSide.add(createExitButton()).width(260).height(48).padTop(10).row();
         
         Table bottomButtonsTable = new Table();
-        bottomButtonsTable.add(createSettingsButton()).width(48).height(48).padRight(20);
-        bottomButtonsTable.add(createCreditsButton()).width(48).height(48);
+        bottomButtonsTable.add(createSettingsButton()).width(48).height(48).padRight(12);
+        bottomButtonsTable.add(createCreditsButton()).width(48).height(48).padRight(12);
+        bottomButtonsTable.add(createHowToPlayButton()).width(48).height(48);
         leftSide.add(bottomButtonsTable).center().padTop(350).row();
         
         // Right side placeholder (will hold character image later)
@@ -94,7 +95,7 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
             skin, new ClickListener() {
                 @Override
                 public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
-                    showColorChoiceDialog();
+                    onPlayPressed();
                 }
             }
         );
@@ -139,6 +140,19 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
         );
     }
 
+    private com.badlogic.gdx.scenes.scene2d.ui.ImageButton createHowToPlayButton() {
+        return UIHelper.createImageButton(
+            "ui/HowToPlayBtn_0.png", "ui/HowToPlayBtn_0.png",
+            "ui/HowToPlayBtn_1.png", "ui/HowToPlayBtn_Hover.png",
+            skin, new ClickListener() {
+                @Override
+                public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                    onHowToPlay();
+                }
+            }
+        );
+    }
+
     private void onContinueClicked() {
         try {
             // Load player state from database
@@ -176,6 +190,67 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
 
     private void startNewGame() {
         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new GameSceneScreen());
+    }
+
+    private void onPlayPressed() {
+        try {
+            boolean hasSave = com.jjmc.chromashift.database.PlayerDAO.hasPlayerSave(1);
+            if (hasSave) {
+                com.badlogic.gdx.scenes.scene2d.ui.Dialog dlg = new com.badlogic.gdx.scenes.scene2d.ui.Dialog("New Game?", skin) {
+                    @Override
+                    protected void result(Object obj) {
+                        if (Boolean.TRUE.equals(obj)) {
+                            try {
+                                com.jjmc.chromashift.database.PlayerDAO.deletePlayerSave(1);
+                            } catch (Exception ignored) {}
+                            showColorChoiceDialog();
+                        }
+                    }
+                };
+                dlg.text("Starting a new game will delete your previous progress. Proceed?");
+                dlg.button("New Game", true);
+                dlg.button("Cancel", false);
+                dlg.show(stage);
+                dlg.setPosition(
+                    (stage.getWidth() - dlg.getWidth()) / 2f,
+                    (stage.getHeight() - dlg.getHeight()) / 2f
+                );
+            } else {
+                showColorChoiceDialog();
+            }
+        } catch (Exception e) {
+            // If check fails, default to normal play flow
+            showColorChoiceDialog();
+        }
+    }
+
+    private void onHowToPlay() {
+        try {
+            com.badlogic.gdx.graphics.Texture controlsTex = new com.badlogic.gdx.graphics.Texture(Gdx.files.internal("ui/ControlsGuide.png"));
+            controlsTex.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear, com.badlogic.gdx.graphics.Texture.TextureFilter.Linear);
+            com.badlogic.gdx.scenes.scene2d.ui.Image controlsImage = new com.badlogic.gdx.scenes.scene2d.ui.Image(controlsTex);
+            controlsImage.setScaling(com.badlogic.gdx.utils.Scaling.fit);
+
+            float maxW = stage.getWidth() * 0.9f;
+            float maxH = stage.getHeight() * 0.9f;
+            float texW = controlsTex.getWidth();
+            float texH = controlsTex.getHeight();
+            float scale = Math.min(maxW / texW, maxH / texH);
+            float drawW = texW * scale;
+            float drawH = texH * scale;
+
+            com.badlogic.gdx.scenes.scene2d.ui.Dialog dialog = new com.badlogic.gdx.scenes.scene2d.ui.Dialog("", skin);
+            dialog.getContentTable().add(controlsImage).size(drawW, drawH).pad(20);
+            dialog.button("Close", false);
+            dialog.pack();
+            dialog.show(stage);
+            dialog.setPosition(
+                (stage.getWidth() - dialog.getWidth()) / 2f,
+                (stage.getHeight() - dialog.getHeight()) / 2f
+            );
+        } catch (Exception e) {
+            Gdx.app.error("MainMenuScreen", "Failed to load controls guide: " + e.getMessage());
+        }
     }
 
     /**

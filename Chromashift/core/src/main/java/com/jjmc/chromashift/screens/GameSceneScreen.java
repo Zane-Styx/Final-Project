@@ -237,26 +237,31 @@ public class GameSceneScreen implements Screen {
         playerSpawnX = player.getX();
         playerSpawnY = player.getY();
         
-        // Load saved player state from database to restore diamonds, position, and other stats
-        try {
-            com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
-            
-            // Also restore visited levels
-            com.badlogic.gdx.utils.Array<String> loadedVisited = 
-                com.jjmc.chromashift.database.PlayerDAO.loadVisitedLevelsFromDB(1);
-            if (loadedVisited != null && loadedVisited.size > 0) {
-                this.visitedLevels.clear();
-                this.visitedLevels.addAll(loadedVisited);
+        // Load saves only for continue flows; for new-game flows, clear any prior save first
+        if (loadMode == com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS) {
+            try {
+                com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
+                // Also restore visited levels
+                com.badlogic.gdx.utils.Array<String> loadedVisited = 
+                    com.jjmc.chromashift.database.PlayerDAO.loadVisitedLevelsFromDB(1);
+                if (loadedVisited != null && loadedVisited.size > 0) {
+                    this.visitedLevels.clear();
+                    this.visitedLevels.addAll(loadedVisited);
+                }
+                Gdx.app.log("TestSceneScreen", "✓ Player state restored from database");
+                if (player != null) {
+                    player.setKeyCount(0);
+                }
+            } catch (Exception ex) {
+                Gdx.app.log("TestSceneScreen", "Could not restore player state (first run?): " + ex.getMessage());
             }
-            
-            Gdx.app.log("TestSceneScreen", "✓ Player state restored from database");
-            // Reset level-specific keys when starting a new level
-            if (player != null) {
-                player.setKeyCount(0);
+        } else {
+            try {
+                com.jjmc.chromashift.database.PlayerDAO.deletePlayerSave(1);
+                Gdx.app.log("TestSceneScreen", "Previous save cleared for new game start");
+            } catch (Exception ignored) {
+                // If delete fails, continue with default new player
             }
-        } catch (Exception ex) {
-            Gdx.app.log("TestSceneScreen", "Could not restore player state (first run?): " + ex.getMessage());
-            // Continue with default new player
         }
         
         // Set player reference in boss if it's BossGuardian
@@ -264,9 +269,11 @@ public class GameSceneScreen implements Screen {
             bossGuardian.setPlayer(player);
         }
 
-        // Initialize player skills
+        // Initialize player skills (all except shuriken) with default keybinds
         player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.DashSkill(player), 'Q');
-        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.SplitSkill(player), 'E');
+        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.JumpSkill(player), 'E');
+        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.SplitSkill(player), 'R');
+        player.equipSkillToSlot(new com.jjmc.chromashift.player.skill.SlashSkill(player), 'C');
 
         // Visible spawn marker (static frame by default)
         spawnMarker = new Spawn(playerSpawnX, playerSpawnY);

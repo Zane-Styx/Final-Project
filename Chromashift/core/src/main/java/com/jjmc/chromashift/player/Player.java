@@ -118,6 +118,8 @@ public class Player {
     // Skill system
     private com.jjmc.chromashift.player.skill.BaseSkill skillSlotQ;
     private com.jjmc.chromashift.player.skill.BaseSkill skillSlotE;
+    private com.jjmc.chromashift.player.skill.BaseSkill skillSlotR;
+    private com.jjmc.chromashift.player.skill.BaseSkill skillSlotC;
     private com.jjmc.chromashift.player.skill.BaseSkill activeSkill;
     private boolean isInvulnerable = false;
     private boolean isInvisible = false;
@@ -329,6 +331,8 @@ public class Player {
         // Tick cooldowns for equipped skills (even when not active)
         if (skillSlotQ != null && skillSlotQ != activeSkill) skillSlotQ.update(delta);
         if (skillSlotE != null && skillSlotE != activeSkill) skillSlotE.update(delta);
+        if (skillSlotR != null && skillSlotR != activeSkill) skillSlotR.update(delta);
+        if (skillSlotC != null && skillSlotC != activeSkill) skillSlotC.update(delta);
 
         // Update active skill (if any)
         boolean skillLock = false;
@@ -369,12 +373,18 @@ public class Player {
             }
         }
         
-        // Handle skill key input (Q and E keys)
+        // Handle skill key input (Q/E/R/C keys)
         if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
             castSkill('Q');
         }
         if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
             castSkill('E');
+        }
+        if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            castSkill('R');
+        }
+        if (!isStunned && Gdx.input.isKeyJustPressed(Input.Keys.C)) {
+            castSkill('C');
         }
 
         if (dashing && !isStunned) {
@@ -932,15 +942,17 @@ public class Player {
     // ============ SKILL SYSTEM ============
     
     public void equipSkillToSlot(com.jjmc.chromashift.player.skill.BaseSkill skill, char slot) {
-        if (slot == 'Q') {
-            skillSlotQ = skill;
-        } else if (slot == 'E') {
-            skillSlotE = skill;
+        switch (Character.toUpperCase(slot)) {
+            case 'Q' -> skillSlotQ = skill;
+            case 'E' -> skillSlotE = skill;
+            case 'R' -> skillSlotR = skill;
+            case 'C' -> skillSlotC = skill;
+            default -> { /* ignore unknown slot */ }
         }
     }
     
     public void castSkill(char slot) {
-        com.jjmc.chromashift.player.skill.BaseSkill skill = (slot == 'Q') ? skillSlotQ : skillSlotE;
+        com.jjmc.chromashift.player.skill.BaseSkill skill = getSkillInSlot(slot);
         if (skill != null && skill.canCast() && activeSkill == null) {
             activeSkill = skill;
             skill.activate();
@@ -987,9 +999,18 @@ public class Player {
 
     // Expose equipped skill access for save/load routines
     public com.jjmc.chromashift.player.skill.BaseSkill getSkillInSlot(char slot) {
-        if (slot == 'Q') return skillSlotQ;
-        if (slot == 'E') return skillSlotE;
-        return null;
+        switch (Character.toUpperCase(slot)) {
+            case 'Q':
+                return skillSlotQ;
+            case 'E':
+                return skillSlotE;
+            case 'R':
+                return skillSlotR;
+            case 'C':
+                return skillSlotC;
+            default:
+                return null;
+        }
     }
 
     /**

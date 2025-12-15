@@ -1,6 +1,6 @@
 {
   "levelPath": "levels/level1.json",
-  "timestamp": 1765620100629,
+  "timestamp": 1765799555502,
   "objects": {
     "items": [
       {
@@ -780,7 +780,7 @@
         "x": 832.0,
         "y": 576.0,
         "fields": {
-          "openProgress": 0.0,
+          "openProgress": 1.0,
           "openDirection": "RIGHT",
           "bounds": {
             "w": 128.0,
@@ -790,7 +790,7 @@
           },
           "closeSpeed": 3.0,
           "openSpeed": 3.0,
-          "open": false
+          "open": true
         }
       },
       {
@@ -915,7 +915,7 @@
             "y": 864.0
           },
           "id": "lever_1",
-          "on": false
+          "on": true
         }
       },
       {
@@ -1362,7 +1362,7 @@
             "h": 64.0,
             "y": 320.0
           },
-          "open": false
+          "open": true
         }
       },
       {
@@ -1379,7 +1379,7 @@
             "h": 64.0,
             "y": 320.0
           },
-          "open": false
+          "open": true
         }
       },
       {

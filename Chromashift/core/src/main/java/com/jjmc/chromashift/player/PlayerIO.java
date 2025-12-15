@@ -46,6 +46,8 @@ public class PlayerIO {
         // Skills
         public SkillState skillQ;
         public SkillState skillE;
+        public SkillState skillR;
+        public SkillState skillC;
         public SkillState activeSkill;
 
         public String currentLevel;
@@ -117,6 +119,8 @@ public class PlayerIO {
         // Skills
         com.jjmc.chromashift.player.skill.BaseSkill q = player.getSkillInSlot('Q');
         com.jjmc.chromashift.player.skill.BaseSkill e = player.getSkillInSlot('E');
+        com.jjmc.chromashift.player.skill.BaseSkill r = player.getSkillInSlot('R');
+        com.jjmc.chromashift.player.skill.BaseSkill c = player.getSkillInSlot('C');
         if (q != null) {
             s.skillQ = new PlayerState.SkillState();
             s.skillQ.skillName = q.getSkillName();
@@ -130,6 +134,34 @@ public class PlayerIO {
             s.skillE.currentCooldown = e.getCurrentCooldown();
             s.skillE.isActive = e.getActiveState();
             s.skillE.animationTimer = e.getAnimationTimer();
+        }
+        if (r != null) {
+            s.skillR = new PlayerState.SkillState();
+            s.skillR.skillName = r.getSkillName();
+            s.skillR.currentCooldown = r.getCurrentCooldown();
+            s.skillR.isActive = r.getActiveState();
+            s.skillR.animationTimer = r.getAnimationTimer();
+        }
+        if (c != null) {
+            s.skillC = new PlayerState.SkillState();
+            s.skillC.skillName = c.getSkillName();
+            s.skillC.currentCooldown = c.getCurrentCooldown();
+            s.skillC.isActive = c.getActiveState();
+            s.skillC.animationTimer = c.getAnimationTimer();
+        }
+        if (r != null) {
+            s.skillR = new PlayerState.SkillState();
+            s.skillR.skillName = r.getSkillName();
+            s.skillR.currentCooldown = r.getCurrentCooldown();
+            s.skillR.isActive = r.getActiveState();
+            s.skillR.animationTimer = r.getAnimationTimer();
+        }
+        if (c != null) {
+            s.skillC = new PlayerState.SkillState();
+            s.skillC.skillName = c.getSkillName();
+            s.skillC.currentCooldown = c.getCurrentCooldown();
+            s.skillC.isActive = c.getActiveState();
+            s.skillC.animationTimer = c.getAnimationTimer();
         }
         if (player.getActiveSkill() != null) {
             s.activeSkill = new PlayerState.SkillState();
@@ -201,6 +233,46 @@ public class PlayerIO {
                     es.setAnimationTimer(s.skillE.animationTimer);
                     es.setActiveState(s.skillE.isActive);
                     if (s.skillE.isActive) player.setActiveSkill(es);
+                }
+            }
+            if (s.skillR != null && s.skillR.skillName != null) {
+                player.equipSkillToSlot(createSkillByName(player, s.skillR.skillName), 'R');
+                com.jjmc.chromashift.player.skill.BaseSkill rs = player.getSkillInSlot('R');
+                if (rs != null) {
+                    rs.setCurrentCooldown(s.skillR.currentCooldown);
+                    rs.setAnimationTimer(s.skillR.animationTimer);
+                    rs.setActiveState(s.skillR.isActive);
+                    if (s.skillR.isActive) player.setActiveSkill(rs);
+                }
+            }
+            if (s.skillC != null && s.skillC.skillName != null) {
+                player.equipSkillToSlot(createSkillByName(player, s.skillC.skillName), 'C');
+                com.jjmc.chromashift.player.skill.BaseSkill cs = player.getSkillInSlot('C');
+                if (cs != null) {
+                    cs.setCurrentCooldown(s.skillC.currentCooldown);
+                    cs.setAnimationTimer(s.skillC.animationTimer);
+                    cs.setActiveState(s.skillC.isActive);
+                    if (s.skillC.isActive) player.setActiveSkill(cs);
+                }
+            }
+            if (s.skillR != null && s.skillR.skillName != null) {
+                player.equipSkillToSlot(createSkillByName(player, s.skillR.skillName), 'R');
+                com.jjmc.chromashift.player.skill.BaseSkill rs = player.getSkillInSlot('R');
+                if (rs != null) {
+                    rs.setCurrentCooldown(s.skillR.currentCooldown);
+                    rs.setAnimationTimer(s.skillR.animationTimer);
+                    rs.setActiveState(s.skillR.isActive);
+                    if (s.skillR.isActive) player.setActiveSkill(rs);
+                }
+            }
+            if (s.skillC != null && s.skillC.skillName != null) {
+                player.equipSkillToSlot(createSkillByName(player, s.skillC.skillName), 'C');
+                com.jjmc.chromashift.player.skill.BaseSkill cs = player.getSkillInSlot('C');
+                if (cs != null) {
+                    cs.setCurrentCooldown(s.skillC.currentCooldown);
+                    cs.setAnimationTimer(s.skillC.animationTimer);
+                    cs.setActiveState(s.skillC.isActive);
+                    if (s.skillC.isActive) player.setActiveSkill(cs);
                 }
             }
             // If activeSkill saved and not assigned yet, try to create it
