@@ -1098,6 +1098,7 @@ public class Player {
         setY(respawnY);
         
         // reset movement state
+        this.velocityX = 0f;
         this.velocityY = 0f;
         this.dashing = false;
         this.dashTimer = 0f;
@@ -1105,6 +1106,10 @@ public class Player {
         this.dashUsed = false;
         this.attacking = false;
         this.airAttacking = false;
+        this.onGround = false;
+        this.onWall = false;
+        this.wallSliding = false;
+        this.moving = false;
 
         // restore health to full (even if dead)
         health.reset();

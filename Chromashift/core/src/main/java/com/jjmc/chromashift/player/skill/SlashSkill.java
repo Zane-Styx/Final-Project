@@ -16,7 +16,7 @@ public class SlashSkill extends BaseSkill {
     private com.chromashift.helper.SpriteAnimator animator;
     private final float AOE_SIZE = 128f;
     private Array<Enemy> hitEnemies = new Array<>();
-    private final int SLASH_DAMAGE = 20;
+    private final int SLASH_DAMAGE = 60;
     
     public SlashSkill(Player player) {
         super(player, "SlashSkill", 1.5f); // 1.5 second cooldown

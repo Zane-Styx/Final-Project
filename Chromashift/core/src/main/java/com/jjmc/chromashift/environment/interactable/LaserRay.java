@@ -54,11 +54,22 @@ public class LaserRay implements Interactable {
         Color currentColor = TMP_COLOR.set(Color.RED);
         int bounces = 0;
         float remainingLength = maxLength;
-        final float EPS_SKIP = 1e-4f;
+        // Increase skip epsilon to avoid immediate self-reintersection due to FP errors
+        final float EPS_SKIP = 0.1f;
+        Mirror lastMirrorHit = null;
         while (remainingLength > 0.01f) {
             Vector2 closestHit = null; Mirror hitMirror = null; Glass hitGlass = null; Solid hitSolid = null;
             float closestDist = Float.MAX_VALUE;
-            if (mirrors != null) for (Mirror m : mirrors) { Vector2 hit = intersectLine(TMP_ORIGIN, TMP_DIR, m.start, m.end); if (hit != null) { float dist = hit.dst2(TMP_ORIGIN); if (dist < EPS_SKIP*EPS_SKIP) continue; if (dist < closestDist) { closestDist = dist; closestHit = hit; hitMirror = m; hitGlass = null; } } }
+            if (mirrors != null) for (Mirror m : mirrors) {
+                // Avoid immediately selecting the same mirror we just bounced from
+                if (lastMirrorHit != null && m == lastMirrorHit) continue;
+                Vector2 hit = intersectLine(TMP_ORIGIN, TMP_DIR, m.start, m.end);
+                if (hit != null) {
+                    float dist = hit.dst2(TMP_ORIGIN);
+                    if (dist < EPS_SKIP*EPS_SKIP) continue;
+                    if (dist < closestDist) { closestDist = dist; closestHit = hit; hitMirror = m; hitGlass = null; }
+                }
+            }
             if (glasses != null) for (Glass g : glasses) { Vector2 hit = intersectLine(TMP_ORIGIN, TMP_DIR, g.start, g.end); if (hit != null) { float dist = hit.dst2(TMP_ORIGIN); if (dist < EPS_SKIP*EPS_SKIP) continue; if (dist < closestDist) { closestDist = dist; closestHit = hit; hitMirror = null; hitGlass = g; hitSolid = null; } } }
             if (solids != null) for (Solid s : solids) { if (s == null || !s.isBlocking()) continue; Rectangle r = s.getCollisionBounds(); if (r == null) continue; float cx = r.x + r.width*0.5f; float cy = r.y + r.height*0.5f; float dxC = cx - TMP_ORIGIN.x; float dyC = cy - TMP_ORIGIN.y; float diag = r.width*r.width + r.height*r.height; float reach = remainingLength*remainingLength + diag; if (dxC*dxC + dyC*dyC > reach) continue; Vector2 a = new Vector2(r.x, r.y); Vector2 b = new Vector2(r.x + r.width, r.y); Vector2 c = new Vector2(r.x + r.width, r.y + r.height); Vector2 d = new Vector2(r.x, r.y + r.height); Vector2[] segA = {a,b,c,d}; Vector2[] segB = {b,c,d,a}; for (int i=0;i<4;i++){ Vector2 hit = intersectLine(TMP_ORIGIN, TMP_DIR, segA[i], segB[i]); if (hit!=null){ float dist = hit.dst2(TMP_ORIGIN); if (dist < EPS_SKIP*EPS_SKIP) continue; boolean accept = true; if (s instanceof Box){ Color bcol = ((Box) s).getColor(); if (bcol!=null){ float eps = 0.03f; if (Math.abs(bcol.r-currentColor.r)>eps || Math.abs(bcol.g-currentColor.g)>eps || Math.abs(bcol.b-currentColor.b)>eps) accept=false; } } if(!accept) continue; if (dist < closestDist){ closestDist = dist; closestHit = hit; hitMirror = null; hitGlass = null; hitSolid = s; } } } }
             if (closestHit != null) {
@@ -66,8 +77,32 @@ public class LaserRay implements Interactable {
                 if (hitDist > remainingLength) { addPoint(TMP_ORIGIN.x + TMP_DIR.x * remainingLength, TMP_ORIGIN.y + TMP_DIR.y * remainingLength); segmentColors.add(new Color(currentColor)); break; }
                 addPoint(closestHit.x, closestHit.y); segmentColors.add(new Color(currentColor));
                 if (hitSolid != null) { if (hitSolid instanceof Target) ((Target) hitSolid).onLaserHit(currentColor); break; }
-                else if (hitMirror != null) { Vector2 normal = hitMirror.getNormal(); float dot = TMP_DIR.x*normal.x + TMP_DIR.y*normal.y; TMP_DIR.x -= 2f*dot*normal.x; TMP_DIR.y -= 2f*dot*normal.y; TMP_DIR.nor(); remainingLength -= hitDist; TMP_ORIGIN.set(closestHit.x + TMP_DIR.x * EPS_SKIP * 2f, closestHit.y + TMP_DIR.y * EPS_SKIP * 2f); if (++bounces > maxBounces) break; }
-                else if (hitGlass != null) { if (hitGlass.doesTintLaser()) { Color gcol = hitGlass.getTintAt(closestHit, time); float blend = hitGlass.getTintStrength(); currentColor.lerp(gcol, Math.max(0f, Math.min(1f, blend))); currentColor.a = 1f; } remainingLength -= hitDist; TMP_ORIGIN.set(closestHit.x + TMP_DIR.x * EPS_SKIP * 2f, closestHit.y + TMP_DIR.y * EPS_SKIP * 2f); }
+                else if (hitMirror != null) {
+                    Vector2 normal = hitMirror.getNormal();
+                    // Ensure unit normal
+                    if (normal.len2() != 1f) normal.nor();
+                    // Reflect incident direction
+                    float dot = TMP_DIR.x*normal.x + TMP_DIR.y*normal.y;
+                    TMP_DIR.x -= 2f*dot*normal.x; TMP_DIR.y -= 2f*dot*normal.y; TMP_DIR.nor();
+                    remainingLength -= hitDist;
+                    // Nudge origin forward along new direction to avoid self-hit
+                    TMP_ORIGIN.set(closestHit.x + TMP_DIR.x * EPS_SKIP * 2f, closestHit.y + TMP_DIR.y * EPS_SKIP * 2f);
+                    lastMirrorHit = hitMirror;
+                    if (++bounces > maxBounces) break;
+                    continue;
+                }
+                else if (hitGlass != null) {
+                    if (hitGlass.doesTintLaser()) {
+                        Color gcol = hitGlass.getTintAt(closestHit, time);
+                        float blend = hitGlass.getTintStrength();
+                        currentColor.lerp(gcol, Math.max(0f, Math.min(1f, blend)));
+                        currentColor.a = 1f;
+                    }
+                    remainingLength -= hitDist;
+                    TMP_ORIGIN.set(closestHit.x + TMP_DIR.x * EPS_SKIP * 2f, closestHit.y + TMP_DIR.y * EPS_SKIP * 2f);
+                    // Reset last mirror so future hits on it are allowed
+                    lastMirrorHit = null;
+                }
             } else { addPoint(TMP_ORIGIN.x + TMP_DIR.x * remainingLength, TMP_ORIGIN.y + TMP_DIR.y * remainingLength); segmentColors.add(new Color(currentColor)); break; }
             if (remainingLength < 5f) break; // early exit tiny remainder
         }

@@ -399,6 +399,15 @@ public class LevelMakerScreen implements Screen {
 		PICK_SOURCE, PICK_DOORS
 	}
 
+	// Portal placement/collision constants (trimmed from 225x225 sprite)
+	private static final float PORTAL_SPRITE_SIZE = 225f;
+	private static final float PORTAL_TRIM_LEFT = 42f;
+	private static final float PORTAL_TRIM_RIGHT = 43f;
+	private static final float PORTAL_TRIM_TOP = 30f;
+	private static final float PORTAL_TRIM_BOTTOM = 41f;
+	private static final float PORTAL_COLLISION_W = PORTAL_SPRITE_SIZE - (PORTAL_TRIM_LEFT + PORTAL_TRIM_RIGHT); // 140
+	private static final float PORTAL_COLLISION_H = PORTAL_SPRITE_SIZE - (PORTAL_TRIM_TOP + PORTAL_TRIM_BOTTOM); // 154
+
 	private LinkStage linkStage = LinkStage.PICK_SOURCE;
 	private ObjectType linkSourceType = ObjectType.NONE;
 	private int linkSourceX = 0, linkSourceY = 0;
@@ -642,8 +651,21 @@ public class LevelMakerScreen implements Screen {
 		for (Interactable it : interactableInstances) {
 			if (it instanceof TriggerZone)
 				continue; // Triggers don't block placement
-			if (it.getBounds().overlaps(worldArea))
-				return false;
+			if (it instanceof Portal) {
+				// Use trimmed collision rect for portal instead of full sprite bounds
+				Rectangle pb = it.getBounds();
+				Rectangle trimmed = new Rectangle(
+					pb.x + PORTAL_TRIM_LEFT,
+					pb.y + PORTAL_TRIM_BOTTOM,
+					PORTAL_COLLISION_W,
+					PORTAL_COLLISION_H
+				);
+				if (trimmed.overlaps(worldArea))
+					return false;
+			} else {
+				if (it.getBounds().overlaps(worldArea))
+					return false;
+			}
 		}
 		// boss (use saved boss coords if present)
 		if (state != null && state.boss != null) {
@@ -1488,6 +1510,10 @@ public class LevelMakerScreen implements Screen {
 		} else if (selectedType == ObjectType.DOOR) {
 			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.ORANGE);
 			shape.rect(screenGx, screenGy, previewCols * 32, previewRows * 32);
+		} else if (selectedType == ObjectType.PORTAL) {
+			// Draw trimmed collision/preview rectangle (140x154)
+			shape.setColor(previewBlocked ? Color.FIREBRICK : Color.SKY);
+			shape.rect(screenGx, screenGy, PORTAL_COLLISION_W, PORTAL_COLLISION_H);
 		} else if (selectedType == ObjectType.BUTTON) {
 			// draw actual button image using preview animator if available
 			if (previewButtonAnim != null) {
@@ -2387,9 +2413,9 @@ public class LevelMakerScreen implements Screen {
 			// 2) If not UI, treat as world placement/linking/delete
 			Vector2 worldPlace = screenCellBottomLeftToWorldGrid();
 			if (selectedType == ObjectType.PORTAL) {
-				// match centered preview offset so placed portal aligns with mouse
-				worldPlace.x -= (225f - 32f) * 0.5f;
-				worldPlace.y -= (225f - 32f) * 0.5f;
+				// Match centered preview offset using trimmed collision size (140x154)
+				worldPlace.x -= (PORTAL_COLLISION_W - 32f) * 0.5f; // 54
+				worldPlace.y -= (PORTAL_COLLISION_H - 32f) * 0.5f; // 61
 			}
 			int wx = (int) worldPlace.x;
 			int wy = (int) worldPlace.y;
@@ -2935,6 +2961,12 @@ public class LevelMakerScreen implements Screen {
 		float areaW = 32f * previewCols;
 		float areaH = 32f * previewRows;
 		switch (selectedType) {
+						case PORTAL: {
+							// Use trimmed collision rectangle for placement blocking
+							areaW = PORTAL_COLLISION_W; // 140
+							areaH = PORTAL_COLLISION_H; // 154
+							break;
+						}
 			case BUTTON: {
 				areaW = 64f;
 				areaH = 32f;
@@ -3149,9 +3181,12 @@ public class LevelMakerScreen implements Screen {
 			case PORTAL: {
 				LevelIO.LevelState.InteractableData idd = new LevelIO.LevelState.InteractableData();
 				idd.type = "portal";
-				// Store center so runtime Portal aligns its 225x225 sprite
-				float cx = gx + 112.5f;
-				float cy = gy + 112.5f;
+				// Compute sprite center so the trimmed 140x154 collision rect at (gx,gy)
+				// aligns correctly within the 225x225 visual sprite.
+				// 225 bottom-left = (gx - leftTrim, gy - bottomTrim)
+				// center = BL + (225/2, 225/2)
+				float cx = (gx - PORTAL_TRIM_LEFT) + PORTAL_SPRITE_SIZE * 0.5f; // gx + 70.5
+				float cy = (gy - PORTAL_TRIM_BOTTOM) + PORTAL_SPRITE_SIZE * 0.5f; // gy + 71.5
 				idd.x = cx;
 				idd.y = cy;
 				idd.portalState = Portal.PortalState.INACTIVE.name();

@@ -77,7 +77,8 @@ public class GameSceneScreen implements Screen {
     private Wall baseCenter;
     private Wall baseRight;
 
-    private float groundY = -64f;
+    // Ground disabled: set far below so it never collides
+    private float groundY = -100000f;
 
     // Current level path for save/load and visited levels tracking
     private String currentLevelPath = "levels/level1.json";
@@ -211,14 +212,18 @@ public class GameSceneScreen implements Screen {
         } else if (currentLevelPath.contains("bossroom1")) {
             // FinalBoss for bossroom1
             this.boss = new FinalBoss();
-            Wall base = (walls.size > 0) ? walls.first() : new Wall(0, groundY, 10, 1);
-            boss.setPosition(base.bounds.x + base.bounds.width / 2f, base.bounds.y + base.bounds.height + 200f);
+            Wall base = (walls.size > 0) ? walls.first() : null;
+            float bx = (base != null) ? (base.bounds.x + base.bounds.width / 2f) : 0f;
+            float by = (base != null) ? (base.bounds.y + base.bounds.height + 200f) : 200f;
+            boss.setPosition(bx, by);
             boss.setEnvironment(solids, walls);
         } else if (currentLevelPath.contains("bossroom")) {
             // BossGuardian for other bossroom levels
             this.bossGuardian = new BossGuardian();
-            Wall base = (walls.size > 0) ? walls.first() : new Wall(0, groundY, 10, 1);
-            bossGuardian.setPosition(base.bounds.x + base.bounds.width / 2f, base.bounds.y + base.bounds.height + 400f);
+            Wall base = (walls.size > 0) ? walls.first() : null;
+            float bx = (base != null) ? (base.bounds.x + base.bounds.width / 2f) : 0f;
+            float by = (base != null) ? (base.bounds.y + base.bounds.height + 400f) : 400f;
+            bossGuardian.setPosition(bx, by);
             bossGuardian.setEnvironment(solids, walls);
             // Remove boss and its enemy adapters once all guardians are dead
             bossGuardian.setOnDefeated(() -> {
@@ -1043,11 +1048,7 @@ public class GameSceneScreen implements Screen {
         uiStage.draw();
 
         // Debug visuals
-        shape.setProjectionMatrix(camController.getCamera().combined);
-        shape.begin(ShapeRenderer.ShapeType.Filled);
-        shape.setColor(Color.FOREST);
-        shape.rect(-2000, groundY - 5, 4000, 5);
-        shape.end();
+        // Invisible ground/bar removed
 
         if (Gdx.input.isKeyPressed(Input.Keys.F3)) {
             shape.begin(ShapeRenderer.ShapeType.Line);
@@ -1286,7 +1287,7 @@ public class GameSceneScreen implements Screen {
                     public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                         saveAllState(currentLevelPath);
                         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener())
-                                .setScreen(new com.jjmc.chromashift.screens.TestMenuScreen());
+                                .setScreen(new com.jjmc.chromashift.screens.ui.MainMenuScreen());
                                 //.setScreen(new com.jjmc.chromashift.screens.ui.MainMenuScreen());
                     }
                 });
@@ -1451,16 +1452,17 @@ public class GameSceneScreen implements Screen {
         // Normalize path for comparison
         String normalized = current.toLowerCase().replace("\\", "/");
 
-        if (normalized.contains("level1"))
-            return "levels/level2.json";
+        if (normalized.contains("level1")) return "levels/level2.json";
         if (normalized.contains("level1")) return "levels/level2.json";
         if (normalized.contains("level2")) return "levels/level3.json";
-        if (normalized.contains("level3")) return "levels/level4.json";
-        if (normalized.contains("level4")) return "levels/level5.json";
-        if (normalized.contains("level5")) return "levels/level6.json";
-        if (normalized.contains("level6")) return "levels/bossroom.json";
-        if (normalized.contains("bossroom")) return null; // final stage
-        else return null; // unknown level
+        if (normalized.contains("level3")) return "levels/bossroom.json";
+        if (normalized.contains("bossroom")) return null;
+        else return null;
+        // if (normalized.contains("level4")) return "levels/level5.json";
+        // if (normalized.contains("level5")) return "levels/level6.json";
+        // if (normalized.contains("level6")) return "levels/bossroom.json";
+        // if (normalized.contains("bossroom")) return null; // final stage
+        // else return null; // unknown level
     }
     
     /**

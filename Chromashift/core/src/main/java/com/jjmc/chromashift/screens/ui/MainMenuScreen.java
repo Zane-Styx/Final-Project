@@ -54,7 +54,7 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
         leftSide.defaults().pad(15);
         
         SpriteLabel titleLabel = UIHelper.createSpriteLabel("CHROMASHIFT", "default");
-        titleLabel.setScale(8);
+        titleLabel.setScale(7);
         leftSide.add(titleLabel).center().padTop(10).padBottom(30).row();
         
         leftSide.add(createContinueButton()).width(260).height(48).row();
@@ -67,9 +67,9 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
         bottomButtonsTable.add(createHowToPlayButton()).width(48).height(48);
         leftSide.add(bottomButtonsTable).center().padTop(350).row();
         
-        // Right side: scaled main character image
+        // Right side: scaled main character image anchored bottom-right
         Table rightSide = new Table(skin);
-        rightSide.top().right();
+        rightSide.bottom().right();
         try {
             if (mainCharacterTex == null) {
                 mainCharacterTex = new com.badlogic.gdx.graphics.Texture(Gdx.files.internal("ui/main_character.png"));
@@ -80,21 +80,22 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
                 mainCharacterImg.setScaling(com.badlogic.gdx.utils.Scaling.fit);
             }
             // Scale proportionally to viewport
-            float maxW = stage.getViewport().getWorldWidth() * 0.35f;
-            float maxH = stage.getViewport().getWorldHeight() * 0.6f;
+            float maxW = stage.getViewport().getWorldWidth() * 0.55f; // scale it more
+            float maxH = stage.getViewport().getWorldHeight() * 0.85f; // scale it more
             float texW = mainCharacterTex.getWidth();
             float texH = mainCharacterTex.getHeight();
             float scale = Math.min(maxW / texW, maxH / texH);
             float drawW = texW * scale;
             float drawH = texH * scale;
-            rightSide.add(mainCharacterImg).size(drawW, drawH).padTop(40).padRight(20);
+            rightSide.add(mainCharacterImg).size(drawW, drawH).padRight(20);
         } catch (Exception e) {
             Gdx.app.error("MainMenuScreen", "Failed to load ui/main_character.png: " + e.getMessage());
         }
         
         // Add left and right to root
-        rootTable.add(leftSide).expand().left().top().padLeft(50);
-        rootTable.add(rightSide).expand().right().top().padRight(50);
+        // Nudge title and buttons slightly to the right
+        rootTable.add(leftSide).expand().left().top().padLeft(85);
+        rootTable.add(rightSide).expand().right().bottom().padRight(50);
         
         stage.addActor(rootTable);
     }

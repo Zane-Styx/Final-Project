@@ -1,28 +1,769 @@
 {
-meta: {
-	name: Level2
-	version: 1
-}
-spawn: {}
-walls: [
+"meta": {
+	"name": "Level2",
+	"version": 1
+},
+"spawn": {
+	"x": 1312,
+	"y": 704
+},
+"walls": [
 	{
-		x: 160
-		y: 128
-		width: 1
-		height: 1
+		"x": 864,
+		"y": 96,
+		"width": 11,
+		"height": 2
+	},
+	{
+		"x": 416,
+		"y": 96,
+		"width": 11,
+		"height": 2
+	},
+	{
+		"x": 896,
+		"y": -160,
+		"width": 2,
+		"height": 8
+	},
+	{
+		"x": 864,
+		"y": -160,
+		"width": 1,
+		"height": 1
+	},
+	{
+		"x": 416,
+		"y": 160,
+		"width": 2,
+		"height": 12
+	},
+	{
+		"x": 416,
+		"y": -352,
+		"width": 2,
+		"height": 14
+	},
+	{
+		"x": 864,
+		"y": -192,
+		"width": 3,
+		"height": 1
+	},
+	{
+		"x": 576,
+		"y": -192,
+		"width": 9,
+		"height": 2
+	},
+	{
+		"x": 480,
+		"y": -352,
+		"width": 9,
+		"height": 2
+	},
+	{
+		"x": 768,
+		"y": -352,
+		"width": 9,
+		"height": 2
+	},
+	{
+		"x": 1056,
+		"y": -352,
+		"width": 9,
+		"height": 2
+	},
+	{
+		"x": 1344,
+		"y": -352,
+		"width": 1,
+		"height": 2
+	},
+	{
+		"x": 1376,
+		"y": -352,
+		"width": 2,
+		"height": 14
+	},
+	{
+		"x": 896,
+		"y": -224,
+		"width": 2,
+		"height": 1
+	},
+	{
+		"x": 1440,
+		"y": 480,
+		"width": 17,
+		"height": 2
+	},
+	{
+		"x": 1952,
+		"y": 896,
+		"width": 1,
+		"height": 1
+	},
+	{
+		"x": 1632,
+		"y": 864,
+		"width": 8,
+		"height": 2
+	},
+	{
+		"x": 1984,
+		"y": 480,
+		"width": 2,
+		"height": 14
+	},
+	{
+		"x": 1568,
+		"y": 864,
+		"width": 2,
+		"height": 4
+	},
+	{
+		"x": 1568,
+		"y": 992,
+		"width": 2,
+		"height": 4
+	},
+	{
+		"x": 1984,
+		"y": 928,
+		"width": 2,
+		"height": 4
+	},
+	{
+		"x": 1696,
+		"y": 992,
+		"width": 9,
+		"height": 2
+	},
+	{
+		"x": 1568,
+		"y": 1120,
+		"width": 9,
+		"height": 2
+	},
+	{
+		"x": 1856,
+		"y": 1120,
+		"width": 10,
+		"height": 2
+	},
+	{
+		"x": 2112,
+		"y": 480,
+		"width": 2,
+		"height": 20
+	},
+	{
+		"x": 2112,
+		"y": -160,
+		"width": 2,
+		"height": 20
+	},
+	{
+		"x": 1600,
+		"y": -160,
+		"width": 16,
+		"height": 2
+	},
+	{
+		"x": 1440,
+		"y": -352,
+		"width": 23,
+		"height": 2
+	},
+	{
+		"x": 2112,
+		"y": -288,
+		"width": 2,
+		"height": 4
+	},
+	{
+		"x": 1216,
+		"y": 96,
+		"width": 7,
+		"height": 14
+	},
+	{
+		"x": 480,
+		"y": 864,
+		"width": 34,
+		"height": 2
+	},
+	{
+		"x": 416,
+		"y": 544,
+		"width": 2,
+		"height": 12
 	}
-]
-interactables: []
-boxes: []
-orbs: []
-launchpads: []
-lasers: []
-mirrors: []
-glasses: []
-diamonds: []
-shops: []
-tentacles: []
-keys: []
-lockedDoors: []
-healthPotions: []
+],
+"interactables": [
+	{
+		"type": "button",
+		"id": "button_1",
+		"x": 640,
+		"y": 160,
+		"targetId": "mirror_2",
+		"color": "GREEN",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "button",
+		"id": "button_2",
+		"x": 1024,
+		"y": -288,
+		"targetId": "mirror_3",
+		"color": "GREEN",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "target",
+		"id": "target_1",
+		"x": 1696,
+		"y": 160,
+		"targetId": "door_6",
+		"color": "RED",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "door",
+		"id": "door_6",
+		"x": 1440,
+		"y": -128,
+		"targetId": null,
+		"color": null,
+		"openDirection": "RIGHT",
+		"orientation": null,
+		"cols": 5,
+		"rows": 1,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "door",
+		"id": "door_7",
+		"x": 1440,
+		"y": -160,
+		"targetId": null,
+		"color": null,
+		"openDirection": "RIGHT",
+		"orientation": null,
+		"cols": 5,
+		"rows": 1,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "button",
+		"id": "button_3",
+		"x": 1760,
+		"y": -96,
+		"targetId": "mirror_14",
+		"color": "GREEN",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "button",
+		"id": "button_4",
+		"x": 1824,
+		"y": -96,
+		"targetId": "mirror_12",
+		"color": "RED",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "button",
+		"id": "button_5",
+		"x": 1888,
+		"y": -96,
+		"targetId": "mirror_9",
+		"color": "BLUE",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "button",
+		"id": "button_6",
+		"x": 1952,
+		"y": -96,
+		"targetId": "mirror_13",
+		"color": "YELLOW",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "lever",
+		"id": "lever_1",
+		"x": 1920,
+		"y": -256,
+		"targetId": null,
+		"color": null,
+		"openDirection": null,
+		"orientation": "VERTICAL",
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "lever",
+		"id": "lever_2",
+		"x": 1024,
+		"y": -32,
+		"targetId": null,
+		"color": null,
+		"openDirection": null,
+		"orientation": "VERTICAL",
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "target",
+		"id": "target_2",
+		"x": 1792,
+		"y": 160,
+		"targetId": "door_7",
+		"color": "BLUE",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
+	{
+		"type": "portal",
+		"id": null,
+		"x": 1328.5,
+		"y": 618.5,
+		"targetId": null,
+		"color": null,
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": "lever_1",
+		"lever2Id": "lever_2",
+		"portalState": "INACTIVE"
+	}
+],
+"boxes": [],
+"orbs": [],
+"launchpads": [
+	{
+		"x": 1888,
+		"y": 544,
+		"direction": "UP",
+		"speed": 600
+	}
+],
+"lasers": [
+	{
+		"id": "laser_2",
+		"x": 1184,
+		"y": 256,
+		"rotation": 180,
+		"maxBounces": 8,
+		"leftButtonId": null,
+		"rightButtonId": null,
+		"leverId": null,
+		"rotateStep": 90,
+		"rotating": false
+	},
+	{
+		"id": "laser_2",
+		"x": 960,
+		"y": -128,
+		"rotation": 0,
+		"maxBounces": 8,
+		"leftButtonId": null,
+		"rightButtonId": null,
+		"leverId": null,
+		"rotateStep": 90,
+		"rotating": false
+	},
+	{
+		"id": "laser_3",
+		"x": 1952,
+		"y": 544,
+		"rotation": 90,
+		"maxBounces": 8,
+		"leftButtonId": null,
+		"rightButtonId": null,
+		"leverId": null,
+		"rotateStep": 90,
+		"rotating": false
+	},
+	{
+		"id": "laser_4",
+		"x": 1696,
+		"y": -32,
+		"rotation": 180,
+		"maxBounces": 8,
+		"leftButtonId": null,
+		"rightButtonId": null,
+		"leverId": null,
+		"rotateStep": 90,
+		"rotating": false
+	},
+	{
+		"id": "laser_5",
+		"x": 1728,
+		"y": 0,
+		"rotation": 90,
+		"maxBounces": 8,
+		"leftButtonId": null,
+		"rightButtonId": null,
+		"leverId": null,
+		"rotateStep": 90,
+		"rotating": false
+	}
+],
+"mirrors": [
+	{
+		"id": "mirror_1",
+		"x": 1088,
+		"y": 256,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
+	},
+	{
+		"id": "mirror_2",
+		"x": 1088,
+		"y": 160,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
+	},
+	{
+		"id": "mirror_3",
+		"x": 1120,
+		"y": -128,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
+	},
+	{
+		"id": "mirror_4",
+		"x": 736,
+		"y": 160,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 270
+	},
+	{
+		"id": "mirror_5",
+		"x": 1728,
+		"y": 288,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
+	},
+	{
+		"id": "mirror_6",
+		"x": 2016,
+		"y": 288,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 135
+	},
+	{
+		"id": "mirror_7",
+		"x": 1632,
+		"y": 384,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
+	},
+	{
+		"id": "mirror_8",
+		"x": 2016,
+		"y": 64,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
+	},
+	{
+		"id": "mirror_9",
+		"x": 1632,
+		"y": 64,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
+	},
+	{
+		"id": "mirror_10",
+		"x": 1536,
+		"y": -32,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 135
+	},
+	{
+		"id": "mirror_11",
+		"x": 1472,
+		"y": 32,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 315
+	},
+	{
+		"id": "mirror_12",
+		"x": 1472,
+		"y": 160,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 315
+	},
+	{
+		"id": "mirror_13",
+		"x": 1792,
+		"y": 384,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 0
+	},
+	{
+		"id": "mirror_14",
+		"x": 1536,
+		"y": 32,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 225
+	},
+	{
+		"id": "mirror_15",
+		"x": 1792,
+		"y": 32,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 270
+	},
+	{
+		"id": "mirror_16",
+		"x": 1728,
+		"y": -32,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 270
+	}
+],
+"glasses": [
+	{
+		"x": 1640,
+		"y": 232,
+		"width": 16,
+		"height": 16,
+		"rainbow": false,
+		"speed": 1.5,
+		"color": "BLUE"
+	}
+],
+"diamonds": [
+	{
+		"x": 800,
+		"y": 224
+	},
+	{
+		"x": 832,
+		"y": 224
+	},
+	{
+		"x": 864,
+		"y": 224
+	},
+	{
+		"x": 896,
+		"y": 224
+	},
+	{
+		"x": 800,
+		"y": 256
+	},
+	{
+		"x": 832,
+		"y": 256
+	},
+	{
+		"x": 864,
+		"y": 256
+	},
+	{
+		"x": 896,
+		"y": 256
+	},
+	{
+		"x": 1568,
+		"y": -256
+	},
+	{
+		"x": 1600,
+		"y": -256
+	},
+	{
+		"x": 1632,
+		"y": -256
+	},
+	{
+		"x": 1664,
+		"y": -256
+	},
+	{
+		"x": 1696,
+		"y": -256
+	},
+	{
+		"x": 1728,
+		"y": -256
+	},
+	{
+		"x": 2048,
+		"y": 960
+	},
+	{
+		"x": 2080,
+		"y": 864
+	},
+	{
+		"x": 2048,
+		"y": 768
+	},
+	{
+		"x": 2080,
+		"y": 672
+	},
+	{
+		"x": 2048,
+		"y": 576
+	},
+	{
+		"x": 2080,
+		"y": 480
+	},
+	{
+		"x": 2048,
+		"y": 384
+	},
+	{
+		"x": 2080,
+		"y": 288
+	}
+],
+"shops": [],
+"tentacles": [
+	{
+		"x": 576,
+		"y": -32,
+		"segments": 10
+	},
+	{
+		"x": 1152,
+		"y": -224,
+		"segments": 10
+	},
+	{
+		"x": 1632,
+		"y": 928,
+		"segments": 10
+	},
+	{
+		"x": 608,
+		"y": 256,
+		"segments": 10
+	}
+],
+"triggers": [],
+"keys": [
+	{
+		"x": 1984,
+		"y": -256
+	}
+],
+"lockedDoors": [
+	{
+		"x": 896,
+		"y": -288,
+		"orientation": "VERTICAL"
+	}
+],
+"healthPotions": [],
+"boss": null
 }

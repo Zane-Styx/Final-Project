@@ -229,8 +229,8 @@ public class BossGuardian extends Boss {
     private Rectangle boss2DamageRectDebug = new Rectangle();
 
     // Per-guardian health (for UI display and future targeting). Each starts at 250 HP.
-    private final float[] guardianMaxHealth = new float[] {250f, 250f, 250f};
-    private final float[] guardianHealth = new float[] {250f, 250f, 250f};
+    private final float[] guardianMaxHealth = new float[] {500f, 500f, 500f};
+    private final float[] guardianHealth = new float[] {500f, 500f, 500f};
 
     public float getGuardianHealth(int index) {
         if (index < 1 || index > 3) return 0f;

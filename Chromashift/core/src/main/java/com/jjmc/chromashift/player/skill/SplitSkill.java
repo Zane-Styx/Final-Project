@@ -14,7 +14,7 @@ public class SplitSkill extends BaseSkill {
     private Projectile mainProjectile;
     private final float PROJECTILE_SPEED = 280f;
     private final float SPLIT_PROJECTILE_SPEED = 240f;
-    private final int MAIN_DAMAGE = 15;
+    private final int MAIN_DAMAGE = 25;
     private final int SPLIT_DAMAGE = 10;
     private Array<Projectile> projectiles = new Array<>();
     private final float SPLIT_SPREAD_ANGLE = 20f; // fan: -20, 0, +20 deg

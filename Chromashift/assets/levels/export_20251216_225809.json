@@ -4,8 +4,8 @@
 	"version": 1
 },
 "spawn": {
-	"x": 0,
-	"y": 0
+	"x": 2176,
+	"y": 1664
 },
 "walls": [
 	{
@@ -253,60 +253,6 @@
 		"y": 2304,
 		"width": 18,
 		"height": 1
-	},
-	{
-		"x": 3456,
-		"y": 2304,
-		"width": 15,
-		"height": 1
-	},
-	{
-		"x": -128,
-		"y": -480,
-		"width": 1,
-		"height": 1
-	},
-	{
-		"x": 3968,
-		"y": -480,
-		"width": 1,
-		"height": 1
-	},
-	{
-		"x": 3968,
-		"y": 2912,
-		"width": 1,
-		"height": 1
-	},
-	{
-		"x": -128,
-		"y": 2912,
-		"width": 1,
-		"height": 1
-	},
-	{
-		"x": -96,
-		"y": 2912,
-		"width": 127,
-		"height": 1
-	},
-	{
-		"x": -96,
-		"y": -480,
-		"width": 127,
-		"height": 1
-	},
-	{
-		"x": -128,
-		"y": -448,
-		"width": 1,
-		"height": 105
-	},
-	{
-		"x": 3968,
-		"y": -448,
-		"width": 1,
-		"height": 105
 	}
 ],
 "interactables": [
@@ -343,57 +289,6 @@
 		"lever1Id": null,
 		"lever2Id": null,
 		"portalState": null
-	},
-	{
-		"type": "portal",
-		"id": null,
-		"x": 3792.5,
-		"y": 2410.5,
-		"targetId": null,
-		"color": null,
-		"openDirection": null,
-		"orientation": null,
-		"cols": 0,
-		"rows": 0,
-		"openSpeed": 3,
-		"closeSpeed": 3,
-		"lever1Id": "button_1",
-		"lever2Id": null,
-		"portalState": "INACTIVE"
-	},
-	{
-		"type": "lever",
-		"id": "lever_1",
-		"x": 3584,
-		"y": 2336,
-		"targetId": null,
-		"color": null,
-		"openDirection": null,
-		"orientation": "VERTICAL",
-		"cols": 0,
-		"rows": 0,
-		"openSpeed": 3,
-		"closeSpeed": 3,
-		"lever1Id": null,
-		"lever2Id": null,
-		"portalState": null
-	},
-	{
-		"type": "lever",
-		"id": "lever_2",
-		"x": 3648,
-		"y": 2336,
-		"targetId": null,
-		"color": null,
-		"openDirection": null,
-		"orientation": "VERTICAL",
-		"cols": 0,
-		"rows": 0,
-		"openSpeed": 3,
-		"closeSpeed": 3,
-		"lever1Id": null,
-		"lever2Id": null,
-		"portalState": null
 	}
 ],
 "boxes": [
@@ -403,13 +298,6 @@
 		"color": "CYAN",
 		"areaW": 600,
 		"areaH": 1200
-	},
-	{
-		"x": 2276,
-		"y": 2372,
-		"color": "RED",
-		"areaW": 400,
-		"areaH": 800
 	}
 ],
 "orbs": [],
@@ -637,30 +525,6 @@
 		"leverId": null,
 		"rotateStep": 90,
 		"rotating": false
-	},
-	{
-		"id": "laser_16",
-		"x": 2304,
-		"y": 2336,
-		"rotation": 0,
-		"maxBounces": 8,
-		"leftButtonId": null,
-		"rightButtonId": null,
-		"leverId": null,
-		"rotateStep": 90,
-		"rotating": false
-	},
-	{
-		"id": "laser_17",
-		"x": -96,
-		"y": -448,
-		"rotation": 0,
-		"maxBounces": 8,
-		"leftButtonId": null,
-		"rightButtonId": null,
-		"leverId": null,
-		"rotateStep": 90,
-		"rotating": false
 	}
 ],
 "mirrors": [
@@ -759,65 +623,12 @@
 		"width": 32,
 		"height": 32,
 		"angleDeg": 45
-	},
-	{
-		"id": "mirror_13",
-		"x": 3424,
-		"y": 2336,
-		"width": 32,
-		"height": 32,
-		"angleDeg": 90
-	},
-	{
-		"id": "mirror_15",
-		"x": 3936,
-		"y": -448,
-		"width": 32,
-		"height": 32,
-		"angleDeg": 225
-	},
-	{
-		"id": "mirror_15",
-		"x": 3936,
-		"y": 2880,
-		"width": 32,
-		"height": 32,
-		"angleDeg": 315
-	},
-	{
-		"id": "mirror_16",
-		"x": -96,
-		"y": 2880,
-		"width": 32,
-		"height": 32,
-		"angleDeg": 45
 	}
 ],
 "glasses": [],
 "diamonds": [],
 "shops": [],
-"tentacles": [
-	{
-		"x": 2496,
-		"y": 2592,
-		"segments": 15
-	},
-	{
-		"x": 2784,
-		"y": 2592,
-		"segments": 15
-	},
-	{
-		"x": 3072,
-		"y": 2592,
-		"segments": 15
-	},
-	{
-		"x": 3328,
-		"y": 2592,
-		"segments": 15
-	}
-],
+"tentacles": [],
 "triggers": [],
 "keys": [],
 "lockedDoors": [],

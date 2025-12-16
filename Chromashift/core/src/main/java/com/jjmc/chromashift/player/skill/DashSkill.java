@@ -25,7 +25,7 @@ public class DashSkill extends BaseSkill {
     private float dashTargetX = 0f;
     private Array<Enemy> damagedEnemies = new Array<>();
     private final float DASH_SPEED = 500f; // pixels per second during dash animation
-    private final int DASH_DAMAGE = 15;
+    private final int DASH_DAMAGE = 25;
     
     public DashSkill(Player player) {
         super(player, "DashSkill", 2.5f); // 2.5 second cooldown
