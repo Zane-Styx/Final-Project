@@ -21,6 +21,8 @@ import com.badlogic.gdx.files.FileHandle;
 public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenuScreen implements Screen {
     private Stage stage;
     private Skin skin;
+    private com.badlogic.gdx.graphics.Texture mainCharacterTex;
+    private com.badlogic.gdx.scenes.scene2d.ui.Image mainCharacterImg;
 
     @Override
     public void show() {
@@ -65,8 +67,30 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
         bottomButtonsTable.add(createHowToPlayButton()).width(48).height(48);
         leftSide.add(bottomButtonsTable).center().padTop(350).row();
         
-        // Right side placeholder (will hold character image later)
+        // Right side: scaled main character image
         Table rightSide = new Table(skin);
+        rightSide.top().right();
+        try {
+            if (mainCharacterTex == null) {
+                mainCharacterTex = new com.badlogic.gdx.graphics.Texture(Gdx.files.internal("ui/main_character.png"));
+                mainCharacterTex.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear, com.badlogic.gdx.graphics.Texture.TextureFilter.Linear);
+            }
+            if (mainCharacterImg == null) {
+                mainCharacterImg = new com.badlogic.gdx.scenes.scene2d.ui.Image(mainCharacterTex);
+                mainCharacterImg.setScaling(com.badlogic.gdx.utils.Scaling.fit);
+            }
+            // Scale proportionally to viewport
+            float maxW = stage.getViewport().getWorldWidth() * 0.35f;
+            float maxH = stage.getViewport().getWorldHeight() * 0.6f;
+            float texW = mainCharacterTex.getWidth();
+            float texH = mainCharacterTex.getHeight();
+            float scale = Math.min(maxW / texW, maxH / texH);
+            float drawW = texW * scale;
+            float drawH = texH * scale;
+            rightSide.add(mainCharacterImg).size(drawW, drawH).padTop(40).padRight(20);
+        } catch (Exception e) {
+            Gdx.app.error("MainMenuScreen", "Failed to load ui/main_character.png: " + e.getMessage());
+        }
         
         // Add left and right to root
         rootTable.add(leftSide).expand().left().top().padLeft(50);
@@ -361,5 +385,9 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
         super.dispose();
         if (stage != null) stage.dispose();
         if (skin != null) skin.dispose();
+        if (mainCharacterTex != null) {
+            mainCharacterTex.dispose();
+            mainCharacterTex = null;
+        }
     }
 }
