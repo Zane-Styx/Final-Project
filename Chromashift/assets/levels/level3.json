@@ -357,8 +357,8 @@
 		"rows": 0,
 		"openSpeed": 3,
 		"closeSpeed": 3,
-		"lever1Id": "button_1",
-		"lever2Id": null,
+		"lever1Id": "lever_1",
+		"lever2Id": "lever_2",
 		"portalState": "INACTIVE"
 	},
 	{
