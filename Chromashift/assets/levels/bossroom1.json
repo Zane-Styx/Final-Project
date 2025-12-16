@@ -1,157 +1,207 @@
 {
-meta: {
-	name: levels/bossroom1.json
-	version: 1
-}
-spawn: {
-	x: 384
-	y: 608
-}
-walls: [
+"meta": {
+	"name": "levels/bossroom1.json",
+	"version": 1
+},
+"spawn": {
+	"x": -288,
+	"y": 320
+},
+"walls": [
 	{
-		x: -288
-		y: 256
-		width: 1
-		height: 24
-	}
+		"x": -320,
+		"y": -480,
+		"width": 43,
+		"height": 22
+	},
 	{
-		x: 1024
-		y: 256
-		width: 1
-		height: 24
-	}
+		"x": 1056,
+		"y": 256,
+		"width": 20,
+		"height": 22
+	},
 	{
-		x: -256
-		y: 992
-		width: 40
-		height: 1
-	}
+		"x": -960,
+		"y": 256,
+		"width": 20,
+		"height": 22
+	},
 	{
-		x: -288
-		y: 1024
-		width: 42
-		height: 14
-	}
+		"x": -960,
+		"y": -480,
+		"width": 20,
+		"height": 23
+	},
 	{
-		x: -256
-		y: 256
-		width: 7
-		height: 1
-	}
+		"x": 1056,
+		"y": -480,
+		"width": 20,
+		"height": 23
+	},
 	{
-		x: 800
-		y: 256
-		width: 7
-		height: 1
-	}
+		"x": -960,
+		"y": 1664,
+		"width": 83,
+		"height": 23
+	},
 	{
-		x: 32
-		y: 544
-		width: 22
-		height: 1
-	}
+		"x": -960,
+		"y": 992,
+		"width": 20,
+		"height": 21
+	},
 	{
-		x: -256
-		y: 672
-		width: 5
-		height: 1
-	}
+		"x": -960,
+		"y": 960,
+		"width": 19,
+		"height": 1
+	},
 	{
-		x: 864
-		y: 672
-		width: 5
-		height: 1
-	}
+		"x": 1088,
+		"y": 960,
+		"width": 19,
+		"height": 1
+	},
 	{
-		x: 864
-		y: 288
-		width: 5
-		height: 1
-	}
+		"x": 1056,
+		"y": 992,
+		"width": 20,
+		"height": 21
+	},
 	{
-		x: -256
-		y: 288
-		width: 5
-		height: 1
+		"x": -320,
+		"y": 224,
+		"width": 43,
+		"height": 1
 	}
+],
+"interactables": [
 	{
-		x: -288
-		y: 224
-		width: 42
-		height: 1
-	}
-]
-interactables: []
-boxes: []
-orbs: []
-launchpads: [
+		"type": "lever",
+		"id": "lever_1",
+		"x": 224,
+		"y": 832,
+		"targetId": null,
+		"color": null,
+		"openDirection": null,
+		"orientation": "VERTICAL",
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
+	},
 	{
-		x: -32
-		y: 256
-		direction: UP
+		"type": "button",
+		"id": "button_1",
+		"x": 160,
+		"y": 256,
+		"targetId": "mirror_2",
+		"color": "GREEN",
+		"openDirection": null,
+		"orientation": null,
+		"cols": 0,
+		"rows": 0,
+		"openSpeed": 3,
+		"closeSpeed": 3,
+		"lever1Id": null,
+		"lever2Id": null,
+		"portalState": null
 	}
+],
+"boxes": [],
+"orbs": [],
+"launchpads": [],
+"lasers": [
 	{
-		x: 736
-		y: 256
-		direction: UP
-	}
-]
-lasers: []
-mirrors: []
-glasses: []
-diamonds: []
-shops: []
-tentacles: []
-triggers: [
+		"id": "laser_1",
+		"x": -352,
+		"y": 960,
+		"rotation": 0,
+		"maxBounces": 8,
+		"leftButtonId": null,
+		"rightButtonId": null,
+		"leverId": null,
+		"rotateStep": 90,
+		"rotating": false
+	},
 	{
-		id: trigger_1
-		x: 384
-		y: 256
-		width: 640
-		height: 288
-		color: GREEN
+		"id": "laser_2",
+		"x": 1056,
+		"y": 960,
+		"rotation": 180,
+		"maxBounces": 8,
+		"leftButtonId": null,
+		"rightButtonId": null,
+		"leverId": null,
+		"rotateStep": 90,
+		"rotating": false
 	}
+],
+"mirrors": [
 	{
-		id: trigger_2
-		x: -256
-		y: 256
-		width: 640
-		height: 288
-		color: GREEN
-	}
+		"id": "mirror_1",
+		"x": 384,
+		"y": 960,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
+	},
 	{
-		id: trigger_3
-		x: 32
-		y: 576
-		width: 704
-		height: 96
-		color: GREEN
+		"id": "mirror_2",
+		"x": 384,
+		"y": 384,
+		"width": 32,
+		"height": 32,
+		"angleDeg": 45
 	}
+],
+"glasses": [
 	{
-		id: trigger_4
-		x: 32
-		y: 256
-		width: 704
-		height: 96
-		color: GREEN
-	}
+		"x": 232,
+		"y": 392,
+		"width": 16,
+		"height": 16,
+		"rainbow": false,
+		"speed": 1.5,
+		"color": "BLUE"
+	},
 	{
-		id: trigger_5
-		x: -256
-		y: 672
-		width: 1280
-		height: 96
-		color: GREEN
-	}
+		"x": 40,
+		"y": 392,
+		"width": 16,
+		"height": 16,
+		"rainbow": false,
+		"speed": 1.5,
+		"color": "GREEN"
+	},
 	{
-		id: trigger_6
-		x: -256
-		y: 256
-		width: 1280
-		height: 736
+		"x": -56,
+		"y": 392,
+		"width": 16,
+		"height": 16,
+		"rainbow": false,
+		"speed": 1.5,
+		"color": "YELLOW"
+	},
+	{
+		"x": -184,
+		"y": 392,
+		"width": 16,
+		"height": 16,
+		"rainbow": false,
+		"speed": 1.5,
+		"color": "PURPLE"
 	}
-]
-keys: []
-lockedDoors: []
-healthPotions: []
+],
+"diamonds": [],
+"shops": [],
+"tentacles": [],
+"triggers": [],
+"keys": [],
+"lockedDoors": [],
+"healthPotions": [],
+"boss": null
 }

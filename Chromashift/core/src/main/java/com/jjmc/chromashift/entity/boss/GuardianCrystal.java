@@ -72,18 +72,15 @@ public class GuardianCrystal implements Enemy {
     // Stationary ice walls spawned by this crystal
     private final Array<com.jjmc.chromashift.enemy.skill.IceWall> iceWalls = new Array<>();
 
-    // HSV tinting for pre-attack windup and slow return
-    private static final float COLOR_ATTACK_HUE = 60f; // target hue for windup
-    private static final float COLOR_SAT_PEAK = 0.85f; // saturation at peak
-    private static final float COLOR_WINDUP_DURATION = 1.2f; // seconds to reach hue before attack
-    private static final float COLOR_RETURN_DURATION = 4.0f; // slower fade back to default
-    private float colorHue = 0f;     // hue (ignored when sat=0)
-    private float colorSat = 0f;     // saturation ramps up/down
-    private float colorVal = 1f;     // keep value (brightness) at 1
-        private boolean flashActive = false; // true when flash is active
+    // Red flash telegraph (replaces HSV usage)
     private final Color tintColor = new Color(1,1,1,1);
-        private static final float COLOR_FLASH_DURATION = 1.0f; // seconds of flashing before attack
-        private float flashTimer = 0f;
+    private static final float COLOR_FLASH_DURATION = 1.0f; // total flash time
+    private static final float COLOR_FLASH_INTERVAL = 0.15f; // toggle interval for red/normal
+    private static final float ICE_WALL_WINDUP_DURATION = 1.0f; // ice wall windup duration
+    private boolean flashActive = false;
+    private boolean flashOn = false;
+    private float flashTimer = 0f;
+    private float flashCycleAccum = 0f;
 
     // Ice Wall windup synced to HSV telegraph
     private float iceWallWindupTimer = 0f; // counts down toward spawn
@@ -164,12 +161,12 @@ public class GuardianCrystal implements Enemy {
 
         // Attacks
         if (grounded && spawnDone) {
-            tryIcePickAttack();
+            // Ice Pick flash/attack handled in updateTint()
             tryIceWallAttack(delta);
         }
 
-        // Update tint based on Ice Pick windup and return
-            updateTint(delta);
+        // Update flashing telegraph and fire Ice Pick at end
+        updateTint(delta);
 
         // Update bounds
         bounds.set(x, y, CRYSTAL_FRAME_W, CRYSTAL_FRAME_H);
@@ -191,27 +188,20 @@ public class GuardianCrystal implements Enemy {
     public void render(SpriteBatch batch) {
         if (!alive || batch == null) return;
         Color prev = batch.getColor();
-        if (flashActive) {
-            // Pulse red like a bomb: oscillate alpha to create flashing effect
-            float pulse = 0.5f + 0.5f * MathUtils.sin((COLOR_FLASH_DURATION - flashTimer) * 10f);
-            tintColor.set(1f, 0f, 0f, MathUtils.clamp(pulse, 0.2f, 1f));
+        if (flashActive && flashOn) {
+            tintColor.set(1f, 0f, 0f, prev.a);
             batch.setColor(tintColor);
         }
-        // Render crystal sprite
         anim.render(batch, x, y, CRYSTAL_FRAME_W, CRYSTAL_FRAME_H);
-        // Always restore batch color to default to avoid tint leaking into other renders
         batch.setColor(prev);
-        // Ensure no tint applies to skills
+        // Render projectiles and walls without tint
         batch.setColor(Color.WHITE);
-        // Render projectiles on top
         for (int i = 0; i < projectiles.size; i++) {
             projectiles.get(i).render(batch);
         }
-        // Render ice walls
         for (int i = 0; i < iceWalls.size; i++) {
             iceWalls.get(i).render(batch);
         }
-        // Restore original batch color
         batch.setColor(prev);
     }
 
@@ -242,8 +232,19 @@ public class GuardianCrystal implements Enemy {
     public void setOnDestroyed(java.util.function.BiConsumer<Float, Float> cb) { this.onDestroyed = cb; }
 
     private void tryIcePickAttack() {
-        if (icePickCooldown > 0f || player == null) return;
-        icePickCooldown = ICE_PICK_COOLDOWN_MAX;
+        if (player == null) return;
+        // Gate: skip if cooldown active or already flashing
+        if (icePickCooldown > 0f || flashActive) return;
+        // Gate: skip if player is in Ice Wall range
+        if (isPlayerInIceWallRange()) return;
+        // Start red/normal flashing; actual fire happens at flash end in updateTint()
+        flashActive = true;
+        flashOn = true;
+        flashTimer = COLOR_FLASH_DURATION;
+        flashCycleAccum = 0f;
+    }
+
+    private void fireIcePick() {
         // Fire a fan of projectiles toward the player
         float cx = x + CRYSTAL_FRAME_W / 2f;
         float cy = y + CRYSTAL_FRAME_H / 2f;
@@ -269,50 +270,36 @@ public class GuardianCrystal implements Enemy {
             proj.setCustomCenteredHitbox(64f, 16f);
             projectiles.add(proj);
         }
-        // Begin slow return to default coloring after attack
-        flashActive = true;
+        // Reset cooldown for next cycle
+        icePickCooldown = ICE_PICK_COOLDOWN_MAX;
         Gdx.app.log("GuardianCrystal", "Ice Pick: fired 3 projectiles toward player");
     }
 
     private void updateTint(float delta) {
-        // Default: no tint
-        if (!grounded || !spawnDone) {
-            // If moving/spawning, clear tint slowly
-            if (colorSat > 0f) {
-                colorSat = Math.max(0f, colorSat - (COLOR_SAT_PEAK / COLOR_RETURN_DURATION) * delta);
+        if (!grounded || !spawnDone) return;
+        // Manage flashing and fire at end
+        if (flashActive) {
+            flashTimer -= delta;
+            flashCycleAccum += delta;
+            if (flashCycleAccum >= COLOR_FLASH_INTERVAL) {
+                flashCycleAccum -= COLOR_FLASH_INTERVAL;
+                flashOn = !flashOn;
+            }
+            if (flashTimer <= 0f) {
+                flashActive = false;
+                flashOn = false;
+                if (!isPlayerInIceWallRange()) {
+                    fireIcePick();
+                }
             }
             return;
         }
-
-        // Pre-attack windup: ramp saturation to peak as cooldown approaches zero
-        boolean anyWindup = false;
-        if (!flashActive && icePickCooldown <= COLOR_WINDUP_DURATION) {
-            float t = MathUtils.clamp(1f - (icePickCooldown / COLOR_WINDUP_DURATION), 0f, 1f);
-            colorHue = COLOR_ATTACK_HUE;
-            colorSat = Math.max(colorSat, t * COLOR_SAT_PEAK);
-            anyWindup = true;
-        }
-        // Also ramp hue if Ice Wall is winding up
-        if (!flashActive && iceWallWindupActive && iceWallWindupTimer > 0f) {
-            float t = MathUtils.clamp(1f - (iceWallWindupTimer / COLOR_WINDUP_DURATION), 0f, 1f);
-            colorHue = COLOR_ATTACK_HUE;
-            colorSat = Math.max(colorSat, t * COLOR_SAT_PEAK);
-            anyWindup = true;
-        }
-        if (anyWindup) return;
-
-        // Post-attack: slowly fade back to default (sat -> 0)
-        if (flashActive) {
-            if (colorSat > 0f) {
-                colorSat = Math.max(0f, colorSat - (COLOR_SAT_PEAK / COLOR_RETURN_DURATION) * delta);
-            } else {
-                flashActive = false; // finished returning
-            }
-        } else {
-            // Idle: ensure we drift back to no tint if any remains
-            if (colorSat > 0f) {
-                colorSat = Math.max(0f, colorSat - (COLOR_SAT_PEAK / (COLOR_RETURN_DURATION * 2f)) * delta);
-            }
+        // If cooldown expired and player not in wall range, initiate flash
+        if (icePickCooldown <= 0f && !isPlayerInIceWallRange()) {
+            flashActive = true;
+            flashOn = true;
+            flashTimer = COLOR_FLASH_DURATION;
+            flashCycleAccum = 0f;
         }
     }
 
@@ -339,7 +326,7 @@ public class GuardianCrystal implements Enemy {
         // Start windup when entering a zone and off cooldown
         if (!iceWallWindupActive) {
             iceWallWindupActive = true;
-            iceWallWindupTimer = COLOR_WINDUP_DURATION;
+            iceWallWindupTimer = ICE_WALL_WINDUP_DURATION;
             // Choose side: if both, bias to player's relative position
             if (inLeft && inRight) {
                 float px = player.getX() + player.getHitboxWidth() / 2f;
@@ -373,6 +360,17 @@ public class GuardianCrystal implements Enemy {
             iceWallWindupActive = false;
             iceWallWindupTimer = 0f;
         }
+    }
+
+    private boolean isPlayerInIceWallRange() {
+        if (player == null) return false;
+        float cx = x + CRYSTAL_FRAME_W / 2f;
+        float cy = 246 + CRYSTAL_FRAME_H / 2f;
+        Rectangle playerRect = player.getHitboxRect();
+        if (playerRect == null) return false;
+        Rectangle leftZone = new Rectangle(cx - 80f, cy - 30f, 80f, 60f);
+        Rectangle rightZone = new Rectangle(cx, cy - 30f, 80f, 60f);
+        return playerRect.overlaps(leftZone) || playerRect.overlaps(rightZone);
     }
 
     // Enemy interface (hit-based health)

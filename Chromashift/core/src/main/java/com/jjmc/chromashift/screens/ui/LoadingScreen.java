@@ -15,6 +15,7 @@ import com.chromashift.helper.SpriteFont;
 import com.chromashift.helper.SpriteFontManager;
 import com.jjmc.chromashift.Assets;
 import com.jjmc.chromashift.ChromashiftGame;
+import com.jjmc.chromashift.screens.TestMenuScreen;
 
 /**
  * Animated Loading Screen
@@ -256,8 +257,6 @@ public class LoadingScreen extends AbstractMenuScreen implements Screen {
 						}
 					}
 				}
-				// If assets not loaded yet, stay at full black until they are.
-		
             }
         }
 	}

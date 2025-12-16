@@ -55,6 +55,12 @@ public class DashSkill extends BaseSkill {
         damagedEnemies.clear();
         requestInvulnerability = true;
         requestInvisibility = true;
+        // Ensure immediate i-frames at activation to prevent same-frame damage
+        try {
+            if (player != null && player.getHealthSystem() != null) {
+                player.getHealthSystem().setInvulnerable(true);
+            }
+        } catch (Throwable ignored) {}
         // Lock movement during dash
         requestMovementLock = true;
         // Reset jump only
@@ -173,6 +179,13 @@ public class DashSkill extends BaseSkill {
         requestMovementLock = false;
         animationTimer = 0f;
         currentCooldown = cooldownTime;
+
+        // End of i-frames: clear HealthSystem invulnerability unless respawn is active
+        try {
+            if (player != null && player.getHealthSystem() != null && player.getRespawnInvulRemaining() <= 0f) {
+                player.getHealthSystem().setInvulnerable(false);
+            }
+        } catch (Throwable ignored) {}
 
         // Apply resets
         if (resetDash) {

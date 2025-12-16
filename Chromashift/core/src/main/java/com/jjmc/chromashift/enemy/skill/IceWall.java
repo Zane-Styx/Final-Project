@@ -48,14 +48,14 @@ public class IceWall {
         // Damage hitbox: 48x66 with offsets left=32, top=32
         // Top padding means hitbox starts at y + (height - topPad - hitboxH) = y + (98 - 32 - 66) = y
         damageHitbox.set(x + 32f, y + (height - 32f - 66f), 48f, 66f);
-        // Damage window: frames 9..13 (inclusive), but still only once overall
+        // Damage window: frames 3..15 (inclusive), but still only once overall
         if (!damageApplied && animator != null) {
             int frame = animator.getCurrentFrameIndex();
-            if (frame >= 9 && frame <= 13) {
+            if (frame >= 3 && frame <= 15) {
                 if (player != null && player.getHitboxRect() != null && damageHitbox.overlaps(player.getHitboxRect())) {
                     try { if (player.getHealthSystem() != null) player.getHealthSystem().damage(damage, this); } catch (Throwable ignored) {}
                     // Apply a temporary slow to the player: 50% speed for 4 seconds
-                    try { if (player != null) player.applySlow(0.8f, 4.0f); } catch (Throwable ignored) {}
+                    try { if (player != null) player.applySlow(0.5f, 4.0f); } catch (Throwable ignored) {}
                     damageApplied = true;
                 }
             }

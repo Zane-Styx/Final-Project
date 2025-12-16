@@ -15,11 +15,11 @@ public class SplitSkill extends BaseSkill {
     private final float PROJECTILE_SPEED = 280f;
     private final float SPLIT_PROJECTILE_SPEED = 240f;
     private final int MAIN_DAMAGE = 15;
-    private final int SPLIT_DAMAGE = 100;
+    private final int SPLIT_DAMAGE = 10;
     private Array<Projectile> projectiles = new Array<>();
     private final float SPLIT_SPREAD_ANGLE = 20f; // fan: -20, 0, +20 deg
     private final float SPLIT_DELAY = 1f; // wait before splitting
-    private final float HOMING_TURN_RATE = 45f; // reduced turn speed for fairness
+    private final float HOMING_TURN_RATE = 35f; // reduced turn speed for fairness
     
     public SplitSkill(Player player) {
         super(player, "SplitSkill", 1.2f); // 1.2 second cooldown

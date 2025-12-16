@@ -1,6 +1,6 @@
 {
   "levelPath": "levels/bossroom.json",
-  "timestamp": 1765871369822,
+  "timestamp": 1765878910477,
   "objects": {
     "items": [
       {
@@ -201,7 +201,7 @@
       {
         "className": "TriggerZone",
         "fullClassName": "com.jjmc.chromashift.environment.TriggerZone",
-        "uniqueId": "trigger_1",
+        "uniqueId": "trigger_2",
         "x": -800.0,
         "y": 256.0,
         "fields": {
@@ -214,94 +214,194 @@
           "bounds": {
             "w": 1472.0,
             "x": -800.0,
-            "h": 224.0,
+            "h": 320.0,
             "y": 256.0
           },
-          "id": "trigger_1"
+          "id": "trigger_2"
         }
       },
       {
-        "className": "",
-        "fullClassName": "com.jjmc.chromashift.screens.GameSceneScreen$1",
-        "uniqueId": "_0_0",
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_-800_1120",
+        "x": -800.0,
+        "y": 1120.0,
+        "fields": {
+          "rotation": 270.0,
+          "bounds": {
+            "w": 32.0,
+            "x": -800.0,
+            "h": 32.0,
+            "y": 1120.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "BossGuardian",
+        "fullClassName": "com.jjmc.chromashift.entity.boss.BossGuardian",
+        "uniqueId": "BossGuardian_0_0",
         "x": 0.0,
         "y": 0.0,
-        "fields": {}
-      },
-      {
-        "className": "",
-        "fullClassName": "com.jjmc.chromashift.screens.GameSceneScreen$1",
-        "uniqueId": "_0_0",
-        "x": 0.0,
-        "y": 0.0,
-        "fields": {}
-      },
-      {
-        "className": "Portal",
-        "fullClassName": "com.jjmc.chromashift.environment.interactable.Portal",
-        "uniqueId": "Portal_-176_212",
-        "x": -176.5,
-        "y": 212.5,
         "fields": {
-          "playerNearby": false,
-          "lever2Active": false,
-          "interactionCooldown": 0.0,
-          "bounds": {
-            "w": 225.0,
-            "x": -176.5,
-            "h": 225.0,
-            "y": 212.5
+          "triangleRadius": 200.0,
+          "lightningFront": {
+            "x": 0.0,
+            "y": 0.0
           },
-          "state": "ACTIVE",
-          "lever1Active": false,
-          "hitbox": {
-            "w": 140.0,
-            "x": -134.5,
-            "h": 154.0,
-            "y": 242.5
-          }
-        }
-      },
-      {
-        "className": "DamageOrb",
-        "fullClassName": "com.jjmc.chromashift.environment.interactable.DamageOrb",
-        "uniqueId": "DamageOrb_-338_290",
-        "x": -338.0,
-        "y": 290.45264,
-        "fields": {
-          "vx": 0.0,
-          "vy": 0.0,
-          "holdOffsetX": 0.0,
-          "held": false,
-          "holdOffsetY": 8.0,
-          "bounciness": 1.0,
-          "thrown": false,
-          "inRange": false,
-          "wallHits": 0,
-          "spawnGraceTime": 0.12,
-          "removed": false,
-          "x": -338.0,
-          "bounds": {
-            "w": 48.0,
-            "x": -338.0,
-            "h": 48.0,
-            "y": 290.45264
+          "guardian2EntryDuration": 1.8,
+          "isSpawning": true,
+          "boss1AttackPosX": -64.0,
+          "boss1AttackPosY": 450.0,
+          "hoverTimer": 4.7873225,
+          "guardian1AttackPosY": 828.3831,
+          "guardian1AttackPosX": -64.0,
+          "guardian1AttackCooldown": 6.0,
+          "guardian1State": "MOVING_TO_ATTACK",
+          "hoverSpeed": 50.0,
+          "boss2DamageAppliedThisAttack": false,
+          "phase": 1,
+          "leftUpperHeight": 240.0,
+          "boss1AttackCooldown": 6.0,
+          "guardian1DropDuration": 1.5,
+          "spawnPhaseStartDelay": 0.5,
+          "boss2AnimSpeedScale": 0.5,
+          "rightLowerWidth": 224.0,
+          "boss2Velocity": {
+            "x": 0.0,
+            "y": 0.0
           },
-          "y": 290.45264
+          "committedLightningCenter": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "committedLightningFront": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "boss1MoveSpeed": 300.0,
+          "lightningCenterActive": false,
+          "guardian3EntryDuration": 1.8,
+          "lightningHeight": 75.0,
+          "phaseHighThreshold": 0.66,
+          "nextAttackIndex": 0,
+          "spawnTimer": 4.7873225,
+          "bodyHeight": 32.0,
+          "rightUpperHeight": 240.0,
+          "boss2PlungeSpeed": 1400.0,
+          "guardian1CooldownTimer": 6.0,
+          "leftLowerHeight": 240.0,
+          "boss1State": "SUMMONING",
+          "boss2TrackDuration": 2.5,
+          "committedLightningBack": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "spawnPhase": "GUARDIAN1_DROP",
+          "rightLowerOffsetY": 0.0,
+          "bossCenter": {
+            "x": -64.0,
+            "y": 685.76636
+          },
+          "rightLowerOffsetX": 0.0,
+          "useCustomAttackScheduler": false,
+          "bodyOffsetX": 0.0,
+          "baseHoverHeight": 100.0,
+          "hoverAmplitude": 30.0,
+          "cameraZoomReturnSpeed": 0.8,
+          "boss2State": "RISING",
+          "boss2HitboxForDebug": {
+            "w": 0.0,
+            "x": 0.0,
+            "h": 0.0,
+            "y": 0.0
+          },
+          "lightningDistance": 100.0,
+          "hasSpawned": false,
+          "bodyOffsetY": 0.0,
+          "autoPhaseByHealth": true,
+          "followSpeed": 50.0,
+          "leftUpperWidth": 224.0,
+          "boss2RiseSpeed": 300.0,
+          "defeatDoorY": 300.0,
+          "activeCrystals": 0,
+          "x": -64.0,
+          "y": 656.0,
+          "lightningWidth": 111.0,
+          "bodyWidth": 32.0,
+          "boss2CooldownTimer": -0.0014089225,
+          "lightningBack": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "bobTimer": 0.0,
+          "defeated": false,
+          "leftLowerWidth": 224.0,
+          "cameraFocusReturnSpeed": 0.6,
+          "velocityX": 0.0,
+          "lightningScale": 2.0,
+          "timeAccum": 4.7873225,
+          "spawnCameraActive": true,
+          "velocityY": 0.0,
+          "lightningCenterDelay": 1.0,
+          "spawnCameraZoom": 1.1999993,
+          "boss2MinHeightToAttack": 600.0,
+          "debugDisplay": true,
+          "lightningCenter": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "leftLowerOffsetY": 0.0,
+          "leftLowerOffsetX": 0.0,
+          "delayBetweenGuardians": 0.4,
+          "spawnPhaseTimer": 0.68372846,
+          "targetY": 0.0,
+          "targetX": 0.0,
+          "bobFrequency": 100.0,
+          "spawnCameraFocus": {
+            "x": -64.0,
+            "y": 685.867
+          },
+          "rightLowerHeight": 240.0,
+          "bobAmplitude": 70.0,
+          "boss2TrackSpeed": 320.0,
+          "rightUpperOffsetX": 0.0,
+          "boss2DamageRectDebug": {
+            "w": 0.0,
+            "x": 0.0,
+            "h": 0.0,
+            "y": 0.0
+          },
+          "spawnDuration": 6.9,
+          "lightningActive": true,
+          "boss2AttackCooldown": 5.0,
+          "armPhysicsDelay": 0.2,
+          "boss2CommitPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "guardian1MoveSpeed": 300.0,
+          "rightUpperWidth": 224.0,
+          "guardian1CrystalSpawnedThisCycle": false,
+          "activeTriggerZone": "NONE",
+          "attackCooldownTimer": 0.0,
+          "lightningDuration": 3.5,
+          "rotationSpeed": 20.0,
+          "maxSpeed": 1000.0,
+          "armLerpSpeed": 5.0,
+          "lightningAnimTimer": 1.0658325,
+          "phaseLowThreshold": 0.33,
+          "rightUpperOffsetY": 0.0,
+          "debugBoss2HitBox": true,
+          "leftUpperOffsetX": 0.0,
+          "boss1CooldownTimer": 6.0,
+          "leftUpperOffsetY": 0.0,
+          "currentRotation": 95.74643
         }
-      },
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      }
     ],
-    "size": 18,
+    "size": 16,
     "ordered": true
   },
   "removedObjectIds": []

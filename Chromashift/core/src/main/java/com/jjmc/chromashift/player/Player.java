@@ -129,6 +129,12 @@ public class Player {
     private boolean isInvisible = false;
     public Array<com.jjmc.chromashift.player.skill.Projectile> activeProjectiles = new Array<>();
 
+    // Optional external death handler: return true to suppress default respawn
+    private java.util.function.Function<Object, Boolean> onDeathHandler;
+    public void setOnDeathHandler(java.util.function.Function<Object, Boolean> handler) {
+        this.onDeathHandler = handler;
+    }
+
     public Player(float startX, float startY,
             int keyLeft, int keyRight, int keyJump, int keyAttack,
             PlayerType type,
@@ -228,7 +234,17 @@ public class Player {
                 if (isDying) return; // already dying
                 isDying = true;
                 
-                // Respawn
+                // Allow external handler (e.g., bossroom reload) to override default
+                try {
+                    if (onDeathHandler != null) {
+                        Boolean handled = onDeathHandler.apply(source);
+                        if (handled != null && handled) {
+                            return; // suppress default respawn; screen may reload
+                        }
+                    }
+                } catch (Throwable ignored) {}
+
+                // Default: Respawn
                 respawn();
             }
         });
@@ -364,6 +380,8 @@ public class Player {
             // Apply skill state overrides
             if (activeSkill.isRequestingInvulnerability()) {
                 isInvulnerable = true;
+                // Ensure HealthSystem also treats player as invulnerable during skill i-frames
+                try { if (health != null) health.setInvulnerable(true); } catch (Throwable ignored) {}
             }
             if (activeSkill.isRequestingInvisibility()) {
                 isInvisible = true;
@@ -377,11 +395,18 @@ public class Player {
                 activeSkill = null;
                 isInvulnerable = false;
                 isInvisible = false;
+                // End of skill i-frames: only clear HealthSystem invulnerability if not in respawn i-frames
+                if (respawnInvulRemaining <= 0f) {
+                    try { if (health != null) health.setInvulnerable(false); } catch (Throwable ignored) {}
+                }
             }
         } else {
             // Reset invulnerability/invisibility when no skill active
             isInvulnerable = false;
             isInvisible = false;
+            if (respawnInvulRemaining <= 0f) {
+                try { if (health != null) health.setInvulnerable(false); } catch (Throwable ignored) {}
+            }
         }
         
         // Update projectiles

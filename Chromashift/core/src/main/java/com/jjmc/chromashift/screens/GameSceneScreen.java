@@ -97,6 +97,11 @@ public class GameSceneScreen implements Screen {
     private com.jjmc.chromashift.screens.levels.LevelLoadingManager loadingManager;
     private com.jjmc.chromashift.screens.levels.LoadingOverlay loadingOverlay;
     private boolean gameplayEnabled = false;
+    // Game Over overlay state
+    private boolean gameOverActive = false;
+    private float gameOverTimer = 0f;
+    private float gameOverMinDisplay = 1.0f; // seconds before accepting input
+    private Runnable gameOverAction;
     // Pause menu state and dialogs
     private boolean paused = false;
     private com.badlogic.gdx.scenes.scene2d.ui.Dialog pauseDialog;
@@ -111,7 +116,7 @@ public class GameSceneScreen implements Screen {
 
     // Constructor with default level (NEW GAME - always load original)
     public GameSceneScreen() {
-        this("levels/bossroom.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+        this("levels/level1.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
         try {
             font = new BitmapFont(Gdx.files.internal("ui/default.fnt"));
         } catch (Exception e) {
@@ -247,6 +252,15 @@ public class GameSceneScreen implements Screen {
             bossGuardian.setOnSpawnSequenceComplete(() -> {
                 gameplayEnabled = true;
                 Gdx.app.log("TestSceneScreen", "BossGuardian spawn sequence complete - fight begins!");
+                // Save a checkpoint of player state (items/health) for boss retry
+                try {
+                    com.jjmc.chromashift.player.PlayerIO.PlayerState state = com.jjmc.chromashift.player.PlayerIO
+                            .capture(player, currentLevelPath, visitedLevels);
+                    com.jjmc.chromashift.database.PlayerDAO.savePlayerState(1, state);
+                    Gdx.app.log("TestSceneScreen", "✓ Boss checkpoint saved for BossGuardian");
+                } catch (Exception e) {
+                    Gdx.app.log("TestSceneScreen", "Failed to save boss checkpoint: " + e.getMessage());
+                }
             });
 
             // Start spawn sequence
@@ -260,12 +274,25 @@ public class GameSceneScreen implements Screen {
         // Setup background animator for bossroom levels
         if (currentLevelPath.contains("bossroom1")) {
             try {
-                backgroundAnimator = new SpriteAnimator("entity/boss1/finalboss_bg.png", 1, 77);
-                backgroundAnimator.addAnimation("bg", 0, 0, 77, 0.033f, true); // 77 frames total, ~30fps, looping
+                // Animated background for FinalBoss room: 38 frames, 480x300 per frame
+                backgroundAnimator = new SpriteAnimator("entity/bg_final.png", 1, 38);
+                backgroundAnimator.addAnimation("bg", 0, 0, 38, 0.033f, true); // ~30fps, looping
                 backgroundAnimator.play("bg", false);
-                Gdx.app.log("TestSceneScreen", "Loaded background animator for bossroom1");
+                Gdx.app.log("TestSceneScreen", "Loaded background animator for bossroom1 (bg_final.png)");
             } catch (Exception e) {
-                Gdx.app.error("TestSceneScreen", "Failed to load bossroom1 background: " + e.getMessage());
+                Gdx.app.error("TestSceneScreen", "Failed to load bossroom1 background (bg_final): " + e.getMessage());
+                e.printStackTrace();
+                backgroundAnimator = null;
+            }
+        } else if (currentLevelPath.contains("bossroom")) {
+            // Static background for Guardian bossroom
+            try {
+                backgroundAnimator = new SpriteAnimator("entity/guardian_bg.jpg", 1, 1);
+                backgroundAnimator.addAnimation("bg", 0, 0, 1, 1f, true);
+                backgroundAnimator.play("bg", false);
+                Gdx.app.log("TestSceneScreen", "Loaded static background for bossroom (guardian)");
+            } catch (Exception e) {
+                Gdx.app.error("TestSceneScreen", "Failed to load guardian bossroom background: " + e.getMessage());
                 e.printStackTrace();
                 backgroundAnimator = null;
             }
@@ -289,6 +316,27 @@ public class GameSceneScreen implements Screen {
         player.setRespawnPoint(player.getX(), player.getY());
         playerSpawnX = player.getX();
         playerSpawnY = player.getY();
+
+        // On death, show Game Over; then respawn (normal) or reload (bossroom)
+        try {
+            player.setOnDeathHandler(source -> {
+                boolean inBoss = currentLevelPath != null && (currentLevelPath.contains("bossroom1") || currentLevelPath.contains("bossroom"));
+                if (inBoss) {
+                    gameOverAction = () -> {
+                        ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(
+                                new GameSceneScreen(currentLevelPath,
+                                        com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS));
+                    };
+                } else {
+                    gameOverAction = () -> {
+                        try { player.respawn(); } catch (Throwable ignored2) {}
+                    };
+                }
+                gameOverActive = true;
+                gameOverTimer = 0f;
+                return true; // suppress default respawn
+            });
+        } catch (Throwable ignored) {}
 
         // Load saves only for continue flows; for new-game flows, clear any prior save
         // first
@@ -433,6 +481,17 @@ public class GameSceneScreen implements Screen {
         loadingManager.setOnLoadingComplete(() -> {
             gameplayEnabled = true;
             Gdx.app.log("TestSceneScreen", "Level loading complete - gameplay enabled!");
+            // For boss rooms, also save a checkpoint right after load
+            try {
+                if (currentLevelPath != null && (currentLevelPath.contains("bossroom1") || currentLevelPath.contains("bossroom"))) {
+                    com.jjmc.chromashift.player.PlayerIO.PlayerState state = com.jjmc.chromashift.player.PlayerIO
+                            .capture(player, currentLevelPath, visitedLevels);
+                    com.jjmc.chromashift.database.PlayerDAO.savePlayerState(1, state);
+                    Gdx.app.log("TestSceneScreen", "✓ Boss checkpoint saved after load");
+                }
+            } catch (Exception e) {
+                Gdx.app.log("TestSceneScreen", "Failed to save boss checkpoint after load: " + e.getMessage());
+            }
         });
         loadingManager.startLoading();
     }
@@ -471,6 +530,52 @@ public class GameSceneScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        // Game Over overlay handling
+        if (gameOverActive) {
+            gameOverTimer += delta;
+            // Clear screen
+            Gdx.gl.glClearColor(0.0f, 0.0f, 0.0f, 1f);
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+            // Dim background region
+            shape.setProjectionMatrix(camController.getCamera().combined);
+            shape.begin(ShapeRenderer.ShapeType.Filled);
+            shape.setColor(new Color(0f, 0f, 0f, 0.65f));
+            float vw = camController.getCamera().viewportWidth * camController.getCamera().zoom;
+            float vh = camController.getCamera().viewportHeight * camController.getCamera().zoom;
+            float vx = camController.getCamera().position.x - vw / 2f;
+            float vy = camController.getCamera().position.y - vh / 2f;
+            shape.rect(vx, vy, vw, vh);
+            shape.end();
+
+            // Title + hint
+            batch.setProjectionMatrix(camController.getCamera().combined);
+            batch.begin();
+            batch.setColor(1f,1f,1f,1f);
+            try {
+                font.setColor(Color.WHITE);
+                String title = "GAME OVER";
+                com.badlogic.gdx.graphics.g2d.GlyphLayout layout = new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, title);
+                float cx = camController.getCamera().position.x - layout.width / 2f;
+                float cy = camController.getCamera().position.y + layout.height * 2f;
+                font.draw(batch, layout, cx, cy);
+
+                String hint = (gameOverTimer >= gameOverMinDisplay) ? "Press ENTER to continue" : " ";
+                com.badlogic.gdx.graphics.g2d.GlyphLayout layout2 = new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, hint);
+                font.setColor(Color.LIGHT_GRAY);
+                font.draw(batch, layout2, camController.getCamera().position.x - layout2.width / 2f, cy - 40f);
+            } finally {
+                batch.end();
+            }
+
+            if (gameOverTimer >= gameOverMinDisplay && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                gameOverActive = false;
+                Runnable act = gameOverAction;
+                gameOverAction = null;
+                if (act != null) act.run();
+            }
+            return;
+        }
         // Update loading manager first
         if (loadingManager != null && !loadingManager.isReady()) {
             loadingManager.update(delta);
@@ -818,7 +923,11 @@ public class GameSceneScreen implements Screen {
         // Render background first (behind everything) using SpriteAnimator
         if (backgroundAnimator != null) {
             batch.setColor(1f, 1f, 1f, 1f); // Ensure full white color (no tint)
-            backgroundAnimator.render(batch, 0, 0, 1600, 900);
+            float viewW = camera.viewportWidth * camera.zoom;
+            float viewH = camera.viewportHeight * camera.zoom;
+            float bgX = camera.position.x - viewW / 2f;
+            float bgY = camera.position.y - viewH / 2f;
+            backgroundAnimator.render(batch, bgX, bgY, viewW, viewH);
         }
 
         // Draw world: walls first, then interactables, collectibles, spawn marker,
@@ -1177,7 +1286,8 @@ public class GameSceneScreen implements Screen {
                     public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                         saveAllState(currentLevelPath);
                         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener())
-                                .setScreen(new com.jjmc.chromashift.screens.ui.MainMenuScreen());
+                                .setScreen(new com.jjmc.chromashift.screens.TestMenuScreen());
+                                //.setScreen(new com.jjmc.chromashift.screens.ui.MainMenuScreen());
                     }
                 });
                 content.add(menuLbl).row();
@@ -1331,7 +1441,7 @@ public class GameSceneScreen implements Screen {
 
     /**
      * Returns the next level path based on current level.
-     * Progression order: level1 -> level2 -> level3 -> bossroom -> level4 -> level5
+     * Progression order: level1 -> level2 -> level3 -> level4 -> level5
      * -> level6 -> bossroom
      */
     private String getNextLevelPath(String current) {
@@ -1343,29 +1453,16 @@ public class GameSceneScreen implements Screen {
 
         if (normalized.contains("level1"))
             return "levels/level2.json";
-        if (normalized.contains("level2"))
-            return "levels/level3.json";
-        if (normalized.contains("level3"))
-            return "levels/bossroom.json";
-        if (normalized.contains("bossroom")) {
-            // Prefer the first unvisited stage in the post-boss sequence.
-            if (!visitedLevels.contains("levels/level4.json", false)) return "levels/level4.json";
-            if (!visitedLevels.contains("levels/level5.json", false)) return "levels/level5.json";
-            if (!visitedLevels.contains("levels/level6.json", false)) return "levels/level6.json";
-            // If all post-boss stages have been visited, consider the game complete
-            Gdx.app.log("GameSceneScreen", "All post-boss levels visited. Returning to menu.");
-            return null;
-        }
-        if (normalized.contains("level4"))
-            return "levels/level5.json";
-        if (normalized.contains("level5"))
-            return "levels/level6.json";
-        if (normalized.contains("level6"))
-            return "levels/bossroom.json";
-
-        return null;
+        if (normalized.contains("level1")) return "levels/level2.json";
+        if (normalized.contains("level2")) return "levels/level3.json";
+        if (normalized.contains("level3")) return "levels/level4.json";
+        if (normalized.contains("level4")) return "levels/level5.json";
+        if (normalized.contains("level5")) return "levels/level6.json";
+        if (normalized.contains("level6")) return "levels/bossroom.json";
+        if (normalized.contains("bossroom")) return null; // final stage
+        else return null; // unknown level
     }
-
+    
     /**
      * Centralized auto-save routine for player and level.
      * Saves to workspace JSON and attempts DB writes via DAOs.

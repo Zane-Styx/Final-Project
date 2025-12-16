@@ -46,6 +46,13 @@ public class SlashSkill extends BaseSkill {
         requestDisableGravity = true;
         resetDash = false;
         resetJump = false;
+
+        // Ensure immediate i-frames at activation to prevent same-frame damage
+        try {
+            if (player != null && player.getHealthSystem() != null) {
+                player.getHealthSystem().setInvulnerable(true);
+            }
+        } catch (Throwable ignored) {}
         
         // Play anim
         if (animator != null) {
@@ -118,6 +125,13 @@ public class SlashSkill extends BaseSkill {
         requestMovementLock = false;
         animationTimer = 0f;
         currentCooldown = cooldownTime;
+
+        // End of i-frames: clear HealthSystem invulnerability unless respawn is active
+        try {
+            if (player != null && player.getHealthSystem() != null && player.getRespawnInvulRemaining() <= 0f) {
+                player.getHealthSystem().setInvulnerable(false);
+            }
+        } catch (Throwable ignored) {}
         
         // Reset dash/jump if we hit anything
         if (hitEnemies.size > 0) {

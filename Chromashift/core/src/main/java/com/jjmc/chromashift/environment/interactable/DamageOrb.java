@@ -138,7 +138,8 @@ public class DamageOrb implements Interactable, Pickable {
                 if (eb == null) continue;
                 if (bounds.overlaps(eb)) {
                     try {
-                        e.takeDamage(20f); // deal damage once
+                        // Double damage on each bounce
+                        e.takeDamage((wallHits + 1) * 20f); // deal damage once
                     } catch (Throwable ignored) {}
                     // Despawn orb immediately after first boss hit to prevent multi-hit bursts
                     removed = true;

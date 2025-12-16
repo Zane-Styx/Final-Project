@@ -3,10 +3,7 @@
 	"name": "BossRoom",
 	"version": 1
 },
-"spawn": {
-	"x": -768,
-	"y": 288
-},
+"spawn": null,
 "walls": [
 	{
 		"x": -800,
@@ -91,7 +88,20 @@
 "boxes": [],
 "orbs": [],
 "launchpads": [],
-"lasers": [],
+"lasers": [
+	{
+		"id": "laser_1",
+		"x": -800,
+		"y": 1120,
+		"rotation": 270,
+		"maxBounces": 8,
+		"leftButtonId": null,
+		"rightButtonId": null,
+		"leverId": null,
+		"rotateStep": 90,
+		"rotating": false
+	}
+],
 "mirrors": [],
 "glasses": [],
 "diamonds": [],
@@ -99,11 +109,11 @@
 "tentacles": [],
 "triggers": [
 	{
-		"id": "trigger_1",
+		"id": "trigger_2",
 		"x": -800,
 		"y": 256,
 		"width": 1472,
-		"height": 224,
+		"height": 320,
 		"color": "RED"
 	}
 ],
