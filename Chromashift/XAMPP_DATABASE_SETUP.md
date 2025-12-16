@@ -1,12 +1,12 @@
-# XAMPP Database Setup for Chromashift
+# XAMPP MySQL Setup for Chromashift
 
 This guide explains how to set up and use the MySQL database with XAMPP for the Chromashift game.
 
 ## Prerequisites
 
 - XAMPP installed and running (MySQL service enabled)
-- Java project with JDBC MySQL driver dependency
-- Database connection configured in `DatabaseConnection.java`
+- JDBC driver present (see Gradle dependency below)
+- Database connection configured in `core/src/main/java/com/jjmc/chromashift/database/DatabaseConnection.java`
 
 ## Quick Start
 
@@ -140,14 +140,24 @@ CREATE TABLE IF NOT EXISTS game_objects (
 
 ## Java Integration
 
-### Configuration
+### Configuration (DatabaseConnection)
 
-Edit `DatabaseConnection.java`:
+Edit `core/src/main/java/com/jjmc/chromashift/database/DatabaseConnection.java` if needed:
 
 ```java
 private static final String DB_URL = "jdbc:mysql://localhost:3306/chromashift_db";
 private static final String DB_USER = "root";
 private static final String DB_PASSWORD = "";  // Empty by default
+```
+
+### Gradle Dependency (already present)
+
+In `core/build.gradle`:
+
+```gradle
+dependencies {
+    implementation 'mysql:mysql-connector-java:8.0.33'
+}
 ```
 
 ### Usage Examples
@@ -199,6 +209,15 @@ The database stores **only** PlayerIO.PlayerState fields:
 
 **No unsupported fields** (mana, stamina, combo, heldObjectId, maps) are stored.
 
+## Quick Connection Test
+
+You can quickly test connectivity by calling `DatabaseConnection.testConnection()` (prints success/failure):
+
+```java
+// e.g., from any temporary entry point
+com.jjmc.chromashift.database.DatabaseConnection.testConnection();
+```
+
 ## Troubleshooting
 
 ### "Connection Refused"
@@ -217,6 +236,19 @@ The database stores **only** PlayerIO.PlayerState fields:
 ### JDBC Driver Not Found
 - Ensure `mysql-connector-java` JAR is in classpath
 - Add to Gradle: `implementation 'mysql:mysql-connector-java:8.0.33'`
+
+### Port / Service Issues (Windows)
+- Verify MySQL is running in XAMPP Control Panel
+- Ensure port `3306` is not used by another service (e.g., MySQL from another install)
+- If changed, update `DB_URL` in `DatabaseConnection.java` accordingly
+
+### Optional: Create a Non-Root User
+```sql
+CREATE USER 'gameuser'@'localhost' IDENTIFIED BY 'strong_password_here';
+GRANT ALL PRIVILEGES ON chromashift_db.* TO 'gameuser'@'localhost';
+FLUSH PRIVILEGES;
+```
+Then update `DB_USER`/`DB_PASSWORD` in `DatabaseConnection.java`.
 
 ## References
 

@@ -270,7 +270,7 @@ public class GuardianCrystal implements Enemy {
             projectiles.add(proj);
         }
         // Begin slow return to default coloring after attack
-        colorReturning = true;
+        flashActive = true;
         Gdx.app.log("GuardianCrystal", "Ice Pick: fired 3 projectiles toward player");
     }
 
@@ -286,14 +286,14 @@ public class GuardianCrystal implements Enemy {
 
         // Pre-attack windup: ramp saturation to peak as cooldown approaches zero
         boolean anyWindup = false;
-        if (!colorReturning && icePickCooldown <= COLOR_WINDUP_DURATION) {
+        if (!flashActive && icePickCooldown <= COLOR_WINDUP_DURATION) {
             float t = MathUtils.clamp(1f - (icePickCooldown / COLOR_WINDUP_DURATION), 0f, 1f);
             colorHue = COLOR_ATTACK_HUE;
             colorSat = Math.max(colorSat, t * COLOR_SAT_PEAK);
             anyWindup = true;
         }
         // Also ramp hue if Ice Wall is winding up
-        if (!colorReturning && iceWallWindupActive && iceWallWindupTimer > 0f) {
+        if (!flashActive && iceWallWindupActive && iceWallWindupTimer > 0f) {
             float t = MathUtils.clamp(1f - (iceWallWindupTimer / COLOR_WINDUP_DURATION), 0f, 1f);
             colorHue = COLOR_ATTACK_HUE;
             colorSat = Math.max(colorSat, t * COLOR_SAT_PEAK);
@@ -302,11 +302,11 @@ public class GuardianCrystal implements Enemy {
         if (anyWindup) return;
 
         // Post-attack: slowly fade back to default (sat -> 0)
-        if (colorReturning) {
+        if (flashActive) {
             if (colorSat > 0f) {
                 colorSat = Math.max(0f, colorSat - (COLOR_SAT_PEAK / COLOR_RETURN_DURATION) * delta);
             } else {
-                colorReturning = false; // finished returning
+                flashActive = false; // finished returning
             }
         } else {
             // Idle: ensure we drift back to no tint if any remains
@@ -364,7 +364,7 @@ public class GuardianCrystal implements Enemy {
             float wallX = iceWallWindupLeft ? (cx - 103f) : (cx);
             com.jjmc.chromashift.enemy.skill.IceWall wall = new com.jjmc.chromashift.enemy.skill.IceWall(wallX, wallBottomY, player, iceWallWindupLeft);
             iceWalls.add(wall);
-            colorReturning = true; // begin tint fade back after attack
+            flashActive = true; // begin tint fade back after attack
             Gdx.app.log("GuardianCrystal", "Ice Wall spawned on " + (iceWallWindupLeft ? "left" : "right") + " side at bottomY=246");
         }
 
