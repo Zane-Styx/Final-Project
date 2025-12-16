@@ -129,7 +129,9 @@ public class DashSkill extends BaseSkill {
         float dashBoundsLeft = Math.min(dashStartX, dashTargetCenterX) - player.getHitboxWidth() / 2f;
         Rectangle dashBounds = new Rectangle(dashBoundsLeft, playerBottom, Math.abs(dashTargetCenterX - dashStartX) + player.getHitboxWidth(), player.getHitboxHeight());
         for (Enemy enemy : player.getEnemies()) {
-            if (enemy.getBounds().overlaps(dashBounds) && !damagedEnemies.contains(enemy, true)) {
+            Rectangle eb = enemy.getBounds();
+            if (eb == null) continue; // enemy may be dead or non-collidable
+            if (eb.overlaps(dashBounds) && !damagedEnemies.contains(enemy, true)) {
                 enemy.takeDamage(DASH_DAMAGE);
                 damagedEnemies.add(enemy);
             }

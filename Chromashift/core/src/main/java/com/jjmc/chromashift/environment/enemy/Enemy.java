@@ -11,13 +11,13 @@ public interface Enemy {
      * Apply damage to this enemy.
      * @param damage The amount of damage to apply
      */
-    void takeDamage(int damage);
+    void takeDamage(float damage);
     
     /**
      * Get the current health of this enemy.
      * @return Current health value
      */
-    int getHealth();
+    float getHealth();
     
     /**
      * Check if this enemy is still alive.

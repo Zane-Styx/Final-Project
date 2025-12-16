@@ -1,46 +1,46 @@
 {
-"x": -80.48605,
+"x": 867.8008,
 "y": -64,
 "velocityX": 0,
 "velocityY": 0,
-"facingLeft": false,
+"facingLeft": true,
 "onGround": true,
 "canJump": true,
 "dashing": false,
-"dashTimer": -0.016044702,
-"dashCooldownTimer": -0.016167834,
+"dashTimer": 0,
+"dashCooldownTimer": 0,
 "dashUsed": false,
 "dashHoverRemaining": 0,
-"attacking": false,
+"attacking": true,
 "airAttacking": false,
-"airAttackTimer": -5.7679974E-4,
-"attackCooldownTimer": -0.01490473,
+"airAttackTimer": 0,
+"attackCooldownTimer": 0.7337689,
 "shield": 0,
 "keyCount": 0,
 "potionCount": 0,
-"respawnX": 160,
-"respawnY": 352,
+"respawnX": 0,
+"respawnY": 40,
 "respawnInvulRemaining": 0,
 "respawnStunRemaining": 0,
 "isStunned": false,
-"diamonds": 21,
+"diamonds": 0,
 "healthCurrent": 200,
 "healthMax": 200,
 "skillQ": {
 	"skillName": "DashSkill",
-	"currentCooldown": -2.3276918E-4,
+	"currentCooldown": -0.016112396,
 	"isActive": false,
 	"animationTimer": 0
 },
 "skillE": {
 	"skillName": "JumpSkill",
-	"currentCooldown": 0,
+	"currentCooldown": -0.016154222,
 	"isActive": false,
 	"animationTimer": 0
 },
 "skillR": {
 	"skillName": "SplitSkill",
-	"currentCooldown": 0,
+	"currentCooldown": -0.015731178,
 	"isActive": false,
 	"animationTimer": 0
 },
@@ -51,8 +51,8 @@
 	"animationTimer": 0
 },
 "activeSkill": null,
-"currentLevel": "levels/level2.json",
+"currentLevel": "levels/level4.json",
 "visitedLevels": [
-	"levels/level1.json"
+	"levels/level4.json"
 ]
 }

@@ -115,6 +115,17 @@ public class LockedDoor implements Interactable, Solid {
         return player.getKeyCount() > 0 && bounds != null && player.getHitboxRect().overlaps(bounds);
     }
 
+    /**
+     * Force-open the door without consuming a key (e.g., boss defeat).
+     */
+    public void open() {
+        if (open) return;
+        open = true;
+        try { SoundManager.play("DoorOpen"); } catch (Exception ignored) {}
+        if (animator != null) animator.play("open", true);
+        Gdx.app.log("LockedDoor", "Force-opened by event");
+    }
+
     public void dispose() {
         if (animator != null) animator.dispose();
     }

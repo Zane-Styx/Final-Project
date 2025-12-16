@@ -1,6 +1,6 @@
 {
   "levelPath": "levels/level1.json",
-  "timestamp": 1765799555502,
+  "timestamp": 1765805841121,
   "objects": {
     "items": [
       {
@@ -800,7 +800,7 @@
         "x": 704.0,
         "y": 576.0,
         "fields": {
-          "openProgress": 1.0,
+          "openProgress": 0.0,
           "openDirection": "UP",
           "bounds": {
             "w": 32.0,
@@ -810,7 +810,7 @@
           },
           "closeSpeed": 0.5,
           "openSpeed": 3.0,
-          "open": true
+          "open": false
         }
       },
       {
@@ -820,11 +820,11 @@
         "x": 416.0,
         "y": 480.0,
         "fields": {
-          "angleDeg": 225.0,
+          "angleDeg": 180.0,
           "playerNearby": false,
           "start": {
-            "x": 443.31372,
-            "y": 507.31372
+            "x": 448.0,
+            "y": 496.0
           },
           "bounds": {
             "w": 32.0,
@@ -833,8 +833,8 @@
             "y": 480.0
           },
           "end": {
-            "x": 420.68628,
-            "y": 484.68628
+            "x": 416.0,
+            "y": 496.0
           }
         }
       },
@@ -933,7 +933,7 @@
             "h": 32.0,
             "y": 736.0
           },
-          "active": true
+          "active": false
         }
       },
       {
@@ -1041,8 +1041,8 @@
       {
         "className": "Box",
         "fullClassName": "com.jjmc.chromashift.environment.interactable.Box",
-        "uniqueId": "Box_2916_672",
-        "x": 2916.0,
+        "uniqueId": "Box_2880_672",
+        "x": 2880.0,
         "y": 672.0,
         "fields": {
           "vx": 0.0,
@@ -1059,11 +1059,11 @@
           "spawnX": 2916.0,
           "spawnY": 676.0,
           "inRange": false,
-          "x": 2916.0,
+          "x": 2880.0,
           "width": 24.0,
           "bounds": {
             "w": 24.0,
-            "x": 2916.0,
+            "x": 2880.0,
             "h": 24.0,
             "y": 672.0
           },
@@ -1393,7 +1393,7 @@
           "isOpen": false,
           "savedVelocityX": 0.0,
           "playerNearby": false,
-          "potionStock": 5,
+          "potionStock": 2,
           "x": 864.0,
           "width": 64.0,
           "y": 320.0,
@@ -1401,21 +1401,7 @@
           "height": 64.0
         }
       },
-      {
-        "className": "HealthPotion",
-        "fullClassName": "com.jjmc.chromashift.environment.collectible.HealthPotion",
-        "uniqueId": "HealthPotion_192_512",
-        "x": 0.0,
-        "y": 0.0,
-        "fields": {
-          "x": 192.0,
-          "width": 32.0,
-          "y": 512.0,
-          "collected": false,
-          "id": "HealthPotion_192_512",
-          "height": 32.0
-        }
-      },
+      null,
       null,
       null,
       null,
@@ -1425,7 +1411,7 @@
       null,
       null
     ],
-    "size": 77,
+    "size": 76,
     "ordered": true
   },
   "removedObjectIds": [
@@ -1441,6 +1427,7 @@
     "Diamond_384_352",
     "Key_320_384",
     "Key_384_448",
+    "HealthPotion_192_512",
     "Tentacle_0_0",
     "Tentacle_0_0",
     "Tentacle_0_0"

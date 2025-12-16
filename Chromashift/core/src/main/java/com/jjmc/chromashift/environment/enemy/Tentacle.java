@@ -573,7 +573,7 @@ public class Tentacle implements Enemy {
     // ===== Enemy Interface Implementation =====
 
     @Override
-    public void takeDamage(int damage) {
+    public void takeDamage(float damage) {
         // Compatibility wrapper: treat any damage as 1 hit
         applyHit(1);
     }
@@ -640,7 +640,7 @@ public class Tentacle implements Enemy {
     }
 
     @Override
-    public int getHealth() { return hitPointsRemaining; }
+    public float getHealth() { return hitPointsRemaining; }
 
     @Override
     public boolean isAlive() { return !dead; }

@@ -2,6 +2,7 @@ package com.jjmc.chromashift.entity.boss;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -32,6 +33,9 @@ public class BossGuardian extends Boss {
         boolean flipX;
         boolean attacking;
         float alpha = 1f; // Visibility control (0-1)
+        // Hit feedback
+        float hitFlashTimer = 0f;
+        private static final float HIT_FLASH_DURATION = 0.15f;
         
         // Actual hitbox dimensions (content within sprite padding)
         float hitboxWidth;
@@ -78,6 +82,7 @@ public class BossGuardian extends Boss {
                 attackAnimator.update(delta);
                 return;
             }
+            if (hitFlashTimer > 0f) hitFlashTimer -= delta;
             idleAnimator.update(delta);
             float bob = (float)Math.sin(globalTime * bobSpeed + bobPhase) * bobAmplitude;
             Vector2 target = new Vector2(bossCenter.x + targetOffset.x, bossCenter.y + targetOffset.y + bob);
@@ -90,9 +95,18 @@ public class BossGuardian extends Boss {
             animator.setFlipX(flipX);
             // Set color with alpha
             Color prevColor = batch.getColor();
-            batch.setColor(prevColor.r, prevColor.g, prevColor.b, prevColor.a * alpha);
+            float outA = prevColor.a * alpha;
+            if (hitFlashTimer > 0f) {
+                batch.setColor(1f, 0.35f, 0.35f, outA);
+            } else {
+                batch.setColor(1f, 1f, 1f, outA);
+            }
             animator.render(batch, position.x - width/2, position.y - height/2, width, height);
             batch.setColor(prevColor); // Restore original color
+        }
+
+        public void triggerHitFlash() {
+            hitFlashTimer = HIT_FLASH_DURATION;
         }
 
         public void startAttack(boolean faceLeft) {
@@ -109,6 +123,7 @@ public class BossGuardian extends Boss {
 
         public void updateAttack(float delta, float animSpeedScale) {
             attackAnimator.update(delta * animSpeedScale);
+            if (hitFlashTimer > 0f) hitFlashTimer -= delta;
         }
 
         public int getAttackFrameIndex() {
@@ -195,6 +210,81 @@ public class BossGuardian extends Boss {
     private final Vector2 boss2Velocity = new Vector2();
     private boolean debugBoss2HitBox = true; // Debug: set true to draw boss2 attack hitbox
     private Rectangle boss2HitboxForDebug = new Rectangle(); // Store for debug rendering
+    // Boss2 (guardian3) damage hitbox config and state
+    private static final float BOSS2_DMG_PAD_LEFT = 80f;
+    private static final float BOSS2_DMG_PAD_RIGHT = 24f;
+    private static final float BOSS2_DMG_PAD_BOTTOM = 24f;
+    private static final int BOSS2_DMG_FRAME_START = 14; // inclusive
+    private static final int BOSS2_DMG_FRAME_END = 16;   // inclusive
+    private boolean boss2DamageAppliedThisAttack = false;
+    private Rectangle boss2DamageRectDebug = new Rectangle();
+
+    // Per-guardian health (for UI display and future targeting). Each starts at 250 HP.
+    private final float[] guardianMaxHealth = new float[] {250f, 250f, 250f};
+    private final float[] guardianHealth = new float[] {250f, 250f, 250f};
+
+    public float getGuardianHealth(int index) {
+        if (index < 1 || index > 3) return 0f;
+        return guardianHealth[index - 1];
+    }
+
+    public float getGuardianMaxHealth(int index) {
+        if (index < 1 || index > 3) return 1f;
+        return guardianMaxHealth[index - 1];
+    }
+
+    // For future use: apply damage to a specific guardian (1..3). Returns true if it died.
+    public boolean damageGuardian(int index, float amount) {
+        if (index < 1 || index > 3) return false;
+        int i = index - 1;
+        float before = guardianHealth[i];
+        guardianHealth[i] = Math.max(0f, guardianHealth[i] - amount);
+        // Simple knockback feedback: nudge guardian away from player and slightly upward when hit
+        if (guardianHealth[i] < before) {
+            float dir = Math.signum(getGuardianCenterX(i+1) - targetX);
+            applyGuardianNudge(i+1, dir * 12f, 4f);
+            triggerGuardianFlash(i+1);
+        }
+        // If died, immediately stop visuals/attacks for that guardian
+        if (guardianHealth[i] <= 0f) {
+            onGuardianDeath(i + 1);
+            return true;
+        }
+        return false;
+    }
+
+    private float getGuardianCenterX(int idx) {
+        switch (idx) {
+            case 1: return guardian1.position.x;
+            case 2: return guardian2.position.x;
+            case 3: return guardian3.position.x;
+            default: return bossCenter.x;
+        }
+    }
+
+    private void triggerGuardianFlash(int idx) {
+        switch (idx) {
+            case 1: guardian1.triggerHitFlash(); break;
+            case 2: guardian2.triggerHitFlash(); break;
+            case 3: guardian3.triggerHitFlash(); break;
+        }
+    }
+    private void applyGuardianNudge(int idx, float dx, float dy) {
+        switch (idx) {
+            case 1:
+                guardian1.position.x += dx;
+                guardian1.position.y += dy;
+                break;
+            case 2:
+                guardian2.position.x += dx;
+                guardian2.position.y += dy;
+                break;
+            case 3:
+                guardian3.position.x += dx;
+                guardian3.position.y += dy;
+                break;
+        }
+    }
     
     // Guardian 2 (Boss1) lightning attack
     private enum Boss1AttackState { FORMATION, MOVING_TO_ATTACK, SUMMONING, COOLDOWN }
@@ -266,6 +356,11 @@ public class BossGuardian extends Boss {
     
     // Debug
     private BitmapFont debugFont;
+    // Defeat state and callback
+    private boolean defeated = false;
+    private Runnable onDefeated = null;
+    // Door spawn Y (configurable) on defeat
+    public float defeatDoorY = 300f;
     
     public BossGuardian() {
         super(1500f); // 1500 health points total (500 per guardian)
@@ -345,6 +440,18 @@ public class BossGuardian extends Boss {
      */
     public void setOnSpawnSequenceComplete(Runnable callback) {
         this.onSpawnSequenceComplete = callback;
+    }
+
+    /**
+     * Set callback invoked once when all three guardians are dead.
+     */
+    public void setOnDefeated(Runnable callback) {
+        this.onDefeated = callback;
+    }
+
+    /** Center position used for spawning door on defeat. */
+    public Vector2 getBossCenter() {
+        return bossCenter;
     }
 
     @Override
@@ -549,6 +656,7 @@ public class BossGuardian extends Boss {
     @Override
     public void update(float delta) {
         super.update(delta);
+        if (defeated) return;
         timeAccum += delta;
         
         // Debug: Force guardian attacks with 1, 2, 3 keys (only if debug enabled)
@@ -589,10 +697,28 @@ public class BossGuardian extends Boss {
         guardian2.flipX = faceLeft;
         guardian3.flipX = faceLeft;
 
-        // Update each guardian
-        guardian1.update(delta, bossCenter, timeAccum);
-        updateBoss1(delta, faceLeft);
-        updateBoss2(delta, faceLeft);
+        // Update each guardian (only if alive). Dead guardians are hidden and attacks disabled.
+        if (guardianHealth[0] > 0f) {
+            guardian1.update(delta, bossCenter, timeAccum);
+        } else {
+            guardian1.attacking = false; guardian1.alpha = 0f;
+        }
+        if (guardianHealth[1] > 0f) {
+            updateBoss1(delta, faceLeft);
+        } else {
+            // Disable lightning/attacks if guardian2 is dead
+            lightningActive = false;
+            boss1State = Boss1AttackState.FORMATION;
+            if (guardian2.attacking) guardian2.stopAttack(faceLeft);
+            guardian2.alpha = 0f;
+        }
+        if (guardianHealth[2] > 0f) {
+            updateBoss2(delta, faceLeft);
+        } else {
+            boss2State = Boss2AttackState.FORMATION;
+            if (guardian3.attacking) guardian3.stopAttack(faceLeft);
+            guardian3.alpha = 0f;
+        }
     }
 
     // Allow screen to set target (player position)
@@ -618,6 +744,7 @@ public class BossGuardian extends Boss {
             boss2AnimSpeedScale = (BOSS2_PLUNGE_FRAME * BOSS2_ATTACK_FRAME_DURATION) / boss2TrackDuration;
             boss2CooldownTimer = boss2AttackCooldown;
             boss2Velocity.setZero();
+            boss2DamageAppliedThisAttack = false;
             guardian3.startAttack(faceLeft);
         }
     }
@@ -788,14 +915,28 @@ public class BossGuardian extends Boss {
                     boss2CommitPosition.set(targetX, targetY); // Commit to current player position
                     boss2CooldownTimer = boss2AttackCooldown;
                     boss2Velocity.setZero();
+                    boss2DamageAppliedThisAttack = false;
                     guardian3.startAttack(faceLeft);
                 }
                 break;
             case TRACKING:
                 guardian3.flipX = faceLeft;
                 guardian3.updateAttack(delta, boss2AnimSpeedScale);
-                
+                // Damage window active during frames [start..end] while tracking
+                {
+                    int frame = guardian3.getAttackFrameIndex();
+                    if (frame >= BOSS2_DMG_FRAME_START && frame <= BOSS2_DMG_FRAME_END) {
+                        Rectangle dmgRect = computeGuardian3DamageRect();
+                        boss2DamageRectDebug.set(dmgRect);
+                        if (!boss2DamageAppliedThisAttack && player != null && player.getHealthSystem() != null && dmgRect.overlaps(player.getHitboxRect())) {
+                            float dmg = Math.max(1f, player.getHealthSystem().getCurrentHealth() * 0.25f);
+                            boolean applied = player.getHealthSystem().damage(dmg, this);
+                            if (applied) boss2DamageAppliedThisAttack = true;
+                        }
+                    }
+                }
                 // At frame 14, stop X movement and commit position
+                // Damage window active during frames [start..end]; only set the flag when a hit actually applies
                 if (guardian3.getAttackFrameIndex() >= BOSS2_PLUNGE_FRAME) {
                     // Commit current position for plunge
                     boss2CommitPosition.set(guardian3.position.x, guardian3.position.y);
@@ -813,6 +954,19 @@ public class BossGuardian extends Boss {
                 guardian3.updateAttack(delta, boss2AnimSpeedScale);
                 guardian3.position.x = boss2CommitPosition.x;
                 guardian3.position.y += boss2Velocity.y * delta;
+                // Apply damage window AFTER movement so rect stays attached to sprite; set flag only on successful hit
+                {
+                    int frame = guardian3.getAttackFrameIndex();
+                    if (frame >= BOSS2_DMG_FRAME_START && frame <= BOSS2_DMG_FRAME_END) {
+                        Rectangle dmgRect = computeGuardian3DamageRect();
+                        boss2DamageRectDebug.set(dmgRect);
+                        if (!boss2DamageAppliedThisAttack && player != null && player.getHealthSystem() != null && dmgRect.overlaps(player.getHitboxRect())) {
+                            float dmg = Math.max(1f, player.getHealthSystem().getCurrentHealth() * 0.25f);
+                            boolean applied = player.getHealthSystem().damage(dmg, this);
+                            if (applied) boss2DamageAppliedThisAttack = true;
+                        }
+                    }
+                }
                 
                 // Use guardian3's actual hitbox for wall collision
                 Rectangle guardian3Hitbox = guardian3.getHitbox();
@@ -858,9 +1012,29 @@ public class BossGuardian extends Boss {
                     boss2State = Boss2AttackState.FORMATION;
                     boss2CooldownTimer = boss2AttackCooldown;
                     guardian3.stopAttack(faceLeft);
+                    boss2DamageAppliedThisAttack = false;
                 }
                 break;
         }
+    }
+
+    // Compute Guardian3 damage rect on the specified attack frame with flip-aware paddings
+    private Rectangle computeGuardian3DamageRect() {
+        float spriteLeft = guardian3.position.x - guardian3.width / 2f;
+        float spriteBottom = guardian3.position.y - guardian3.height / 2f;
+        float x;
+        float width;
+        if (guardian3.flipX) {
+            // Swap left/right paddings when flipped
+            x = spriteLeft + BOSS2_DMG_PAD_RIGHT;
+            width = guardian3.width - BOSS2_DMG_PAD_RIGHT - BOSS2_DMG_PAD_LEFT;
+        } else {
+            x = spriteLeft + BOSS2_DMG_PAD_LEFT;
+            width = guardian3.width - BOSS2_DMG_PAD_LEFT - BOSS2_DMG_PAD_RIGHT;
+        }
+        float y = spriteBottom + BOSS2_DMG_PAD_BOTTOM;
+        float height = guardian3.height - BOSS2_DMG_PAD_BOTTOM; // no extra top padding specified
+        return new Rectangle(x, y, width, height);
     }
     
     private void updateTrianglePositions() {
@@ -958,10 +1132,16 @@ public class BossGuardian extends Boss {
     
     @Override
     public void render(SpriteBatch batch) {
+        if (defeated) return;
+        // Ensure we start from a neutral color to avoid leaking tints to other renders
+        Color prev = batch.getColor();
+        batch.setColor(1f, 1f, 1f, 1f);
         // Render guardians
-        guardian1.render(batch);
-        guardian2.render(batch);
-        guardian3.render(batch);
+        if (guardianHealth[0] > 0f) guardian1.render(batch);
+        if (guardianHealth[1] > 0f) guardian2.render(batch);
+        if (guardianHealth[2] > 0f) guardian3.render(batch);
+        // Restore prior color
+        batch.setColor(prev);
         
         // Render lightning effects if active
         if (lightningActive && lightningAnimator != null) {
@@ -1017,6 +1197,15 @@ public class BossGuardian extends Boss {
             shape.rect(boss2HitboxForDebug.x, boss2HitboxForDebug.y, 
                       boss2HitboxForDebug.width, boss2HitboxForDebug.height);
         }
+        // Debug: Draw guardian3 damage rect during active frames (compute live so it follows sprite)
+        if (guardian3.attacking) {
+            int f = guardian3.getAttackFrameIndex();
+            if (f >= BOSS2_DMG_FRAME_START && f <= BOSS2_DMG_FRAME_END) {
+                Rectangle liveRect = computeGuardian3DamageRect();
+                shape.setColor(new Color(1f, 0.3f, 0.3f, 0.8f));
+                shape.rect(liveRect.x, liveRect.y, liveRect.width, liveRect.height);
+            }
+        }
         
         // Debug: Draw lightning damage hitboxes (cyan with light transparency)
         if (lightningActive && randomLightningPositions.size() > 0) {
@@ -1054,40 +1243,103 @@ public class BossGuardian extends Boss {
      * Call this after shape.end() and batch.begin().
      */
     public void renderDebugText(SpriteBatch batch) {
+        renderDebugText(batch, null);
+    }
+
+    public void renderDebugText(SpriteBatch batch, OrthographicCamera camera) {
         if (!debugDisplay || debugFont == null) return;
-        
+
+        float left = 10f;
+        float top;
+        if (camera != null) {
+            float camLeft = camera.position.x - camera.viewportWidth / 2f;
+            float camTop = camera.position.y + camera.viewportHeight / 2f;
+            left = camLeft + 10f;
+            top = camTop - 10f;
+        } else {
+            top = Gdx.graphics.getHeight() - 10f;
+        }
+
+        float y = top-150;
+        float line = 18f;
         debugFont.setColor(Color.WHITE);
-        float y = 100f;
-        float lineHeight = 20f;
-        
-        debugFont.draw(batch, "BossGuardian Debug", 10f, y);
-        y -= lineHeight;
-        debugFont.draw(batch, "Center: " + String.format("(%.1f, %.1f)", bossCenter.x, bossCenter.y), 10f, y);
-        y -= lineHeight;
-        debugFont.draw(batch, "Target: " + String.format("(%.1f, %.1f)", targetX, targetY), 10f, y);
-        y -= lineHeight;
-        debugFont.draw(batch, "Boss2 State: " + boss2State, 10f, y);
-        y -= lineHeight;
-        debugFont.draw(batch, "Boss2 Frame: " + guardian3.getAttackFrameIndex(), 10f, y);
-        y -= lineHeight;
-        debugFont.draw(batch, "Boss2 Cooldown: " + String.format("%.2f", boss2CooldownTimer), 10f, y);
-        y -= lineHeight;
-        debugFont.draw(batch, "G1 Attacking: " + guardian1.attacking, 10f, y);
-        y -= lineHeight;
-        debugFont.draw(batch, "G2 Attacking: " + guardian2.attacking, 10f, y);
-        y -= lineHeight;
-        debugFont.draw(batch, "G3 Attacking: " + guardian3.attacking, 10f, y);
+        debugFont.draw(batch, "BossGuardian Debug", left, y); y -= line;
+        debugFont.draw(batch, String.format("Center:(%.1f,%.1f)  Target:(%.1f,%.1f)", bossCenter.x, bossCenter.y, targetX, targetY), left, y); y -= line;
+        debugFont.draw(batch, String.format("G1 HP: %.0f/%.0f  Att:%s  Frame:%d  Flip:%s  Pos:(%.0f,%.0f)",
+                guardianHealth[0], guardianMaxHealth[0], guardian1.attacking, guardian1.attacking ? guardian1.getAttackFrameIndex() : guardian1.idleAnimator.getCurrentFrameIndex(), guardian1.flipX, guardian1.position.x, guardian1.position.y), left, y); y -= line;
+        debugFont.draw(batch, String.format("G2 HP: %.0f/%.0f  Att:%s  Frame:%d  Flip:%s  Pos:(%.0f,%.0f)",
+                guardianHealth[1], guardianMaxHealth[1], guardian2.attacking, guardian2.attacking ? guardian2.getAttackFrameIndex() : guardian2.idleAnimator.getCurrentFrameIndex(), guardian2.flipX, guardian2.position.x, guardian2.position.y), left, y); y -= line;
+        debugFont.draw(batch, String.format("G3 HP: %.0f/%.0f  Att:%s  Frame:%d  Flip:%s  Pos:(%.0f,%.0f)  State:%s  CD:%.2f",
+                guardianHealth[2], guardianMaxHealth[2], guardian3.attacking, guardian3.attacking ? guardian3.getAttackFrameIndex() : guardian3.idleAnimator.getCurrentFrameIndex(), guardian3.flipX, guardian3.position.x, guardian3.position.y, boss2State, boss2CooldownTimer), left, y); y -= line;
         
     }
     
     public Rectangle getHitbox() {
-        // Combined hitbox covering all three guardians
-        float minX = Math.min(guardian1.position.x, Math.min(guardian2.position.x, guardian3.position.x));
-        float maxX = Math.max(guardian1.position.x, Math.max(guardian2.position.x, guardian3.position.x));
-        float minY = Math.min(guardian1.position.y, Math.min(guardian2.position.y, guardian3.position.y));
-        float maxY = Math.max(guardian1.position.y, Math.max(guardian2.position.y, guardian3.position.y));
-        
-        return new Rectangle(minX - 150f, minY - 150f, maxX - minX + 300f, maxY - minY + 300f);
+        // Combined hitbox covering only alive guardians
+        java.util.List<Vector2> alive = new java.util.ArrayList<Vector2>(3);
+        if (guardianHealth[0] > 0f) alive.add(guardian1.position);
+        if (guardianHealth[1] > 0f) alive.add(guardian2.position);
+        if (guardianHealth[2] > 0f) alive.add(guardian3.position);
+        if (alive.isEmpty()) return new Rectangle(0, 0, 0, 0);
+        float minX = alive.get(0).x, maxX = alive.get(0).x, minY = alive.get(0).y, maxY = alive.get(0).y;
+        for (Vector2 p : alive) {
+            if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+        }
+        return new Rectangle(minX - 150f, minY - 150f, (maxX - minX) + 300f, (maxY - minY) + 300f);
+    }
+
+    // Expose individual guardian content hitboxes for targeting (copies to avoid aliasing)
+    public Rectangle getGuardianHitbox(int index) {
+        switch (index) {
+            case 1: {
+                if (guardianHealth[0] <= 0f) return null;
+                Rectangle r = guardian1.getHitbox();
+                return new Rectangle(r.x, r.y, r.width, r.height);
+            }
+            case 2: {
+                if (guardianHealth[1] <= 0f) return null;
+                Rectangle r = guardian2.getHitbox();
+                return new Rectangle(r.x, r.y, r.width, r.height);
+            }
+            case 3: {
+                if (guardianHealth[2] <= 0f) return null;
+                Rectangle r = guardian3.getHitbox();
+                return new Rectangle(r.x, r.y, r.width, r.height);
+            }
+            default:
+                return null;
+        }
+    }
+
+    private void onGuardianDeath(int idx) {
+        // Hide and stop any active attacks for the dead guardian
+        switch (idx) {
+            case 1:
+                guardian1.alpha = 0f;
+                guardian1.attacking = false;
+                break;
+            case 2:
+                guardian2.alpha = 0f;
+                if (guardian2.attacking) guardian2.stopAttack(targetX < bossCenter.x);
+                lightningActive = false;
+                boss1State = Boss1AttackState.FORMATION;
+                break;
+            case 3:
+                guardian3.alpha = 0f;
+                if (guardian3.attacking) guardian3.stopAttack(targetX < bossCenter.x);
+                boss2State = Boss2AttackState.FORMATION;
+                boss2Velocity.setZero();
+                break;
+        }
+        // If all guardians are dead, mark boss defeated and notify
+        if (guardianHealth[0] <= 0f && guardianHealth[1] <= 0f && guardianHealth[2] <= 0f) {
+            if (!defeated) {
+                defeated = true;
+                try { getHealthSystem().kill(this); } catch (Throwable ignored) {}
+                try { if (onDefeated != null) onDefeated.run(); } catch (Throwable ignored) {}
+            }
+        }
     }
     
     public void dispose() {

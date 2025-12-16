@@ -55,6 +55,14 @@ public class GameSceneScreen implements Screen {
 
     private Array<Wall> walls;
     private Array<Interactable> interactables;
+    // Track the most recently spawned portal for camera panning during spawn
+    private com.jjmc.chromashift.environment.interactable.Portal spawnedPortal;
+    // Camera easing from portal back to player
+    private boolean easingFromPortal = false;
+    private float portalEaseRemaining = 0f;
+    private float portalEaseDuration = 0.6f;
+    private com.badlogic.gdx.math.Vector2 portalEaseStart = new com.badlogic.gdx.math.Vector2();
+    private boolean lastPortalWasSpawning = false;
     private Array<Solid> solids;
     private Array<com.jjmc.chromashift.environment.collectible.Collectible> collectibles;
     private Array<com.jjmc.chromashift.environment.interactable.Shop> shops;
@@ -72,10 +80,9 @@ public class GameSceneScreen implements Screen {
     private float groundY = -64f;
 
     // Current level path for save/load and visited levels tracking
-    private String currentLevelPath = "levels/bossroom.json";
+    private String currentLevelPath = "levels/level1.json";
     public Array<String> visitedLevels = new Array<>();
-    private com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode loadMode =
-        com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL;
+    private com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode loadMode = com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL;
     // Camera zoom settings
     private float desiredZoom = .8f;// <1 = zoom in a bit
     private float zoomLerpSpeed = 5f; // how fast camera zooms to target
@@ -85,15 +92,26 @@ public class GameSceneScreen implements Screen {
     private Array<com.jjmc.chromashift.environment.enemy.TentacleCapture> tentacleCaptures;
     // Cache enemies list so we can perform a post-tentacle-update collision pass.
     private Array<com.jjmc.chromashift.environment.enemy.Enemy> enemies;
-    
+
     // Level loading system
     private com.jjmc.chromashift.screens.levels.LevelLoadingManager loadingManager;
     private com.jjmc.chromashift.screens.levels.LoadingOverlay loadingOverlay;
     private boolean gameplayEnabled = false;
+    // Pause menu state and dialogs
+    private boolean paused = false;
+    private com.badlogic.gdx.scenes.scene2d.ui.Dialog pauseDialog;
+    private com.badlogic.gdx.scenes.scene2d.ui.Dialog settingsDialog;
+
+    // HUD layout constants
+    private final int HUD_BAR_WIDTH = 220;
+    private final int HUD_BAR_HEIGHT = 16;
+    private final int HUD_BAR_GAP = 18;
+    private final int HUD_MARGIN_TOP = 36;
+    private final int HUD_NAME_OFFSET_Y = 18;
 
     // Constructor with default level (NEW GAME - always load original)
     public GameSceneScreen() {
-        this("levels/level1.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+        this("levels/bossroom.json", com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
         try {
             font = new BitmapFont(Gdx.files.internal("ui/default.fnt"));
         } catch (Exception e) {
@@ -115,12 +133,18 @@ public class GameSceneScreen implements Screen {
     @Override
     public void show() {
         // Detach any previous UI Stage (e.g., menu) so its actors stop receiving input
-        try { Gdx.input.setInputProcessor(null); } catch (Throwable ignored) {}
+        try {
+            Gdx.input.setInputProcessor(null);
+        } catch (Throwable ignored) {
+        }
         // Reset editor flags when entering game mode
         com.jjmc.chromashift.environment.interactable.Box.EDITOR_DELETE_MODE = false;
         com.jjmc.chromashift.environment.interactable.Orb.EDITOR_DELETE_MODE = false;
         // Enable gameplay-only visibility culling
-        try { com.chromashift.helper.VisibilityCuller.setEnabled(true); } catch (Throwable ignored) {}
+        try {
+            com.chromashift.helper.VisibilityCuller.setEnabled(true);
+        } catch (Throwable ignored) {
+        }
 
         // Use Initialize helper to create common systems
         ctx = Initialize.createCommon(500, 180, null);
@@ -129,18 +153,19 @@ public class GameSceneScreen implements Screen {
         batch = ctx.batch;
         shape = ctx.shape;
         font = ctx.font;
-        
+
         // Initialize loading system
         loadingManager = new com.jjmc.chromashift.screens.levels.LevelLoadingManager();
         loadingOverlay = new com.jjmc.chromashift.screens.levels.LoadingOverlay(
-            loadingManager, batch, shape, font, new com.badlogic.gdx.utils.viewport.ScreenViewport());
+                loadingManager, batch, shape, font, new com.badlogic.gdx.utils.viewport.ScreenViewport());
         gameplayEnabled = false;
-        
+
         // Initialize background animator for bossroom levels
         backgroundAnimator = null;
 
         // Load everything via the unified LevelLoader
-        // Track current level and mark visited for save/load (use currentLevelPath from constructor)
+        // Track current level and mark visited for save/load (use currentLevelPath from
+        // constructor)
         this.visitedLevels.clear();
         this.visitedLevels.add(currentLevelPath);
         // Prefer workspace copy when available so editor changes (door speeds, links)
@@ -190,13 +215,40 @@ public class GameSceneScreen implements Screen {
             Wall base = (walls.size > 0) ? walls.first() : new Wall(0, groundY, 10, 1);
             bossGuardian.setPosition(base.bounds.x + base.bounds.width / 2f, base.bounds.y + base.bounds.height + 400f);
             bossGuardian.setEnvironment(solids, walls);
-            
+            // Remove boss and its enemy adapters once all guardians are dead
+            bossGuardian.setOnDefeated(() -> {
+                Gdx.app.postRunnable(() -> {
+                    if (enemies != null) {
+                        for (int i = enemies.size - 1; i >= 0; i--) {
+                            if (enemies.get(i) instanceof com.jjmc.chromashift.environment.enemy.BossGuardianEnemyAdapter) {
+                                enemies.removeIndex(i);
+                            }
+                        }
+                    }
+                    // Spawn a new portal at boss center with configurable Y
+                    try {
+                        com.jjmc.chromashift.environment.interactable.Portal portal =
+                                new com.jjmc.chromashift.environment.interactable.Portal(
+                                        bossGuardian.getBossCenter().x,
+                                        bossGuardian.defeatDoorY+25);
+                        // Start in spawning animation state and pan camera to it
+                        portal.setState(com.jjmc.chromashift.environment.interactable.Portal.PortalState.SPAWNING);
+                        // Hook level progression
+                        portal.setOnPlayerEnter(() -> advanceToNextLevel());
+                        interactables.add(portal);
+                        spawnedPortal = portal;
+                        lastPortalWasSpawning = true;
+                    } catch (Exception ignored) {}
+                    bossGuardian = null;
+                });
+            });
+
             // Setup spawn sequence completion callback
             bossGuardian.setOnSpawnSequenceComplete(() -> {
                 gameplayEnabled = true;
                 Gdx.app.log("TestSceneScreen", "BossGuardian spawn sequence complete - fight begins!");
             });
-            
+
             // Start spawn sequence
             bossGuardian.startSpawn();
             gameplayEnabled = false; // Disable gameplay until spawn completes
@@ -226,7 +278,8 @@ public class GameSceneScreen implements Screen {
         try {
             String preferredName = com.jjmc.chromashift.database.PlayerDAO.loadPreferredColor(1);
             if (preferredName != null && !preferredName.isEmpty()) {
-                com.jjmc.chromashift.player.PlayerType pt = com.jjmc.chromashift.player.PlayerType.fromName(preferredName);
+                com.jjmc.chromashift.player.PlayerType pt = com.jjmc.chromashift.player.PlayerType
+                        .fromName(preferredName);
                 player.setType(pt);
                 Gdx.app.log("TestSceneScreen", "Applied preferred player color: " + preferredName);
             }
@@ -236,14 +289,15 @@ public class GameSceneScreen implements Screen {
         player.setRespawnPoint(player.getX(), player.getY());
         playerSpawnX = player.getX();
         playerSpawnY = player.getY();
-        
-        // Load saves only for continue flows; for new-game flows, clear any prior save first
+
+        // Load saves only for continue flows; for new-game flows, clear any prior save
+        // first
         if (loadMode == com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS) {
             try {
                 com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
                 // Also restore visited levels
-                com.badlogic.gdx.utils.Array<String> loadedVisited = 
-                    com.jjmc.chromashift.database.PlayerDAO.loadVisitedLevelsFromDB(1);
+                com.badlogic.gdx.utils.Array<String> loadedVisited = com.jjmc.chromashift.database.PlayerDAO
+                        .loadVisitedLevelsFromDB(1);
                 if (loadedVisited != null && loadedVisited.size > 0) {
                     this.visitedLevels.clear();
                     this.visitedLevels.addAll(loadedVisited);
@@ -263,7 +317,7 @@ public class GameSceneScreen implements Screen {
                 // If delete fails, continue with default new player
             }
         }
-        
+
         // Set player reference in boss if it's BossGuardian
         if (bossGuardian != null) {
             bossGuardian.setPlayer(player);
@@ -304,22 +358,28 @@ public class GameSceneScreen implements Screen {
         }
 
         // Set up enemy tracking for player melee attacks (store in field for later use)
-        enemies = new Array<>();
-        for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
-            enemies.add(t);
-        }
+                enemies = new Array<>();
+                for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
+                    enemies.add(t);
+                }
+                // Add BossGuardian's three guardians as enemies for attack/projectile collision
+                if (bossGuardian != null) {
+                    enemies.add(new com.jjmc.chromashift.environment.enemy.BossGuardianEnemyAdapter(bossGuardian, 1));
+                    enemies.add(new com.jjmc.chromashift.environment.enemy.BossGuardianEnemyAdapter(bossGuardian, 2));
+                    enemies.add(new com.jjmc.chromashift.environment.enemy.BossGuardianEnemyAdapter(bossGuardian, 3));
+                }
         player.setEnemies(enemies);
-        
+
         // Wire portal callbacks for level progression
         for (int i = 0; i < interactables.size; i++) {
             if (interactables.get(i) instanceof com.jjmc.chromashift.environment.interactable.Portal portal) {
                 portal.setOnPlayerEnter(() -> advanceToNextLevel());
             }
         }
-        
+
         // Register all objects with loading manager
         registerLoadableObjects();
-        
+
         // Start loading sequence
         loadingManager.setOnLoadingComplete(() -> {
             gameplayEnabled = true;
@@ -327,36 +387,36 @@ public class GameSceneScreen implements Screen {
         });
         loadingManager.startLoading();
     }
-    
+
     /**
      * Register all level objects with the loading manager.
      */
     private void registerLoadableObjects() {
         // Register environment (walls, solids, interactables, collectibles)
         loadingManager.registerLoadableObject(
-            new com.jjmc.chromashift.screens.levels.LoadableEnvironment(
-                "Environment", walls, solids, interactables, collectibles));
-        
+                new com.jjmc.chromashift.screens.levels.LoadableEnvironment(
+                        "Environment", walls, solids, interactables, collectibles));
+
         // Register enemies
         if (tentacles != null && tentacles.size > 0) {
             loadingManager.registerLoadableObject(
-                new com.jjmc.chromashift.screens.levels.LoadableEnemies(tentacles));
+                    new com.jjmc.chromashift.screens.levels.LoadableEnemies(tentacles));
         }
-        
+
         // Register boss
         if (boss != null) {
             loadingManager.registerLoadableObject(
-                new com.jjmc.chromashift.screens.levels.LoadableBoss(boss));
+                    new com.jjmc.chromashift.screens.levels.LoadableBoss(boss));
         }
         if (bossGuardian != null) {
             loadingManager.registerLoadableObject(
-                new com.jjmc.chromashift.screens.levels.LoadableBoss(bossGuardian));
+                    new com.jjmc.chromashift.screens.levels.LoadableBoss(bossGuardian));
         }
-        
+
         // Register player (last so everything is ready when player activates)
         if (player != null) {
             loadingManager.registerLoadableObject(
-                new com.jjmc.chromashift.screens.levels.LoadablePlayer(player));
+                    new com.jjmc.chromashift.screens.levels.LoadablePlayer(player));
         }
     }
 
@@ -366,20 +426,21 @@ public class GameSceneScreen implements Screen {
         if (loadingManager != null && !loadingManager.isReady()) {
             loadingManager.update(delta);
         }
-        
+
         // Update background animator if present
         if (backgroundAnimator != null) {
             backgroundAnimator.update(delta);
         }
-        
-        // Basic input: ESC returns to test menu (always allow escape)
+
+        // ESC opens in-game menu instead of going to main menu
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            // Autosave before returning to menu
-            saveAllState(currentLevelPath);
-            ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new MainMenuScreen());
-            return;
+            if (paused) {
+                hidePauseMenu();
+            } else {
+                showPauseMenu();
+            }
         }
-        
+
         // Skip gameplay updates during loading
         if (!gameplayEnabled || (loadingManager != null && !loadingManager.isReady())) {
             renderLoadingScreen(delta);
@@ -387,17 +448,17 @@ public class GameSceneScreen implements Screen {
         }
 
         // Respawn player to initial spawn with R
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            player.respawn();
-            if (spawnMarker != null) {
-                spawnMarker.setPosition(playerSpawnX, playerSpawnY);
-                spawnMarker.playOnce();
-            }
-            // Reset tentacle capture states on respawn
-            for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
-                t.setPlayerCaptured(false);
-            }
-        }
+        // if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+        // player.respawn();
+        // if (spawnMarker != null) {
+        // spawnMarker.setPosition(playerSpawnX, playerSpawnY);
+        // spawnMarker.playOnce();
+        // }
+        // // Reset tentacle capture states on respawn
+        // for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
+        // t.setPlayerCaptured(false);
+        // }
+        // }
 
         // Quick save/load: F11 = save, F12 = load (via DAO)
         try {
@@ -409,17 +470,20 @@ public class GameSceneScreen implements Screen {
                     // Player doesn't exist, create it
                     try {
                         System.out.println("[DEBUG] Creating default player record");
+
                         com.jjmc.chromashift.database.PlayerDAO.createPlayer("DefaultPlayer", currentLevelPath);
                     } catch (Exception ex2) {
                         System.err.println("[ERROR] Failed to create player: " + ex2.getMessage());
                     }
                 }
-                
+
                 // Save player state to database
-                com.jjmc.chromashift.player.PlayerIO.PlayerState state = com.jjmc.chromashift.player.PlayerIO.capture(player, currentLevelPath, visitedLevels);
+                com.jjmc.chromashift.player.PlayerIO.PlayerState state = com.jjmc.chromashift.player.PlayerIO
+                        .capture(player, currentLevelPath, visitedLevels);
                 try {
                     System.out.println("[DEBUG] Attempting to save player state for ID: 1");
-                    System.out.println("[DEBUG] Player state: x=" + state.x + ", y=" + state.y + ", diamonds=" + state.diamonds);
+                    System.out.println(
+                            "[DEBUG] Player state: x=" + state.x + ", y=" + state.y + ", diamonds=" + state.diamonds);
                     com.jjmc.chromashift.database.PlayerDAO.savePlayerState(1, state);
                     System.out.println("[DEBUG] Save completed successfully");
                     Gdx.app.log("TestSceneScreen", "✓ Player save saved to database");
@@ -436,32 +500,35 @@ public class GameSceneScreen implements Screen {
                 result.collectibles.addAll(collectibles);
                 result.tentacles.addAll(tentacles);
                 result.boss = (boss != null) ? boss : bossGuardian;
-                boolean levelOk = com.jjmc.chromashift.screens.levels.GameLevelSave.saveLevelOverrides(currentLevelPath, result);
+                boolean levelOk = com.jjmc.chromashift.screens.levels.GameLevelSave.saveLevelOverrides(currentLevelPath,
+                        result);
                 Gdx.app.log("TestSceneScreen", "Level state " + (levelOk ? "saved" : "failed"));
             }
             if (Gdx.input.isKeyJustPressed(Input.Keys.F12)) {
                 try {
                     System.out.println("[DEBUG] Attempting to load player state for ID: 1");
                     com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
-                    
+
                     // Also restore visited levels
-                    com.badlogic.gdx.utils.Array<String> loadedVisited = 
-                        com.jjmc.chromashift.database.PlayerDAO.loadVisitedLevelsFromDB(1);
+                    com.badlogic.gdx.utils.Array<String> loadedVisited = com.jjmc.chromashift.database.PlayerDAO
+                            .loadVisitedLevelsFromDB(1);
                     if (loadedVisited != null && loadedVisited.size > 0) {
                         visitedLevels.clear();
                         visitedLevels.addAll(loadedVisited);
                         System.out.println("[DEBUG] Restored " + visitedLevels.size + " visited levels");
                     }
-                    
+
                     System.out.println("[DEBUG] Load completed successfully");
-                    Gdx.app.log("TestSceneScreen", "✓ Player loaded from database with " + visitedLevels.size + " visited levels");
+                    Gdx.app.log("TestSceneScreen",
+                            "✓ Player loaded from database with " + visitedLevels.size + " visited levels");
                 } catch (Exception ex) {
                     System.err.println("[ERROR] Failed to load player: " + ex.getMessage());
                     ex.printStackTrace();
                     Gdx.app.error("TestSceneScreen", "Failed to load player: " + ex.getMessage());
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // First update non-button interactables
         Array<Rectangle> objectBounds = new Array<>();
@@ -520,12 +587,15 @@ public class GameSceneScreen implements Screen {
         // Player update
         player.update(delta, groundY, solids, interactables, 1);
 
-        // Update Tentacle System (physics & capture applied AFTER player attack activation)
+        // Update Tentacle System (physics & capture applied AFTER player attack
+        // activation)
         for (com.jjmc.chromashift.environment.enemy.TentacleCapture tc : tentacleCaptures) {
             tc.update(delta);
         }
-        // Perform a second collision check now that tentacle segment positions are freshly updated.
-        // This fixes ordering issue where Player updated (and attacked) before Tentacle updated its segment hitboxes.
+        // Perform a second collision check now that tentacle segment positions are
+        // freshly updated.
+        // This fixes ordering issue where Player updated (and attacked) before Tentacle
+        // updated its segment hitboxes.
         if (player.getAttackHitbox() != null && player.getAttackHitbox().isActive()) {
             player.getAttackHitbox().checkEnemyCollisions(enemies);
         }
@@ -555,7 +625,7 @@ public class GameSceneScreen implements Screen {
         // Boss update - set target to player position
         if (boss != null) {
             boss.setTarget(player.getX() + player.getHitboxWidth() / 2, player.getY() + player.getHitboxHeight() / 2);
-            
+
             // Check if player is in any trigger zone and notify boss
             // Also find trigger_6 to set as boundary zone
             String activeTrigger = null;
@@ -564,14 +634,15 @@ public class GameSceneScreen implements Screen {
                 Interactable it = interactables.get(i);
                 if (it instanceof com.jjmc.chromashift.environment.TriggerZone tz) {
                     String triggerId = tz.getId();
-                    
-                    // Set trigger_6 as boundary zone (only needs to be done once but harmless to repeat)
+
+                    // Set trigger_6 as boundary zone (only needs to be done once but harmless to
+                    // repeat)
                     if ("trigger_6".equalsIgnoreCase(triggerId) && tz.getBounds() != null) {
                         boss.setTrigger6Bounds(tz.getBounds());
                         // Don't set trigger_6 as active trigger - it's boundary only
                         continue;
                     }
-                    
+
                     // Check if player is in this trigger (excluding trigger_6)
                     if (tz.getBounds() != null && tz.getBounds().overlaps(playerRect)) {
                         activeTrigger = triggerId;
@@ -580,13 +651,14 @@ public class GameSceneScreen implements Screen {
                 }
             }
             boss.setActiveTriggerZone(activeTrigger);
-            
+
             boss.update(delta);
         }
-        
+
         // BossGuardian update (skip if currently spawning)
         if (bossGuardian != null && !bossGuardian.isSpawning()) {
-            bossGuardian.setTarget(player.getX() + player.getHitboxWidth() / 2, player.getY() + player.getHitboxHeight() / 2);
+            bossGuardian.setTarget(player.getX() + player.getHitboxWidth() / 2,
+                    player.getY() + player.getHitboxHeight() / 2);
             bossGuardian.update(delta);
         } else if (bossGuardian != null && bossGuardian.isSpawning()) {
             // Update spawn sequence (handled in boss.update() during spawn)
@@ -627,6 +699,37 @@ public class GameSceneScreen implements Screen {
             // Apply spawn zoom
             float spawnZoom = bossGuardian.getSpawnCameraZoom();
             camController.setTargetZoom(spawnZoom, 0.1f);
+        } else if (spawnedPortal != null && spawnedPortal.isSpawning()) {
+            // Pan camera to spawned portal while it is spawning
+            Rectangle pb = spawnedPortal.getBounds();
+            Vector3 portalPos = new Vector3(pb.x + pb.width / 2f, (pb.y + pb.height / 2f), 0);
+            camController.lockCamera(portalPos);
+            // Slight zoom-in during portal spawn
+            camController.setTargetZoom(.9f, 0.2f);
+            lastPortalWasSpawning = true;
+        } else if (spawnedPortal != null && lastPortalWasSpawning && spawnedPortal.isActive() && !easingFromPortal) {
+            // Portal finished spawning; begin easing back to player
+            Rectangle pb = spawnedPortal.getBounds();
+            portalEaseStart.set(pb.x + pb.width / 2f, pb.y + pb.height / 2f);
+            portalEaseRemaining = portalEaseDuration;
+            easingFromPortal = true;
+            lastPortalWasSpawning = false;
+        } else if (easingFromPortal) {
+            // Ease camera position from portal to player over duration
+            portalEaseRemaining = Math.max(0f, portalEaseRemaining - delta);
+            float t = 1f - (portalEaseRemaining / portalEaseDuration);
+            Vector2 playerCenter = new Vector2(player.getX() + player.getHitboxWidth() / 2f,
+                    player.getY() + player.getHitboxHeight() / 2f);
+            float easedX = portalEaseStart.x + (playerCenter.x - portalEaseStart.x) * t;
+            float easedY = portalEaseStart.y + (playerCenter.y - portalEaseStart.y) * t;
+            camController.lockCamera(new Vector3(easedX, easedY, 0));
+            // Ease zoom from near-portal (0.9) to desiredZoom
+            float easedZoom = 0.9f + (desiredZoom - 0.9f) * t;
+            camController.setTargetZoom(easedZoom, 0.2f);
+            if (portalEaseRemaining <= 0f) {
+                easingFromPortal = false;
+                spawnedPortal = null;
+            }
         } else {
             // Normal gameplay - follow player
             camController.unlockCamera();
@@ -634,8 +737,9 @@ public class GameSceneScreen implements Screen {
                     player.getY() + player.getHitboxHeight() / 2f);
             camController.setTarget(playerCenter);
             camController.setTargetZoom(desiredZoom, zoomLerpSpeed);
+            camController.setZoom(desiredZoom);
         }
-        
+
         camController.update(delta);
 
         // Smoothly adjust camera zoom toward desiredZoom so view focuses slightly on
@@ -649,7 +753,8 @@ public class GameSceneScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         shape.setProjectionMatrix(camController.getCamera().combined);
-        // Draw Tentacles (behind everything or in front? Let's draw behind player but in
+        // Draw Tentacles (behind everything or in front? Let's draw behind player but
+        // in
         // front of walls)
         // Actually, ShapeRenderer needs begin/end.
         // The existing code ends 'shape' before batch.begin().
@@ -661,7 +766,7 @@ public class GameSceneScreen implements Screen {
 
         batch.setProjectionMatrix(camController.getCamera().combined);
         batch.begin();
-        
+
         // Render background first (behind everything) using SpriteAnimator
         if (backgroundAnimator != null) {
             batch.setColor(1f, 1f, 1f, 1f); // Ensure full white color (no tint)
@@ -684,14 +789,19 @@ public class GameSceneScreen implements Screen {
                 spawnMarker.render(batch);
             }
         }
-        // Render boss between environment and player so it appears above environment but behind player
-        if (boss != null) {
-            boss.render(batch);
-        }
-        if (bossGuardian != null) {
-            bossGuardian.render(batch);
-        }
-        player.render(batch);
+        // Render boss between environment and player so it appears above environment
+        // but behind player
+                                        if (boss != null) {
+                                            batch.setColor(1f,1f,1f,1f);
+                                            boss.render(batch);
+                                        }
+                                        if (bossGuardian != null) {
+                                            batch.setColor(1f,1f,1f,1f);
+                                            bossGuardian.render(batch);
+                                        }
+                                        // Ensure neutral color before rendering player and any UI drawn with this batch
+                                        batch.setColor(1f,1f,1f,1f);
+                                        player.render(batch);
 
         // // Draw debug UI with clean layout
         // float baseX = camController.getCamera().position.x - 480 + 8; // Left align
@@ -766,6 +876,11 @@ public class GameSceneScreen implements Screen {
         }
         batch.end();
 
+        // HUD: Boss Guardian health bars (top-center)
+        if (bossGuardian != null) {
+            renderBossGuardianHud();
+        }
+
         // Update and draw UI stage for shop dialogs
         uiStage.act(delta);
         uiStage.draw();
@@ -784,7 +899,7 @@ public class GameSceneScreen implements Screen {
             for (Interactable i : interactables)
                 i.debugDraw(shape);
             player.debugDrawHitbox(shape);
-            
+
             // Draw BossGuardian debug info
             if (bossGuardian != null) {
                 bossGuardian.renderDebug(shape);
@@ -792,7 +907,8 @@ public class GameSceneScreen implements Screen {
 
             // Draw tentacle segment hitboxes and curl detection
             for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
-                if (!t.isAlive()) continue;
+                if (!t.isAlive())
+                    continue;
 
                 // Draw segment hitboxes (cyan circles)
                 shape.setColor(new Color(0f, 1f, 1f, 0.5f));
@@ -849,7 +965,7 @@ public class GameSceneScreen implements Screen {
                 }
             }
             shape.end();
-            
+
             // Render debug text for BossGuardian
             if (bossGuardian != null) {
                 batch.begin();
@@ -873,13 +989,13 @@ public class GameSceneScreen implements Screen {
         if (bossGuardian != null && Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             bossGuardian.getHealthSystem().heal(100f);
         }
-        
+
         // Render loading overlay on top of everything if still loading
         if (loadingManager != null && loadingOverlay != null && !loadingManager.isReady()) {
             loadingOverlay.render();
         }
     }
-    
+
     /**
      * Render the loading screen while level is initializing.
      */
@@ -887,11 +1003,202 @@ public class GameSceneScreen implements Screen {
         // Clear screen
         Gdx.gl.glClearColor(0.0f, 0.0f, 0.0f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        
+
         // Render loading overlay
         if (loadingOverlay != null) {
             loadingOverlay.render();
         }
+    }
+
+    // ===== HUD: Boss Guardian Health =====
+    private void renderBossGuardianHud() {
+        // Use UI stage's camera for screen-space drawing
+        com.badlogic.gdx.graphics.Camera uiCam = uiStage.getViewport().getCamera();
+        int sw = (int) uiStage.getViewport().getWorldWidth();
+        int sh = (int) uiStage.getViewport().getWorldHeight();
+
+        // Compute total width of three bars + gaps
+                                        // Determine alive guardians to center visible bars
+                                        java.util.ArrayList<Integer> alive = new java.util.ArrayList<Integer>(3);
+                                        for (int i = 1; i <= 3; i++) {
+                                            if (bossGuardian.getGuardianHealth(i) > 0f) alive.add(i);
+                                        }
+                                        int count = alive.size();
+                                        if (count == 0) return; // nothing to draw
+                                        int totalWidth = HUD_BAR_WIDTH * count + HUD_BAR_GAP * Math.max(0, count - 1);
+                                        int xStart = (sw - totalWidth) / 2;
+        int y = sh - HUD_MARGIN_TOP - HUD_BAR_HEIGHT;
+
+        // Draw bar backgrounds with ShapeRenderer using UI projection
+        shape.setProjectionMatrix(uiCam.combined);
+        shape.begin(ShapeRenderer.ShapeType.Filled);
+        // Background boxes (dark)
+        shape.setColor(new Color(0f, 0f, 0f, 0.55f));
+                                        for (int di = 0; di < count; di++) {
+                                            int i = alive.get(di) - 1; // 0-based index
+                                            int x = xStart + di * (HUD_BAR_WIDTH + HUD_BAR_GAP);
+            shape.rect(x - 2, y - 2, HUD_BAR_WIDTH + 4, HUD_BAR_HEIGHT + 4);
+        }
+        // Health fill per guardian
+                                        for (int di = 0; di < count; di++) {
+                                            int i = alive.get(di) - 1;
+                                            float hp = bossGuardian.getGuardianHealth(i + 1);
+                                            float hpMax = bossGuardian.getGuardianMaxHealth(i + 1);
+            float pct = (hpMax <= 0f) ? 0f : Math.max(0f, Math.min(1f, hp / hpMax));
+                                            int x = xStart + di * (HUD_BAR_WIDTH + HUD_BAR_GAP);
+            // Empty bar (gray)
+            shape.setColor(new Color(0.25f, 0.25f, 0.25f, 0.9f));
+            shape.rect(x, y, HUD_BAR_WIDTH, HUD_BAR_HEIGHT);
+            // Filled (red -> orange if low)
+            Color fill = pct > 0.33f ? new Color(0.8f, 0.15f, 0.15f, 1f)
+                    : new Color(0.95f, 0.5f, 0.1f, 1f);
+            shape.setColor(fill);
+            shape.rect(x, y, (int) (HUD_BAR_WIDTH * pct), HUD_BAR_HEIGHT);
+        }
+        shape.end();
+
+        // Draw names with SpriteBatch using UI projection
+                                        batch.setProjectionMatrix(uiCam.combined);
+                                        batch.begin();
+                                        batch.setColor(1f,1f,1f,1f);
+        try {
+            font.setColor(Color.WHITE);
+            com.badlogic.gdx.graphics.g2d.GlyphLayout layout = new com.badlogic.gdx.graphics.g2d.GlyphLayout();
+                                            for (int di = 0; di < count; di++) {
+                                                int idx = alive.get(di);
+                                                int x = xStart + di * (HUD_BAR_WIDTH + HUD_BAR_GAP);
+                                                String name = "Guardian " + idx;
+                layout.setText(font, name);
+                float tx = x + HUD_BAR_WIDTH / 2f - layout.width / 2f;
+                float ty = y + HUD_BAR_HEIGHT + HUD_NAME_OFFSET_Y;
+                font.draw(batch, layout, tx, ty);
+            }
+        } finally {
+            batch.end();
+        }
+    }
+
+    // ===== In-Game Pause Menu =====
+    private void showPauseMenu() {
+        paused = true;
+        if (pauseDialog == null) {
+            com.badlogic.gdx.scenes.scene2d.ui.Skin dSkin = new com.badlogic.gdx.scenes.scene2d.ui.Skin(
+                    Gdx.files.internal("ui/uiskin.json"));
+            pauseDialog = new com.badlogic.gdx.scenes.scene2d.ui.Dialog("", dSkin);
+            pauseDialog.setModal(true);
+            pauseDialog.setMovable(false);
+
+            com.badlogic.gdx.scenes.scene2d.ui.Table content = pauseDialog.getContentTable();
+            content.defaults().pad(12);
+
+            com.chromashift.helper.SpriteLabel resumeLbl = com.chromashift.helper.UIHelper.createSpriteLabel("RESUME",
+                    "default", 4f);
+            com.chromashift.helper.SpriteLabel settingsLbl = com.chromashift.helper.UIHelper
+                    .createSpriteLabel("SETTINGS", "default", 4f);
+            com.chromashift.helper.SpriteLabel menuLbl = com.chromashift.helper.UIHelper.createSpriteLabel("MENU",
+                    "default", 4f);
+            // Ensure labels receive input events
+            if (resumeLbl != null)
+                resumeLbl.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
+            if (settingsLbl != null)
+                settingsLbl.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
+            if (menuLbl != null)
+                menuLbl.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
+
+            if (resumeLbl != null) {
+                resumeLbl.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
+                    @Override
+                    public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                        hidePauseMenu();
+                    }
+                });
+                content.add(resumeLbl).row();
+            }
+            if (settingsLbl != null) {
+                settingsLbl.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
+                    @Override
+                    public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                        showSettingsDialog();
+                    }
+                });
+                content.add(settingsLbl).row();
+            }
+            if (menuLbl != null) {
+                menuLbl.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
+                    @Override
+                    public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                        saveAllState(currentLevelPath);
+                        ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener())
+                                .setScreen(new com.jjmc.chromashift.screens.ui.MainMenuScreen());
+                    }
+                });
+                content.add(menuLbl).row();
+            }
+        }
+        pauseDialog.pack();
+        pauseDialog.show(uiStage);
+        // Make sure dialog itself receives input focus
+        pauseDialog.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
+        uiStage.setKeyboardFocus(pauseDialog);
+        pauseDialog.setPosition((uiStage.getWidth() - pauseDialog.getWidth()) / 2f,
+                (uiStage.getHeight() - pauseDialog.getHeight()) / 2f);
+    }
+
+    private void hidePauseMenu() {
+        paused = false;
+        if (pauseDialog != null)
+            pauseDialog.hide();
+        if (settingsDialog != null)
+            settingsDialog.hide();
+    }
+
+    private void showSettingsDialog() {
+        if (settingsDialog == null) {
+            com.badlogic.gdx.scenes.scene2d.ui.Skin dSkin = new com.badlogic.gdx.scenes.scene2d.ui.Skin(
+                    Gdx.files.internal("ui/uiskin.json"));
+            settingsDialog = new com.badlogic.gdx.scenes.scene2d.ui.Dialog("", dSkin);
+            settingsDialog.setModal(true);
+            settingsDialog.setMovable(false);
+
+            com.badlogic.gdx.scenes.scene2d.ui.Table content = settingsDialog.getContentTable();
+            content.defaults().pad(8);
+
+            final com.jjmc.chromashift.config.AudioConfig audio = com.jjmc.chromashift.config.AudioConfig.getInstance();
+            addVolumeRow(content, "MASTER", audio.getMasterVolume(), v -> audio.setMasterVolume(v));
+            addVolumeRow(content, "MUSIC", audio.getMusicVolume(), v -> audio.setMusicVolume(v));
+            addVolumeRow(content, "SFX", audio.getSfxVolume(), v -> audio.setSfxVolume(v));
+
+            settingsDialog.button("Close", true);
+        }
+        settingsDialog.pack();
+        settingsDialog.show(uiStage);
+        settingsDialog.setPosition((uiStage.getWidth() - settingsDialog.getWidth()) / 2f,
+                (uiStage.getHeight() - settingsDialog.getHeight()) / 2f);
+    }
+
+    private void addVolumeRow(com.badlogic.gdx.scenes.scene2d.ui.Table parent, String title, float initial01,
+            java.util.function.Consumer<Float> setter) {
+        com.chromashift.helper.SpriteLabel titleLbl = com.chromashift.helper.UIHelper.createSpriteLabel(title,
+                "default", 2.5f);
+        com.chromashift.helper.SpriteLabel valueLbl = com.chromashift.helper.UIHelper
+                .createSpriteLabel(String.format("%.0f%%", initial01 * 100f), "default", 1.8f);
+        com.badlogic.gdx.scenes.scene2d.ui.Slider slider = com.chromashift.helper.UIHelper.createSlider(0, 100, 1,
+                false, new com.badlogic.gdx.scenes.scene2d.ui.Skin(Gdx.files.internal("ui/uiskin.json")),
+                new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
+                    @Override
+                    public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                        float val = ((com.badlogic.gdx.scenes.scene2d.ui.Slider) actor).getValue();
+                        valueLbl.setText(String.format("%.0f%%", val));
+                        setter.accept(val / 100f);
+                    }
+                });
+        slider.setValue(initial01 * 100f);
+
+        com.badlogic.gdx.scenes.scene2d.ui.Table row = new com.badlogic.gdx.scenes.scene2d.ui.Table();
+        row.add(titleLbl).right().padRight(10);
+        row.add(slider).width(240).padRight(10);
+        row.add(valueLbl).left();
+        parent.add(row).row();
     }
 
     /**
@@ -949,53 +1256,65 @@ public class GameSceneScreen implements Screen {
 
     /**
      * Level progression logic: determines next level based on current level.
-     * Progression: level1 -> level2 -> level3 -> bossroom -> level4 -> level5 -> level6 -> bossroom
+     * Progression: level1 -> level2 -> level3 -> bossroom -> level4 -> level5 ->
+     * level6 -> bossroom
      */
     private void advanceToNextLevel() {
         String nextLevel = getNextLevelPath(currentLevelPath);
         if (nextLevel == null) {
-            Gdx.app.log("TestSceneScreen", "No next level defined for: " + currentLevelPath);
+            // No next level mapped: return to main menu
+            Gdx.app.log("GameSceneScreen", "No next level defined for: " + currentLevelPath + ". Returning to menu.");
+            saveAllState(currentLevelPath);
+            ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener())
+                    .setScreen(new com.jjmc.chromashift.screens.ui.MainMenuScreen());
             return;
         }
-        
-        Gdx.app.log("TestSceneScreen", "Advancing from " + currentLevelPath + " to " + nextLevel);
-        
+
+        Gdx.app.log("GameSceneScreen", "Advancing from " + currentLevelPath + " to " + nextLevel);
+
         // Auto-save all state before transitioning
         saveAllState(nextLevel);
-        
+
         // Transition to next level (load saved state since we just saved)
         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(
-            new GameSceneScreen(nextLevel, com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS));
+                new GameSceneScreen(nextLevel,
+                        com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS));
     }
-    
+
     /**
      * Returns the next level path based on current level.
-     * Progression order: level1 -> level2 -> level3 -> bossroom -> level4 -> level5 -> level6 -> bossroom
+     * Progression order: level1 -> level2 -> level3 -> bossroom -> level4 -> level5
+     * -> level6 -> bossroom
      */
     private String getNextLevelPath(String current) {
-        if (current == null) return null;
-        
+        if (current == null)
+            return null;
+
         // Normalize path for comparison
         String normalized = current.toLowerCase().replace("\\", "/");
-        
-        if (normalized.contains("level1")) return "levels/level2.json";
-        if (normalized.contains("level2")) return "levels/level3.json";
-        if (normalized.contains("level3")) return "levels/bossroom.json";
+
+        if (normalized.contains("level1"))
+            return "levels/level2.json";
+        if (normalized.contains("level2"))
+            return "levels/level3.json";
+        if (normalized.contains("level3"))
+            return "levels/bossroom.json";
         if (normalized.contains("bossroom")) {
-            // Check if we came from level3 or level6
-            if (visitedLevels.contains("levels/level3.json", false) && 
-                !visitedLevels.contains("levels/level4.json", false)) {
-                return "levels/level4.json";
-            } else {
-                // Completed game, could loop or end
-                Gdx.app.log("TestSceneScreen", "Game completed! Returning to menu.");
-                return null; // Or return to menu
-            }
+            // Prefer the first unvisited stage in the post-boss sequence.
+            if (!visitedLevels.contains("levels/level4.json", false)) return "levels/level4.json";
+            if (!visitedLevels.contains("levels/level5.json", false)) return "levels/level5.json";
+            if (!visitedLevels.contains("levels/level6.json", false)) return "levels/level6.json";
+            // If all post-boss stages have been visited, consider the game complete
+            Gdx.app.log("GameSceneScreen", "All post-boss levels visited. Returning to menu.");
+            return null;
         }
-        if (normalized.contains("level4")) return "levels/level5.json";
-        if (normalized.contains("level5")) return "levels/level6.json";
-        if (normalized.contains("level6")) return "levels/bossroom1.json";
-        
+        if (normalized.contains("level4"))
+            return "levels/level5.json";
+        if (normalized.contains("level5"))
+            return "levels/level6.json";
+        if (normalized.contains("level6"))
+            return "levels/bossroom.json";
+
         return null;
     }
 
@@ -1006,8 +1325,8 @@ public class GameSceneScreen implements Screen {
     private void saveAllState(String nextLevelPath) {
         try {
             // Capture player with next level context and visited levels
-            com.jjmc.chromashift.player.PlayerIO.PlayerState playerState =
-                com.jjmc.chromashift.player.PlayerIO.capture(player, nextLevelPath, visitedLevels);
+            com.jjmc.chromashift.player.PlayerIO.PlayerState playerState = com.jjmc.chromashift.player.PlayerIO
+                    .capture(player, nextLevelPath, visitedLevels);
 
             // Save player to workspace (legacy) and DAO (DB)
             com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", playerState);
@@ -1019,8 +1338,7 @@ public class GameSceneScreen implements Screen {
             }
 
             // Prepare level result snapshot
-            com.jjmc.chromashift.screens.levels.LevelLoader.Result result =
-                new com.jjmc.chromashift.screens.levels.LevelLoader.Result();
+            com.jjmc.chromashift.screens.levels.LevelLoader.Result result = new com.jjmc.chromashift.screens.levels.LevelLoader.Result();
             result.walls.addAll(walls);
             result.solids.addAll(solids);
             result.interactables.addAll(interactables);
@@ -1030,7 +1348,7 @@ public class GameSceneScreen implements Screen {
             result.spawnY = playerSpawnY;
 
             boolean levelSaved = com.jjmc.chromashift.screens.levels.GameLevelSave.saveLevelOverrides(
-                currentLevelPath, result);
+                    currentLevelPath, result);
             Gdx.app.log("TestSceneScreen", "Level state saved: " + levelSaved);
         } catch (Exception e) {
             Gdx.app.log("TestSceneScreen", "Error during auto-save: " + e.getMessage());
@@ -1058,15 +1376,26 @@ public class GameSceneScreen implements Screen {
     @Override
     public void hide() {
         // Autosave when leaving the screen (e.g., going to menu)
-        try { saveAllState(currentLevelPath); } catch (Throwable t) { Gdx.app.log("TestSceneScreen", "Autosave on hide failed: " + t.getMessage()); }
+        try {
+            saveAllState(currentLevelPath);
+        } catch (Throwable t) {
+            Gdx.app.log("TestSceneScreen", "Autosave on hide failed: " + t.getMessage());
+        }
         // Disable culling when leaving gameplay (e.g., to editor/menu)
-        try { com.chromashift.helper.VisibilityCuller.setEnabled(false); } catch (Throwable ignored) {}
+        try {
+            com.chromashift.helper.VisibilityCuller.setEnabled(false);
+        } catch (Throwable ignored) {
+        }
     }
 
     @Override
     public void dispose() {
         // Autosave on application/window close
-        try { saveAllState(currentLevelPath); } catch (Throwable t) { Gdx.app.log("TestSceneScreen", "Autosave on dispose failed: " + t.getMessage()); }
+        try {
+            saveAllState(currentLevelPath);
+        } catch (Throwable t) {
+            Gdx.app.log("TestSceneScreen", "Autosave on dispose failed: " + t.getMessage());
+        }
         if (ctx != null)
             ctx.dispose();
         player.dispose();
