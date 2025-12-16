@@ -192,6 +192,15 @@ public class BossGuardian extends Boss {
     // Debug flag for overall display
     private boolean debugDisplay = true; // Set to true to show all debug info
 
+    // Guardian 1 pre-attack movement/attack state (mirrors Guardian 2 pattern)
+    private enum Guardian1AttackState { FORMATION, MOVING_TO_ATTACK, SUMMONING, COOLDOWN }
+    private Guardian1AttackState guardian1State = Guardian1AttackState.FORMATION;
+    private float guardian1AttackCooldown = 6f;
+    private float guardian1CooldownTimer = 2f;
+    private float guardian1AttackPosX = 0f; // Target X for guardian1 pre-attack positioning (center X)
+    private float guardian1AttackPosY = 0f; // Y stays near its current; kept for completeness
+    private float guardian1MoveSpeed = 300f; // Speed guardian1 moves to pre-attack spot
+
     // Guardian 3 (Boss 2) attack control
     private enum Boss2AttackState { FORMATION, RISING, TRACKING, PLUNGING, RETURNING }
     private Boss2AttackState boss2State = Boss2AttackState.FORMATION;
@@ -329,6 +338,7 @@ public class BossGuardian extends Boss {
     // Trigger zone tracking
     private enum TriggerZone { TRIGGER_1, TRIGGER_2, TRIGGER_3, TRIGGER_4, TRIGGER_5, TRIGGER_6, NONE }
     private TriggerZone activeTriggerZone = TriggerZone.NONE;
+    private com.badlogic.gdx.math.Rectangle trigger1Bounds = null;
     
     // Spawn sequence state
     private enum SpawnPhase { GUARDIAN2_ENTER, GUARDIAN3_ENTER, GUARDIAN1_DROP, COMPLETE }
@@ -646,6 +656,14 @@ public class BossGuardian extends Boss {
                 break;
         }
     }
+
+    /** Allow screen to provide bounds for trigger_1 to gate crystal spawn. */
+    public void setTriggerBounds(String triggerId, com.badlogic.gdx.math.Rectangle bounds) {
+        if (triggerId == null || bounds == null) return;
+        if ("trigger_1".equalsIgnoreCase(triggerId)) {
+            this.trigger1Bounds = bounds;
+        }
+    }
     
     @Override
     public void setPosition(float x, float y) {
@@ -677,6 +695,20 @@ public class BossGuardian extends Boss {
                 boolean faceLeft = targetX < bossCenter.x;
                 startBoss2Attack(faceLeft);
             }
+            // Debug: force-spawn two crystals at center ±250 to verify visibility
+                        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_5)) {
+                if (onCrystalSpawn != null && player != null && solids != null) {
+                            float cx = bossCenter.x;
+                            float cy = bossCenter.y; // spawn at visual center, will fall to ground
+                    com.jjmc.chromashift.entity.boss.GuardianCrystal left =
+                            new com.jjmc.chromashift.entity.boss.GuardianCrystal(cx - 250f, cy, player, solids);
+                    com.jjmc.chromashift.entity.boss.GuardianCrystal right =
+                            new com.jjmc.chromashift.entity.boss.GuardianCrystal(cx + 250f, cy, player, solids);
+                    onCrystalSpawn.accept(left);
+                    onCrystalSpawn.accept(right);
+                    Gdx.app.log("BossGuardian", "DEBUG: forced two crystals at ±250 from center");
+                }
+            }
         }
         
         // Update hover movement
@@ -699,9 +731,10 @@ public class BossGuardian extends Boss {
 
         // Update each guardian (only if alive). Dead guardians are hidden and attacks disabled.
         if (guardianHealth[0] > 0f) {
-            guardian1.update(delta, bossCenter, timeAccum);
+            updateGuardian1(delta, faceLeft);
         } else {
             guardian1.attacking = false; guardian1.alpha = 0f;
+            guardian1State = Guardian1AttackState.FORMATION;
         }
         if (guardianHealth[1] > 0f) {
             updateBoss1(delta, faceLeft);
@@ -876,6 +909,114 @@ public class BossGuardian extends Boss {
                 boss1CooldownTimer -= delta;
                 if (boss1CooldownTimer <= 0f) {
                     boss1State = Boss1AttackState.FORMATION;
+                }
+                break;
+        }
+    }
+
+    // =====================================================================
+    // Guardian 1 Crystal Spawn
+    // =====================================================================
+    private boolean guardian1CrystalSpawnedThisCycle = false;
+    private java.util.function.Consumer<com.jjmc.chromashift.entity.boss.GuardianCrystal> onCrystalSpawn;
+    // Track active crystals to gate guardian attacks
+    private int activeCrystals = 0;
+
+    public void notifyCrystalSpawned() { activeCrystals++; }
+    public void notifyCrystalDestroyed() { if (activeCrystals > 0) activeCrystals--; }
+    private boolean hasActiveCrystals() { return activeCrystals > 0; }
+
+    public void setOnCrystalSpawn(java.util.function.Consumer<com.jjmc.chromashift.entity.boss.GuardianCrystal> callback) {
+        this.onCrystalSpawn = callback;
+    }
+
+    private void maybeSpawnGuardian1Crystal() {
+        // Only when guardian1 is attacking and on exact frame 35
+        if (!guardian1.attacking) {
+            guardian1CrystalSpawnedThisCycle = false; // reset for next cycle
+            return;
+        }
+        // Do not spawn if any crystal is already active
+        if (hasActiveCrystals()) return;
+        int frame = guardian1.getAttackFrameIndex();
+        if (frame == 35 && !guardian1CrystalSpawnedThisCycle) {
+            // Spawn TWO crystals around the arena center at X +/- 250.
+            // Start at boss visual center height; crystal will fall to ground (266).
+            float centerX = bossCenter.x;
+            float centerY = bossCenter.y;
+            float leftX = centerX - 250f;
+            float rightX = centerX + 250f;
+            if (onCrystalSpawn != null && player != null && solids != null) {
+                com.jjmc.chromashift.entity.boss.GuardianCrystal left =
+                        new com.jjmc.chromashift.entity.boss.GuardianCrystal(leftX, centerY, player, solids);
+                com.jjmc.chromashift.entity.boss.GuardianCrystal right =
+                        new com.jjmc.chromashift.entity.boss.GuardianCrystal(rightX, centerY, player, solids);
+                onCrystalSpawn.accept(left);
+                onCrystalSpawn.accept(right);
+                Gdx.app.log("BossGuardian", "Guardian 1 spawned two crystals at frame 35: ("+leftX+","+centerY+") & ("+rightX+","+centerY+")");
+            }
+            guardian1CrystalSpawnedThisCycle = true;
+        }
+        // Reset flag when animation finishes
+        if (guardian1.isAttackAnimationFinished()) {
+            guardian1CrystalSpawnedThisCycle = false;
+        }
+    }
+
+    /**
+     * Update Guardian 1 with pre-attack move-to-center, then attack, then cooldown.
+     * Mirrors Guardian 2's state pattern but only moves horizontally to center X.
+     */
+    private void updateGuardian1(float delta, boolean faceLeft) {
+        // If an attack animation has finished, ensure we reset attacking flag
+        if (guardian1.attacking && guardian1.isAttackAnimationFinished()) {
+            guardian1.stopAttack(faceLeft);
+        }
+
+        switch (guardian1State) {
+            case FORMATION:
+                guardian1.update(delta, bossCenter, timeAccum);
+                guardian1CooldownTimer -= delta;
+                if (guardian1CooldownTimer <= 0f && !hasActiveCrystals()) {
+                    guardian1State = Guardian1AttackState.MOVING_TO_ATTACK;
+                    guardian1AttackPosX = bossCenter.x; // center X
+                    guardian1AttackPosY = guardian1.position.y; // keep current Y (top guardian)
+                    guardian1CooldownTimer = guardian1AttackCooldown;
+                }
+                break;
+            case MOVING_TO_ATTACK:
+                guardian1.flipX = faceLeft;
+                guardian1.update(delta, bossCenter, timeAccum);
+
+                float dx = guardian1AttackPosX - guardian1.position.x;
+                if (Math.abs(dx) > 5f) {
+                    float dir = Math.signum(dx);
+                    guardian1.position.x += dir * guardian1MoveSpeed * delta;
+                } else {
+                    guardian1.position.x = guardian1AttackPosX;
+                }
+
+                // Once close enough horizontally, start the attack animation
+                if (Math.abs(dx) <= 5f) {
+                    guardian1.position.x = guardian1AttackPosX;
+                    guardian1.startAttack(faceLeft);
+                    guardian1State = Guardian1AttackState.SUMMONING;
+                }
+                break;
+            case SUMMONING:
+                // Drive attack animator and handle crystal spawn gating
+                guardian1.update(delta, bossCenter, timeAccum);
+                maybeSpawnGuardian1Crystal();
+                if (guardian1.isAttackAnimationFinished()) {
+                    guardian1.stopAttack(faceLeft);
+                    guardian1State = Guardian1AttackState.COOLDOWN;
+                }
+                break;
+            case COOLDOWN:
+                guardian1.update(delta, bossCenter, timeAccum);
+                guardian1CooldownTimer -= delta;
+                if (guardian1CooldownTimer <= 0f) {
+                    guardian1State = Guardian1AttackState.FORMATION;
                 }
                 break;
         }

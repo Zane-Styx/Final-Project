@@ -370,6 +370,55 @@ public class GameSceneScreen implements Screen {
                 }
         player.setEnemies(enemies);
 
+        // Register BossGuardian crystal spawn callback once on init
+        if (bossGuardian != null) {
+            bossGuardian.setOnCrystalSpawn(crystal -> {
+                // Track active crystals to gate boss attacks
+                bossGuardian.notifyCrystalSpawned();
+                // Register as interactable for update/render and as enemy for combat
+                interactables.add(new com.jjmc.chromashift.environment.interactable.Interactable() {
+                    @Override public void update(float delta) { crystal.update(delta); }
+                    @Override public void render(com.badlogic.gdx.graphics.g2d.SpriteBatch batch) { crystal.render(batch); }
+                    @Override public void interact() {}
+                    @Override public void checkInteraction(com.badlogic.gdx.math.Rectangle playerHitbox) {}
+                    @Override public boolean canInteract() { return false; }
+                    @Override public com.badlogic.gdx.math.Rectangle getBounds() { return crystal.getBounds(); }
+                    @Override public void debugDraw(com.badlogic.gdx.graphics.glutils.ShapeRenderer shape) { crystal.debugDraw(shape); }
+                });
+                enemies.add(crystal);
+                player.setEnemies(enemies);
+
+                // When crystal dies, spawn a DamageOrb and notify boss
+                crystal.setOnDestroyed((cx, cy) -> {
+                    try { bossGuardian.notifyCrystalDestroyed(); } catch (Throwable ignored) {}
+                    try {
+                        // Collect boss enemies (guardian adapters only)
+                        com.badlogic.gdx.utils.Array<com.jjmc.chromashift.environment.enemy.Enemy> bossTargets = new com.badlogic.gdx.utils.Array<>();
+                        for (int ei = 0; ei < enemies.size; ei++) {
+                            com.jjmc.chromashift.environment.enemy.Enemy e = enemies.get(ei);
+                            if (e instanceof com.jjmc.chromashift.environment.enemy.BossGuardianEnemyAdapter) {
+                                bossTargets.add(e);
+                            }
+                        }
+                        // Aim initial velocity toward player
+                        float px = player.getX() + player.getHitboxWidth() / 2f;
+                        float py = player.getY() + player.getHitboxHeight() / 2f;
+                        float dx = px - cx;
+                        float dy = py - cy;
+                        float len = (float)Math.sqrt(dx*dx + dy*dy);
+                        if (len < 0.001f) len = 1f;
+                        float speed = 260f;
+                        float ivx = dx / len * speed;
+                        float ivy = dy / len * speed;
+
+                        com.jjmc.chromashift.environment.interactable.DamageOrb dOrb = new com.jjmc.chromashift.environment.interactable.DamageOrb(
+                                cx, cy, ivx, ivy, solids, bossTargets);
+                        interactables.add(dOrb);
+                    } catch (Throwable ignored) {}
+                });
+            });
+        }
+
         // Wire portal callbacks for level progression
         for (int i = 0; i < interactables.size; i++) {
             if (interactables.get(i) instanceof com.jjmc.chromashift.environment.interactable.Portal portal) {
@@ -623,35 +672,33 @@ public class GameSceneScreen implements Screen {
         }
 
         // Boss update - set target to player position
-        if (boss != null) {
-            boss.setTarget(player.getX() + player.getHitboxWidth() / 2, player.getY() + player.getHitboxHeight() / 2);
-
-            // Check if player is in any trigger zone and notify boss
-            // Also find trigger_6 to set as boundary zone
-            String activeTrigger = null;
-            Rectangle playerRect = player.getHitboxRect();
-            for (int i = 0; i < interactables.size; i++) {
-                Interactable it = interactables.get(i);
-                if (it instanceof com.jjmc.chromashift.environment.TriggerZone tz) {
-                    String triggerId = tz.getId();
-
-                    // Set trigger_6 as boundary zone (only needs to be done once but harmless to
-                    // repeat)
-                    if ("trigger_6".equalsIgnoreCase(triggerId) && tz.getBounds() != null) {
-                        boss.setTrigger6Bounds(tz.getBounds());
-                        // Don't set trigger_6 as active trigger - it's boundary only
-                        continue;
-                    }
-
-                    // Check if player is in this trigger (excluding trigger_6)
-                    if (tz.getBounds() != null && tz.getBounds().overlaps(playerRect)) {
-                        activeTrigger = triggerId;
-                        // Don't break - continue to find trigger_6 if not found yet
-                    }
+        // Compute active trigger and provide bounds each frame
+        String activeTrigger = null;
+        Rectangle playerRect = player.getHitboxRect();
+        for (int i = 0; i < interactables.size; i++) {
+            Interactable it = interactables.get(i);
+            if (it instanceof com.jjmc.chromashift.environment.TriggerZone tz) {
+                String triggerId = tz.getId();
+                // FinalBoss boundary zone
+                if (boss != null && "trigger_6".equalsIgnoreCase(triggerId) && tz.getBounds() != null) {
+                    boss.setTrigger6Bounds(tz.getBounds());
+                    // Don't mark as active trigger
+                }
+                // Provide BossGuardian with trigger_1 bounds for crystal gating
+                if (bossGuardian != null && "trigger_1".equalsIgnoreCase(triggerId) && tz.getBounds() != null) {
+                    bossGuardian.setTriggerBounds(triggerId, tz.getBounds());
+                }
+                // Active trigger if player overlaps
+                if (tz.getBounds() != null && tz.getBounds().overlaps(playerRect)) {
+                    activeTrigger = triggerId;
                 }
             }
-            boss.setActiveTriggerZone(activeTrigger);
+        }
 
+        // Boss update - set target to player position
+        if (boss != null) {
+            boss.setTarget(player.getX() + player.getHitboxWidth() / 2, player.getHitboxHeight() / 2 + player.getY());
+            boss.setActiveTriggerZone(activeTrigger);
             boss.update(delta);
         }
 
@@ -659,6 +706,7 @@ public class GameSceneScreen implements Screen {
         if (bossGuardian != null && !bossGuardian.isSpawning()) {
             bossGuardian.setTarget(player.getX() + player.getHitboxWidth() / 2,
                     player.getY() + player.getHitboxHeight() / 2);
+            bossGuardian.setActiveTriggerZone(activeTrigger);
             bossGuardian.update(delta);
         } else if (bossGuardian != null && bossGuardian.isSpawning()) {
             // Update spawn sequence (handled in boss.update() during spawn)

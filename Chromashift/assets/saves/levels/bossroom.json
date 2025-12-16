@@ -1,6 +1,6 @@
 {
   "levelPath": "levels/bossroom.json",
-  "timestamp": 1765846342431,
+  "timestamp": 1765871369822,
   "objects": {
     "items": [
       {
@@ -221,15 +221,31 @@
         }
       },
       {
+        "className": "",
+        "fullClassName": "com.jjmc.chromashift.screens.GameSceneScreen$1",
+        "uniqueId": "_0_0",
+        "x": 0.0,
+        "y": 0.0,
+        "fields": {}
+      },
+      {
+        "className": "",
+        "fullClassName": "com.jjmc.chromashift.screens.GameSceneScreen$1",
+        "uniqueId": "_0_0",
+        "x": 0.0,
+        "y": 0.0,
+        "fields": {}
+      },
+      {
         "className": "Portal",
         "fullClassName": "com.jjmc.chromashift.environment.interactable.Portal",
         "uniqueId": "Portal_-176_212",
         "x": -176.5,
         "y": 212.5,
         "fields": {
-          "playerNearby": true,
+          "playerNearby": false,
           "lever2Active": false,
-          "interactionCooldown": 1.0,
+          "interactionCooldown": 0.0,
           "bounds": {
             "w": 225.0,
             "x": -176.5,
@@ -246,9 +262,46 @@
           }
         }
       },
+      {
+        "className": "DamageOrb",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.DamageOrb",
+        "uniqueId": "DamageOrb_-338_290",
+        "x": -338.0,
+        "y": 290.45264,
+        "fields": {
+          "vx": 0.0,
+          "vy": 0.0,
+          "holdOffsetX": 0.0,
+          "held": false,
+          "holdOffsetY": 8.0,
+          "bounciness": 1.0,
+          "thrown": false,
+          "inRange": false,
+          "wallHits": 0,
+          "spawnGraceTime": 0.12,
+          "removed": false,
+          "x": -338.0,
+          "bounds": {
+            "w": 48.0,
+            "x": -338.0,
+            "h": 48.0,
+            "y": 290.45264
+          },
+          "y": 290.45264
+        }
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
       null
     ],
-    "size": 15,
+    "size": 18,
     "ordered": true
   },
   "removedObjectIds": []

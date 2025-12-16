@@ -53,6 +53,10 @@ public class Player {
     // Hover after dash skill to avoid gravity snap
     protected float dashHoverRemaining = 0f;
 
+    // Temporary movement modifiers (e.g., slow debuff)
+    private float speedMultiplier = 1f;
+    private float slowRemaining = 0f;
+
     public void setCamera(com.badlogic.gdx.graphics.Camera camera) {
         this.gameCamera = camera;
         // Set camera for held object
@@ -289,6 +293,15 @@ public class Player {
             }
         }
 
+        // Tick slow debuff
+        if (slowRemaining > 0f) {
+            slowRemaining -= delta;
+            if (slowRemaining <= 0f) {
+                slowRemaining = 0f;
+                speedMultiplier = 1f;
+            }
+        }
+
         // No movement if stunned
         if (!isStunned) {
             update(delta, groundY, walls, null);
@@ -320,6 +333,15 @@ public class Player {
             if (respawnStunRemaining <= 0f) {
                 isStunned = false;
                 respawnStunRemaining = 0f;
+            }
+        }
+
+        // Tick slow debuff
+        if (slowRemaining > 0f) {
+            slowRemaining -= delta;
+            if (slowRemaining <= 0f) {
+                slowRemaining = 0f;
+                speedMultiplier = 1f;
             }
         }
 
@@ -881,7 +903,7 @@ public class Player {
 
     public void setVelocityX(float velocityX) {
         if (config != null) {
-            float max = Math.abs(config.maxHorizontalSpeed);
+            float max = Math.abs(config.maxHorizontalSpeed) * getSpeedMultiplier();
             if (velocityX > max) velocityX = max;
             if (velocityX < -max) velocityX = -max;
         }
@@ -1283,4 +1305,21 @@ public class Player {
 
     // Expose key count to UI without granting mutation
     public int getKeys() { return keyCount; }
+
+    // ===== Movement modifiers (Slow) =====
+    /** Apply a temporary slow to the player's ground movement. */
+    public void applySlow(float multiplier, float durationSeconds) {
+        if (multiplier <= 0f) multiplier = 0.01f;
+        if (multiplier > 1f) multiplier = 1f;
+        speedMultiplier = multiplier;
+        slowRemaining = Math.max(slowRemaining, Math.max(0f, durationSeconds));
+    }
+    /** Effective ground move speed factoring temporary slows. */
+    public float getEffectiveSpeed() {
+        return config != null ? config.speed * getSpeedMultiplier() : 0f;
+    }
+    /** Current speed multiplier (1.0 = normal). */
+    public float getSpeedMultiplier() {
+        return speedMultiplier;
+    }
 }

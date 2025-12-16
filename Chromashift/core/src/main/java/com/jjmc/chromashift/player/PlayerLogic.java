@@ -120,14 +120,14 @@ public class PlayerLogic {
         if (inputLeft) {
             // Prevent moving left if wall sliding on the left wall
             if (!player.isWallSliding() || !player.isFacingLeft()) {
-                player.setX(player.getX() - player.getConfig().speed * delta);
+                player.setX(player.getX() - player.getEffectiveSpeed() * delta);
                 player.setFacingLeft(true);
                 player.setMoving(true);
             }
         } else if (inputRight) {
             // Prevent moving right if wall sliding on the right wall
             if (!player.isWallSliding() || player.isFacingLeft()) {
-                player.setX(player.getX() + player.getConfig().speed * delta);
+                player.setX(player.getX() + player.getEffectiveSpeed() * delta);
                 player.setFacingLeft(false);
                 player.setMoving(true);
             }
@@ -136,7 +136,7 @@ public class PlayerLogic {
         // If on ground and walking opposite current horizontal momentum, gently reduce it
         if (player.isOnGround()) {
             float vx = player.getVelocityX();
-            float decel = player.getConfig().speed * 1.5f; // gentle decel toward 0 when pushing opposite
+            float decel = player.getEffectiveSpeed() * 1.5f; // gentle decel toward 0 when pushing opposite
             if (inputLeft && vx > 0f) {
                 vx -= decel * delta;
                 if (vx < 0f) vx = 0f;

@@ -23,9 +23,10 @@ public class BossGuardianEnemyAdapter implements Enemy {
 
     @Override
     public Rectangle getBounds() {
-        if (boss == null) return null;
-        if (!isAlive()) return null;
-        return boss.getGuardianHitbox(guardianIndex);
+        if (boss == null) return new Rectangle(0,0,0,0);
+        if (!isAlive()) return new Rectangle(0,0,0,0);
+        Rectangle r = boss.getGuardianHitbox(guardianIndex);
+        return r != null ? r : new Rectangle(0,0,0,0);
     }
 
     @Override
