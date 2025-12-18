@@ -1684,7 +1684,9 @@ public class LevelMakerScreen implements Screen {
 			// If we have picked a source already, draw lines to doors
 			if (linkStage == LinkStage.PICK_DOORS && linkSourceType != ObjectType.NONE) {
 				// try to find a runtime object for the source to get an accurate center
+				@SuppressWarnings("unused")
 				float srcCx = linkSourceX + 16f;
+				@SuppressWarnings("unused")
 				float srcCy = linkSourceY + 16f;
 				for (Interactable it : interactableInstances) {
 					if ((linkSourceType == ObjectType.BUTTON && it instanceof Button)
@@ -2473,6 +2475,7 @@ public class LevelMakerScreen implements Screen {
 					return;
 				} else if (linkStage == LinkStage.PICK_DOORS) {
 					String did = findDoorIdAt(wx, wy);
+					@SuppressWarnings("unused")
 					String targetType = "door";
 					if (did == null) {
 						// try laser
@@ -3570,8 +3573,6 @@ public class LevelMakerScreen implements Screen {
 		if (state == null)
 			return;
 		Rectangle bounds = obj.getBounds();
-		float cx = bounds.x + bounds.width / 2f;
-		float cy = bounds.y + bounds.height / 2f;
 		if (obj instanceof Box && state.boxes != null) {
 			for (LevelIO.LevelState.BoxData bd : state.boxes) {
 				if (Math.abs(bd.x - bounds.x) < 5f && Math.abs(bd.y - bounds.y) < 5f) {

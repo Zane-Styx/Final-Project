@@ -197,6 +197,7 @@ public class LevelSaveData {
     /**
      * Restore from a map
      */
+    @SuppressWarnings("unchecked")
     public static LevelSaveData fromMap(Map<String, Object> map) {
         LevelSaveData data = new LevelSaveData();
         if (map == null) return data;
@@ -420,6 +421,7 @@ public class LevelSaveData {
         /**
          * Restore from a map
          */
+        @SuppressWarnings("unchecked")
         public static GameObjectSaveData fromMap(Map<String, Object> map) {
             GameObjectSaveData obj = new GameObjectSaveData();
             if (map == null) return obj;

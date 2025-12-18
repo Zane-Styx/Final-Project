@@ -112,7 +112,6 @@ public class PlayerLogic {
         if (player.isAttacking()) return;
 
         Rectangle beforeMove = player.getHitboxRect();
-        float oldX = player.getX();
 
         boolean inputLeft = Gdx.input.isKeyPressed(player.getKeyLeft());
         boolean inputRight = Gdx.input.isKeyPressed(player.getKeyRight());

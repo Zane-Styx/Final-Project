@@ -1,9 +1,9 @@
 {
-"x": 0,
-"y": -32,
+"x": 791.4399,
+"y": 647,
 "velocityX": 0,
 "velocityY": 0,
-"facingLeft": false,
+"facingLeft": true,
 "onGround": true,
 "canJump": true,
 "dashing": false,
@@ -14,27 +14,27 @@
 "attacking": true,
 "airAttacking": false,
 "airAttackTimer": 0,
-"attackCooldownTimer": 0.6171989,
+"attackCooldownTimer": 0.634402,
 "shield": 0,
 "keyCount": 0,
 "potionCount": 0,
-"respawnX": 0,
-"respawnY": 0,
+"respawnX": 160,
+"respawnY": 352,
 "respawnInvulRemaining": 0,
 "respawnStunRemaining": 0,
 "isStunned": false,
-"diamonds": 0,
+"diamonds": 1,
 "healthCurrent": 200,
 "healthMax": 200,
 "skillQ": {
 	"skillName": "DashSkill",
-	"currentCooldown": -9.133294E-5,
+	"currentCooldown": -0.014948836,
 	"isActive": false,
 	"animationTimer": 0
 },
 "skillE": {
 	"skillName": "JumpSkill",
-	"currentCooldown": -0.0019228291,
+	"currentCooldown": 0,
 	"isActive": false,
 	"animationTimer": 0
 },
@@ -51,8 +51,8 @@
 	"animationTimer": 0
 },
 "activeSkill": null,
-"currentLevel": "levels/level3.json",
+"currentLevel": "levels/level1.json",
 "visitedLevels": [
-	"levels/level3.json"
+	"levels/level1.json"
 ]
 }

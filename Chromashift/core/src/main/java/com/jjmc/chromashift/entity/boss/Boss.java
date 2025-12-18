@@ -904,7 +904,6 @@ public class Boss extends Entity {
                     boss.safeRemoveEffect(ind);
                     // spawn impact
                     boss.spawnEffect(impactPrototype, targetX, targetY);
-                    // TODO: apply damage to players in area
                 }
             });
         }

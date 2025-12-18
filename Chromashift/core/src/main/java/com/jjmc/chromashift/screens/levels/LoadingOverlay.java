@@ -21,7 +21,6 @@ public class LoadingOverlay {
     // Visual settings
     private float progressBarWidth = 400f;
     private float progressBarHeight = 20f;
-    private Color backgroundColor = new Color(0, 0, 0, 1);
     private Color progressBarColor = new Color(0.3f, 0.7f, 1.0f, 1);
     private Color progressBarBgColor = new Color(0.2f, 0.2f, 0.2f, 1);
     private Color textColor = Color.WHITE;

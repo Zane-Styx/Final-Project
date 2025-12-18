@@ -1,9 +1,7 @@
 package com.jjmc.chromashift.screens.ui;
 
-import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -13,7 +11,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.chromashift.helper.UIHelper;
 import com.jjmc.chromashift.config.AudioConfig;
 
-public class SettingsScreen extends AbstractMenuScreen implements Screen {
+public class SettingsScreen extends AbstractMenuScreen {
     private Stage stage;
     private Skin skin;
     private AudioConfig audioConfig;

@@ -81,7 +81,6 @@ public class PlayerSFX {
             try {    
                 animator.setFlipX(initialFlip);
             } catch (Exception e) {
-                // TODO: handle exception
             }
         }
 

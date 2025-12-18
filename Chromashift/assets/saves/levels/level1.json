@@ -1,0 +1,1541 @@
+{
+  "levelPath": "levels/level1.json",
+  "timestamp": 1766039182797,
+  "spawnX": 160.0,
+  "spawnY": 352.0,
+  "objects": {
+    "items": [
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-224_160",
+        "x": -224.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 352.0,
+            "x": -224.0,
+            "h": 480.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_128_160",
+        "x": 128.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 896.0,
+            "x": 128.0,
+            "h": 160.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_480_320",
+        "x": 480.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 480.0,
+            "h": 32.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_512_320",
+        "x": 512.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 512.0,
+            "h": 64.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_544_320",
+        "x": 544.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 544.0,
+            "h": 96.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_576_320",
+        "x": 576.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 576.0,
+            "h": 128.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_608_320",
+        "x": 608.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 608.0,
+            "h": 160.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_640_320",
+        "x": 640.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 640.0,
+            "h": 192.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_672_320",
+        "x": 672.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 672.0,
+            "h": 224.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_704_320",
+        "x": 704.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 704.0,
+            "h": 256.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_736_320",
+        "x": 736.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 736.0,
+            "h": 288.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_768_320",
+        "x": 768.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 768.0,
+            "h": 320.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_800_320",
+        "x": 800.0,
+        "y": 320.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 800.0,
+            "h": 320.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_960_384",
+        "x": 960.0,
+        "y": 384.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 960.0,
+            "h": 256.0,
+            "y": 384.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_128_960",
+        "x": 128.0,
+        "y": 960.0,
+        "fields": {
+          "bounds": {
+            "w": 896.0,
+            "x": 128.0,
+            "h": 64.0,
+            "y": 960.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-224_640",
+        "x": -224.0,
+        "y": 640.0,
+        "fields": {
+          "bounds": {
+            "w": 352.0,
+            "x": -224.0,
+            "h": 384.0,
+            "y": 640.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1024_288",
+        "x": 1024.0,
+        "y": 288.0,
+        "fields": {
+          "bounds": {
+            "w": 128.0,
+            "x": 1024.0,
+            "h": 32.0,
+            "y": 288.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1536_288",
+        "x": 1536.0,
+        "y": 288.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 1536.0,
+            "h": 32.0,
+            "y": 288.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1984_288",
+        "x": 1984.0,
+        "y": 288.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 1984.0,
+            "h": 32.0,
+            "y": 288.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1024_992",
+        "x": 1024.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 192.0,
+            "x": 1024.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1024_160",
+        "x": 1024.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 1024.0,
+            "h": 128.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1088_160",
+        "x": 1088.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 1088.0,
+            "h": 128.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1536_160",
+        "x": 1536.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 448.0,
+            "x": 1536.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1984_160",
+        "x": 1984.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 448.0,
+            "x": 1984.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2432_160",
+        "x": 2432.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 448.0,
+            "x": 2432.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2848_256",
+        "x": 2848.0,
+        "y": 256.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2848.0,
+            "h": 32.0,
+            "y": 256.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2368_416",
+        "x": 2368.0,
+        "y": 416.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 2368.0,
+            "h": 32.0,
+            "y": 416.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2816_288",
+        "x": 2816.0,
+        "y": 288.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 2816.0,
+            "h": 128.0,
+            "y": 288.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2816_448",
+        "x": 2816.0,
+        "y": 448.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 2816.0,
+            "h": 224.0,
+            "y": 448.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2848_416",
+        "x": 2848.0,
+        "y": 416.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2848.0,
+            "h": 32.0,
+            "y": 416.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_960_800",
+        "x": 960.0,
+        "y": 800.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 960.0,
+            "h": 32.0,
+            "y": 800.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_960_832",
+        "x": 960.0,
+        "y": 832.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 960.0,
+            "h": 128.0,
+            "y": 832.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_960_640",
+        "x": 960.0,
+        "y": 640.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 960.0,
+            "h": 160.0,
+            "y": 640.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1120_160",
+        "x": 1120.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 1120.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1216_160",
+        "x": 1216.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 320.0,
+            "x": 1216.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1216_992",
+        "x": 1216.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 1312.0,
+            "x": 1216.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3008_736",
+        "x": 3008.0,
+        "y": 736.0,
+        "fields": {
+          "bounds": {
+            "w": 384.0,
+            "x": 3008.0,
+            "h": 256.0,
+            "y": 736.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2848_768",
+        "x": 2848.0,
+        "y": 768.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2848.0,
+            "h": 32.0,
+            "y": 768.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2880_768",
+        "x": 2880.0,
+        "y": 768.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2880.0,
+            "h": 32.0,
+            "y": 768.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2912_768",
+        "x": 2912.0,
+        "y": 768.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2912.0,
+            "h": 32.0,
+            "y": 768.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2528_992",
+        "x": 2528.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 416.0,
+            "x": 2528.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3008_992",
+        "x": 3008.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 384.0,
+            "x": 3008.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1152_160",
+        "x": 1152.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 64.0,
+            "x": 1152.0,
+            "h": 96.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2880_-352",
+        "x": 2880.0,
+        "y": -352.0,
+        "fields": {
+          "bounds": {
+            "w": 512.0,
+            "x": 2880.0,
+            "h": 512.0,
+            "y": -352.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_1120_-352",
+        "x": 1120.0,
+        "y": -352.0,
+        "fields": {
+          "bounds": {
+            "w": 1760.0,
+            "x": 1120.0,
+            "h": 512.0,
+            "y": -352.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-224_-352",
+        "x": -224.0,
+        "y": -352.0,
+        "fields": {
+          "bounds": {
+            "w": 1344.0,
+            "x": -224.0,
+            "h": 512.0,
+            "y": -352.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-576_992",
+        "x": -576.0,
+        "y": 992.0,
+        "fields": {
+          "bounds": {
+            "w": 352.0,
+            "x": -576.0,
+            "h": 32.0,
+            "y": 992.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-576_-352",
+        "x": -576.0,
+        "y": -352.0,
+        "fields": {
+          "bounds": {
+            "w": 352.0,
+            "x": -576.0,
+            "h": 1344.0,
+            "y": -352.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2880_160",
+        "x": 2880.0,
+        "y": 160.0,
+        "fields": {
+          "bounds": {
+            "w": 512.0,
+            "x": 2880.0,
+            "h": 512.0,
+            "y": 160.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3008_672",
+        "x": 3008.0,
+        "y": 672.0,
+        "fields": {
+          "bounds": {
+            "w": 384.0,
+            "x": 3008.0,
+            "h": 64.0,
+            "y": 672.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3008_1024",
+        "x": 3008.0,
+        "y": 1024.0,
+        "fields": {
+          "bounds": {
+            "w": 384.0,
+            "x": 3008.0,
+            "h": 384.0,
+            "y": 1024.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2624_1280",
+        "x": 2624.0,
+        "y": 1280.0,
+        "fields": {
+          "bounds": {
+            "w": 384.0,
+            "x": 2624.0,
+            "h": 128.0,
+            "y": 1280.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2432_1024",
+        "x": 2432.0,
+        "y": 1024.0,
+        "fields": {
+          "bounds": {
+            "w": 128.0,
+            "x": 2432.0,
+            "h": 256.0,
+            "y": 1024.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2432_1280",
+        "x": 2432.0,
+        "y": 1280.0,
+        "fields": {
+          "bounds": {
+            "w": 192.0,
+            "x": 2432.0,
+            "h": 128.0,
+            "y": 1280.0
+          }
+        }
+      },
+      {
+        "className": "Door",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Door",
+        "uniqueId": "Door_832_608",
+        "x": 832.0,
+        "y": 608.0,
+        "fields": {
+          "openProgress": 1.0,
+          "openDirection": "LEFT",
+          "bounds": {
+            "w": 128.0,
+            "x": 832.0,
+            "h": 32.0,
+            "y": 608.0
+          },
+          "closeSpeed": 1.5454537,
+          "openSpeed": 3.0,
+          "open": true
+        }
+      },
+      {
+        "className": "Door",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Door",
+        "uniqueId": "Door_832_576",
+        "x": 832.0,
+        "y": 576.0,
+        "fields": {
+          "openProgress": 0.0,
+          "openDirection": "RIGHT",
+          "bounds": {
+            "w": 128.0,
+            "x": 832.0,
+            "h": 32.0,
+            "y": 576.0
+          },
+          "closeSpeed": 3.0,
+          "openSpeed": 3.0,
+          "open": false
+        }
+      },
+      {
+        "className": "Door",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Door",
+        "uniqueId": "Door_704_576",
+        "x": 704.0,
+        "y": 576.0,
+        "fields": {
+          "openProgress": 1.0,
+          "openDirection": "UP",
+          "bounds": {
+            "w": 32.0,
+            "x": 704.0,
+            "h": 384.0,
+            "y": 576.0
+          },
+          "closeSpeed": 0.5,
+          "openSpeed": 3.0,
+          "open": true
+        }
+      },
+      {
+        "className": "Mirror",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Mirror",
+        "uniqueId": "Mirror_416_480",
+        "x": 416.0,
+        "y": 480.0,
+        "fields": {
+          "angleDeg": 225.0,
+          "playerNearby": false,
+          "start": {
+            "x": 443.31372,
+            "y": 507.31372
+          },
+          "bounds": {
+            "w": 32.0,
+            "x": 416.0,
+            "h": 32.0,
+            "y": 480.0
+          },
+          "end": {
+            "x": 420.68628,
+            "y": 484.68628
+          }
+        }
+      },
+      {
+        "className": "Mirror",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Mirror",
+        "uniqueId": "Mirror_416_736",
+        "x": 416.0,
+        "y": 736.0,
+        "fields": {
+          "angleDeg": 45.0,
+          "playerNearby": false,
+          "start": {
+            "x": 420.68628,
+            "y": 740.6863
+          },
+          "bounds": {
+            "w": 32.0,
+            "x": 416.0,
+            "h": 32.0,
+            "y": 736.0
+          },
+          "end": {
+            "x": 443.31372,
+            "y": 763.3137
+          }
+        }
+      },
+      {
+        "className": "Button",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Button",
+        "uniqueId": "button_1",
+        "x": 768.0,
+        "y": 640.0,
+        "fields": {
+          "solidBounds": {
+            "w": 52.0,
+            "x": 774.0,
+            "h": 7.0,
+            "y": 640.0
+          },
+          "color": "GREEN",
+          "pressed": true,
+          "bounds": {
+            "w": 64.0,
+            "x": 768.0,
+            "h": 32.0,
+            "y": 640.0
+          },
+          "activationBounds": {
+            "w": 32.0,
+            "x": 784.0,
+            "h": 10.0,
+            "y": 647.0
+          },
+          "id": "button_1",
+          "collisionBounds": {
+            "w": 52.0,
+            "x": 774.0,
+            "h": 7.0,
+            "y": 640.0
+          }
+        }
+      },
+      {
+        "className": "Lever",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Lever",
+        "uniqueId": "lever_1",
+        "x": 928.0,
+        "y": 864.0,
+        "fields": {
+          "horizontal": false,
+          "playerNearby": false,
+          "bounds": {
+            "w": 26.0,
+            "x": 928.0,
+            "h": 32.0,
+            "y": 864.0
+          },
+          "id": "lever_1",
+          "on": false
+        }
+      },
+      {
+        "className": "Target",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Target",
+        "uniqueId": "Target_544_736",
+        "x": 544.0,
+        "y": 736.0,
+        "fields": {
+          "color": "BLUE",
+          "hitThisFrame": false,
+          "bounds": {
+            "w": 32.0,
+            "x": 544.0,
+            "h": 32.0,
+            "y": 736.0
+          },
+          "active": true
+        }
+      },
+      {
+        "className": "Button",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Button",
+        "uniqueId": "button_2",
+        "x": 256.0,
+        "y": 320.0,
+        "fields": {
+          "solidBounds": {
+            "w": 52.0,
+            "x": 262.0,
+            "h": 7.0,
+            "y": 320.0
+          },
+          "color": "GREEN",
+          "pressed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 256.0,
+            "h": 32.0,
+            "y": 320.0
+          },
+          "activationBounds": {
+            "w": 32.0,
+            "x": 272.0,
+            "h": 10.0,
+            "y": 327.0
+          },
+          "id": "button_2",
+          "collisionBounds": {
+            "w": 52.0,
+            "x": 262.0,
+            "h": 7.0,
+            "y": 320.0
+          }
+        }
+      },
+      {
+        "className": "Lever",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Lever",
+        "uniqueId": "lever_2",
+        "x": 2656.0,
+        "y": 1024.0,
+        "fields": {
+          "horizontal": false,
+          "playerNearby": false,
+          "bounds": {
+            "w": 26.0,
+            "x": 2656.0,
+            "h": 32.0,
+            "y": 1024.0
+          },
+          "id": "lever_2",
+          "on": false
+        }
+      },
+      {
+        "className": "Lever",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Lever",
+        "uniqueId": "lever_3",
+        "x": 2592.0,
+        "y": 1024.0,
+        "fields": {
+          "horizontal": false,
+          "playerNearby": false,
+          "bounds": {
+            "w": 26.0,
+            "x": 2592.0,
+            "h": 32.0,
+            "y": 1024.0
+          },
+          "id": "lever_3",
+          "on": false
+        }
+      },
+      {
+        "className": "Portal",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Portal",
+        "uniqueId": "Portal_2656_986",
+        "x": 2656.0,
+        "y": 986.0,
+        "fields": {
+          "playerNearby": false,
+          "lever2Active": false,
+          "interactionCooldown": 0.0,
+          "bounds": {
+            "w": 225.0,
+            "x": 2656.0,
+            "h": 225.0,
+            "y": 986.0
+          },
+          "requiredLeverId2": "lever_3",
+          "state": "INACTIVE",
+          "lever1Active": false,
+          "hitbox": {
+            "w": 140.0,
+            "x": 2698.0,
+            "h": 154.0,
+            "y": 1016.0
+          },
+          "requiredLeverId1": "lever_2"
+        }
+      },
+      {
+        "className": "Box",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Box",
+        "uniqueId": "Box_2916_672",
+        "x": 2916.0,
+        "y": 672.0,
+        "fields": {
+          "vx": 0.0,
+          "vy": 0.0,
+          "holdOffsetX": 0.0,
+          "held": false,
+          "holdOffsetY": 6.0,
+          "boxColor": {
+            "a": 1.0,
+            "r": 1.0,
+            "b": 0.0,
+            "g": 0.0
+          },
+          "spawnX": 2916.0,
+          "spawnY": 676.0,
+          "inRange": false,
+          "x": 2916.0,
+          "width": 24.0,
+          "bounds": {
+            "w": 24.0,
+            "x": 2916.0,
+            "h": 24.0,
+            "y": 672.0
+          },
+          "respawnArea": {
+            "w": 200.0,
+            "x": 2816.0,
+            "h": 400.0,
+            "y": 476.0
+          },
+          "y": 672.0,
+          "height": 24.0
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_1088_320",
+        "x": 1088.0,
+        "y": 320.0,
+        "fields": {
+          "solidBounds": {
+            "w": 42.0,
+            "x": 1099.0,
+            "h": 16.0,
+            "y": 320.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 1088.0,
+            "h": 32.0,
+            "y": 320.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 36.0,
+            "x": 1102.0,
+            "h": 2.0,
+            "y": 336.0
+          },
+          "direction": "UP"
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_1536_320",
+        "x": 1536.0,
+        "y": 320.0,
+        "fields": {
+          "solidBounds": {
+            "w": 42.0,
+            "x": 1547.0,
+            "h": 16.0,
+            "y": 320.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 1536.0,
+            "h": 32.0,
+            "y": 320.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 36.0,
+            "x": 1550.0,
+            "h": 2.0,
+            "y": 336.0
+          },
+          "direction": "UP"
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_1984_320",
+        "x": 1984.0,
+        "y": 320.0,
+        "fields": {
+          "solidBounds": {
+            "w": 42.0,
+            "x": 1995.0,
+            "h": 16.0,
+            "y": 320.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 1984.0,
+            "h": 32.0,
+            "y": 320.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 36.0,
+            "x": 1998.0,
+            "h": 2.0,
+            "y": 336.0
+          },
+          "direction": "UP"
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_2368_448",
+        "x": 2368.0,
+        "y": 448.0,
+        "fields": {
+          "solidBounds": {
+            "w": 42.0,
+            "x": 2379.0,
+            "h": 16.0,
+            "y": 448.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 64.0,
+            "x": 2368.0,
+            "h": 32.0,
+            "y": 448.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 36.0,
+            "x": 2382.0,
+            "h": 2.0,
+            "y": 464.0
+          },
+          "direction": "UP"
+        }
+      },
+      {
+        "className": "Launchpad",
+        "fullClassName": "com.jjmc.chromashift.environment.Launchpad",
+        "uniqueId": "Launchpad_1024_576",
+        "x": 1024.0,
+        "y": 576.0,
+        "fields": {
+          "solidBounds": {
+            "w": 16.0,
+            "x": 1024.0,
+            "h": 42.0,
+            "y": 587.0
+          },
+          "launchCooldown": 0.0,
+          "isLaunching": false,
+          "activationArmed": false,
+          "bounds": {
+            "w": 32.0,
+            "x": 1024.0,
+            "h": 64.0,
+            "y": 576.0
+          },
+          "launchSpeed": 600.0,
+          "detectionBounds": {
+            "w": 16.0,
+            "x": 1040.0,
+            "h": 20.0,
+            "y": 598.0
+          },
+          "direction": "LEFT"
+        }
+      },
+      {
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_2816_416",
+        "x": 2816.0,
+        "y": 416.0,
+        "fields": {
+          "rotation": 180.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 2816.0,
+            "h": 32.0,
+            "y": 416.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_992_800",
+        "x": 992.0,
+        "y": 800.0,
+        "fields": {
+          "rotation": 0.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 992.0,
+            "h": 32.0,
+            "y": 800.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "LaserRay",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.LaserRay",
+        "uniqueId": "LaserRay_288_480",
+        "x": 288.0,
+        "y": 480.0,
+        "fields": {
+          "playerNearby": false,
+          "rotation": 0.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 288.0,
+            "h": 32.0,
+            "y": 480.0
+          },
+          "rotateStep": 90.0,
+          "position": {
+            "x": 304.0,
+            "y": 496.0
+          },
+          "maxLength": 1000000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_2816_256",
+        "x": 2816.0,
+        "y": 256.0,
+        "fields": {
+          "rotation": 180.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 2816.0,
+            "h": 32.0,
+            "y": 256.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "Glass",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Glass",
+        "uniqueId": "Glass_424_616",
+        "x": 424.0,
+        "y": 616.0,
+        "fields": {
+          "tintStrength": 1.0,
+          "rainbow": false,
+          "color": {
+            "a": 1.0,
+            "r": 0.0,
+            "b": 1.0,
+            "g": 0.0
+          },
+          "start": {
+            "x": 424.0,
+            "y": 616.0
+          },
+          "bounds": {
+            "w": 16.0,
+            "x": 424.0,
+            "h": 16.0,
+            "y": 616.0
+          },
+          "end": {
+            "x": 440.0,
+            "y": 632.0
+          },
+          "tintLaser": true,
+          "speed": 1.5
+        }
+      },
+      {
+        "className": "LockedDoor",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.LockedDoor",
+        "uniqueId": "LockedDoor_960_320",
+        "x": 960.0,
+        "y": 320.0,
+        "fields": {
+          "orientation": "VERTICAL",
+          "bounds": {
+            "w": 32.0,
+            "x": 960.0,
+            "h": 64.0,
+            "y": 320.0
+          },
+          "open": false
+        }
+      },
+      {
+        "className": "LockedDoor",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.LockedDoor",
+        "uniqueId": "LockedDoor_992_320",
+        "x": 992.0,
+        "y": 320.0,
+        "fields": {
+          "orientation": "VERTICAL",
+          "bounds": {
+            "w": 32.0,
+            "x": 992.0,
+            "h": 64.0,
+            "y": 320.0
+          },
+          "open": false
+        }
+      },
+      {
+        "className": "Shop",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Shop",
+        "uniqueId": "Shop_864_320",
+        "x": 864.0,
+        "y": 320.0,
+        "fields": {
+          "savedVelocityY": 0.0,
+          "isOpen": false,
+          "savedVelocityX": 0.0,
+          "playerNearby": false,
+          "potionStock": 5,
+          "x": 864.0,
+          "width": 64.0,
+          "y": 320.0,
+          "playerWasMovable": true,
+          "height": 64.0
+        }
+      },
+      {
+        "className": "Diamond",
+        "fullClassName": "com.jjmc.chromashift.environment.collectible.Diamond",
+        "uniqueId": "Diamond_448_384",
+        "x": 0.0,
+        "y": 0.0,
+        "fields": {
+          "x": 448.0,
+          "width": 32.0,
+          "y": 384.0,
+          "collected": false,
+          "id": "Diamond_448_384",
+          "height": 32.0
+        }
+      },
+      {
+        "className": "Diamond",
+        "fullClassName": "com.jjmc.chromashift.environment.collectible.Diamond",
+        "uniqueId": "Diamond_416_384",
+        "x": 0.0,
+        "y": 0.0,
+        "fields": {
+          "x": 416.0,
+          "width": 32.0,
+          "y": 384.0,
+          "collected": false,
+          "id": "Diamond_416_384",
+          "height": 32.0
+        }
+      },
+      {
+        "className": "Diamond",
+        "fullClassName": "com.jjmc.chromashift.environment.collectible.Diamond",
+        "uniqueId": "Diamond_416_416",
+        "x": 0.0,
+        "y": 0.0,
+        "fields": {
+          "x": 416.0,
+          "width": 32.0,
+          "y": 416.0,
+          "collected": false,
+          "id": "Diamond_416_416",
+          "height": 32.0
+        }
+      },
+      {
+        "className": "Key",
+        "fullClassName": "com.jjmc.chromashift.environment.collectible.Key",
+        "uniqueId": "Key_864_672",
+        "x": 0.0,
+        "y": 0.0,
+        "fields": {
+          "x": 864.0,
+          "width": 32.0,
+          "y": 672.0,
+          "collected": false,
+          "id": "Key_864_672",
+          "height": 32.0
+        }
+      },
+      null
+    ],
+    "size": 84,
+    "ordered": true
+  },
+  "removedObjectIds": [
+    "Diamond_448_416",
+    "Diamond_384_416",
+    "Diamond_384_384",
+    "Diamond_352_384",
+    "Diamond_352_416",
+    "Diamond_352_352",
+    "Diamond_384_352",
+    "Key_320_384"
+  ]
+}

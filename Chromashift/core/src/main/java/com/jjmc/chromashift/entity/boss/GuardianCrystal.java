@@ -123,7 +123,6 @@ public class GuardianCrystal implements Enemy {
                 hoverBaseY = groundY + MathUtils.random(hoverRangeMin, hoverRangeMax);
             } else {
                 // Ground check: only treat as ground when crossing a top surface from above
-                Rectangle feet = new Rectangle(x, y, CRYSTAL_FRAME_W, CRYSTAL_FRAME_H);
                 for (int i = 0; i < solids.size && !grounded; i++) {
                     Solid s = solids.get(i);
                     if (!s.isBlocking()) continue;

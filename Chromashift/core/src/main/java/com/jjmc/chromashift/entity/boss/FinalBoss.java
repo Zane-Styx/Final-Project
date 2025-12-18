@@ -137,7 +137,7 @@ public class FinalBoss extends Boss {
     private Rectangle getTrigger6Bounds() {
         return trigger6Bounds;
     }
-
+    @SuppressWarnings("unused")
     public FinalBoss() {
         super(1000f); // 1000 health points
 
@@ -243,8 +243,6 @@ public class FinalBoss extends Boss {
 
                 // Choose launchpad side based on where the player is (left/right half of arena)
                 float mid = (arenaLeft + arenaRight) * 0.5f;
-                final float padX = (px < mid) ? launchpadLeftX : launchpadRightX;
-                final float padY = launchpadY;
 
                 // Determine attack direction based on player movement
                 float moveX = bossInst != null ? (bossInst.lastPlayerX - bossInst.prevPlayerX) : 0;

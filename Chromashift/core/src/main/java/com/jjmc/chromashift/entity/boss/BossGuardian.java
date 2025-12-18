@@ -1228,8 +1228,6 @@ public class BossGuardian extends Boss {
                     // Scale the hitbox by lightning scale
                     float scaledHitboxWidth = LIGHTNING_HITBOX_WIDTH * lightningScale;
                     float scaledHitboxHeight = LIGHTNING_HITBOX_HEIGHT * lightningScale;
-                    float scaledPadLeft = LIGHTNING_HITBOX_PAD_LEFT * lightningScale;
-                    float scaledPadRight = LIGHTNING_HITBOX_PAD_RIGHT * lightningScale;
                     
                     Gdx.app.log("LightningDMG", "Checking frame " + currentFrame + ", damage=" + damageValue + 
                         ", playerHealth=" + player.getHealthSystem().getCurrentHealth() + 

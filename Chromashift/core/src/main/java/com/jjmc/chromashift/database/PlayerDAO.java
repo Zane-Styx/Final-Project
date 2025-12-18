@@ -428,6 +428,7 @@ public class PlayerDAO {
      * @param playerId player ID
      * @return Array of visited level paths
      */
+    @SuppressWarnings("unchecked")
     public static com.badlogic.gdx.utils.Array<String> loadVisitedLevelsFromDB(int playerId) throws SQLException {
         String sql = "SELECT visited_levels_json FROM player_saves WHERE player_id = ?";
         

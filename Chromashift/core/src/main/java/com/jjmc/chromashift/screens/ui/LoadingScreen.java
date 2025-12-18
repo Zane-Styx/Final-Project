@@ -1,11 +1,9 @@
 package com.jjmc.chromashift.screens.ui;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
@@ -15,7 +13,6 @@ import com.chromashift.helper.SpriteFont;
 import com.chromashift.helper.SpriteFontManager;
 import com.jjmc.chromashift.Assets;
 import com.jjmc.chromashift.ChromashiftGame;
-import com.jjmc.chromashift.screens.TestMenuScreen;
 
 /**
  * Animated Loading Screen
@@ -27,7 +24,7 @@ import com.jjmc.chromashift.screens.TestMenuScreen;
  *
  * Tweakable parameters are grouped near the top.
  */
-public class LoadingScreen extends AbstractMenuScreen implements Screen {
+public class LoadingScreen extends AbstractMenuScreen {
 	private final ChromashiftGame game;
 
 	// Rendering
@@ -251,7 +248,7 @@ public class LoadingScreen extends AbstractMenuScreen implements Screen {
 					postBlackHoldTimer += delta;
 					if (postBlackHoldTimer >= postBlackHoldDuration) {
 						try {
-							game.setScreen(new TestMenuScreen());
+							game.setScreen(new MainMenuScreen());
 						} catch (Exception e) {
 							Gdx.app.error("LoadingScreen", "Failed to switch to start screen", e);
 						}

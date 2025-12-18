@@ -27,6 +27,7 @@ import com.jjmc.chromashift.environment.Spawn;
 import com.jjmc.chromashift.player.Player;
 import com.jjmc.chromashift.player.PlayerConfig;
 import com.jjmc.chromashift.screens.ui.MainMenuScreen;
+import com.jjmc.chromashift.screens.TestMenuScreen;
 import com.jjmc.chromashift.entity.boss.BossGuardian;
 import com.jjmc.chromashift.entity.boss.FinalBoss;
 import com.chromashift.helper.CameraController;
@@ -38,7 +39,8 @@ import com.chromashift.helper.SpriteAnimator;
  * - Center: Lever (press F) -> Door B (toggle)
  * - Right: Independent door/obstacles for edge cases
  * Provides on-screen instructions and debug visuals.
- */
+*/
+@SuppressWarnings("unused")
 public class GameSceneScreen implements Screen {
     private OrthographicCamera camera;
     private CameraController camController;
@@ -355,30 +357,32 @@ public class GameSceneScreen implements Screen {
             } catch (Exception ignored) {
                 // If delete fails, continue with default new player
             }
-        } else if (false) {
-            // DISABLED: This was causing spawn bugs by overriding the level's spawn position
-            try {
-                com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
-                // Also restore visited levels
-                com.badlogic.gdx.utils.Array<String> loadedVisited = com.jjmc.chromashift.database.PlayerDAO
-                        .loadVisitedLevelsFromDB(1);
-                if (loadedVisited != null && loadedVisited.size > 0) {
-                    this.visitedLevels.clear();
-                    this.visitedLevels.addAll(loadedVisited);
-                }
-                Gdx.app.log("TestSceneScreen", "✓ Player state restored from database");
-                if (player != null) {
-                    player.setKeyCount(0);
-                }
+        } 
+        // else if (false) {
+        //     // DISABLED: This was causing spawn bugs by overriding the level's spawn position
+        //     try {
+        //         com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
+        //         // Also restore visited levels
+        //         com.badlogic.gdx.utils.Array<String> loadedVisited = com.jjmc.chromashift.database.PlayerDAO
+        //                 .loadVisitedLevelsFromDB(1);
+        //         if (loadedVisited != null && loadedVisited.size > 0) {
+        //             this.visitedLevels.clear();
+        //             this.visitedLevels.addAll(loadedVisited);
+        //         }
+        //         Gdx.app.log("TestSceneScreen", "✓ Player state restored from database");
+        //         if (player != null) {
+        //             player.setKeyCount(0);
+        //         }
 
-                // Keep respawn marker + saved spawn in sync with the loaded respawn point.
-                // Otherwise the marker can show the JSON spawn while respawn uses the saved checkpoint.
-                playerSpawnX = player.getRespawnX();
-                playerSpawnY = player.getRespawnY();
-            } catch (Exception ex) {
-                Gdx.app.log("TestSceneScreen", "Could not restore player state (first run?): " + ex.getMessage());
-            }
-        } else {
+        //         // Keep respawn marker + saved spawn in sync with the loaded respawn point.
+        //         // Otherwise the marker can show the JSON spawn while respawn uses the saved checkpoint.
+        //         playerSpawnX = player.getRespawnX();
+        //         playerSpawnY = player.getRespawnY();
+        //     } catch (Exception ex) {
+        //         Gdx.app.log("TestSceneScreen", "Could not restore player state (first run?): " + ex.getMessage());
+        //     }
+        // } 
+        else {
             try {
                 com.jjmc.chromashift.database.PlayerDAO.deletePlayerSave(1);
                 Gdx.app.log("TestSceneScreen", "Previous save cleared for new game start");
@@ -426,15 +430,21 @@ public class GameSceneScreen implements Screen {
         tentacles = loaded.tentacles;
         tentacleCaptures = new Array<>();
         for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
-            tentacleCaptures.add(new com.jjmc.chromashift.environment.enemy.TentacleCapture(t, player));
-            // Ensure diamonds from death go into level collectibles
+            // Only set up captures and drops for alive tentacles
+            if (t.isAlive()) {
+                tentacleCaptures.add(new com.jjmc.chromashift.environment.enemy.TentacleCapture(t, player));
+            }
+            // Set drop target for all tentacles (in case they respawn or for consistency)
             t.setDropTarget(collectibles);
         }
 
         // Set up enemy tracking for player melee attacks (store in field for later use)
                 enemies = new Array<>();
                 for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
-                    enemies.add(t);
+                    // Only add alive tentacles to enemy list
+                    if (t.isAlive()) {
+                        enemies.add(t);
+                    }
                 }
                 // Add BossGuardian's three guardians as enemies for attack/projectile collision
                 if (bossGuardian != null) {
@@ -780,7 +790,7 @@ public class GameSceneScreen implements Screen {
             player.getAttackHitbox().checkEnemyCollisions(enemies);
         }
 
-        // Prune dead tentacles and associated capture handlers & enemy list entries
+        // Clean up dead tentacle references but KEEP them in array for save system
         if (tentacles.size > 0) {
             for (int i = tentacles.size - 1; i >= 0; i--) {
                 com.jjmc.chromashift.environment.enemy.Tentacle t = tentacles.get(i);
@@ -797,7 +807,8 @@ public class GameSceneScreen implements Screen {
                         enemies.removeValue(t, false);
                         player.setEnemies(enemies);
                     }
-                    tentacles.removeIndex(i);
+                    // DON'T remove from tentacles array - keep for save system
+                    // tentacles.removeIndex(i);
                 }
             }
         }
@@ -939,7 +950,9 @@ public class GameSceneScreen implements Screen {
         // The existing code ends 'shape' before batch.begin().
         // We can draw tentacles here.
         for (com.jjmc.chromashift.environment.enemy.Tentacle t : tentacles) {
-            t.draw(shape);
+            if (t.isAlive()) {
+                t.draw(shape);
+            }
         }
         shape.end();
 
@@ -1214,7 +1227,6 @@ public class GameSceneScreen implements Screen {
         // Background boxes (dark)
         shape.setColor(new Color(0f, 0f, 0f, 0.55f));
                                         for (int di = 0; di < count; di++) {
-                                            int i = alive.get(di) - 1; // 0-based index
                                             int x = xStart + di * (HUD_BAR_WIDTH + HUD_BAR_GAP);
             shape.rect(x - 2, y - 2, HUD_BAR_WIDTH + 4, HUD_BAR_HEIGHT + 4);
         }
@@ -1315,8 +1327,7 @@ public class GameSceneScreen implements Screen {
                     public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                         saveAllState(currentLevelPath);
                         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener())
-                                .setScreen(new com.jjmc.chromashift.screens.ui.MainMenuScreen());
-                                //.setScreen(new com.jjmc.chromashift.screens.ui.MainMenuScreen());
+                                .setScreen(new MainMenuScreen());
                     }
                 });
                 content.add(menuLbl).row();

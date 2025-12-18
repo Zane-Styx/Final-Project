@@ -2,9 +2,6 @@ package com.jjmc.chromashift.screens.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -12,13 +9,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.chromashift.helper.SpriteLabel;
 import com.chromashift.helper.UIHelper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.jjmc.chromashift.screens.GameSceneScreen;
-import com.badlogic.gdx.files.FileHandle;
 
-public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenuScreen implements Screen {
+public class MainMenuScreen extends AbstractMenuScreen {
     private Stage stage;
     private Skin skin;
     private com.badlogic.gdx.graphics.Texture mainCharacterTex;

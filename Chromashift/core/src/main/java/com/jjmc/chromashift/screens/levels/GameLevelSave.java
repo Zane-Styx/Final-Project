@@ -6,7 +6,6 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Json;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -177,35 +176,12 @@ public class GameLevelSave {
                 }
             }
             
-            // Compare original tentacles with current tentacles to find what's missing
+            // Tentacles are now kept in array with dead=true state, so no need to track missing ones
+            // Their dead field will be saved and restored automatically
             if (originalResult.tentacles != null) {
                 Gdx.app.log("GameLevelSave", "Original tentacles count: " + originalResult.tentacles.size);
                 Gdx.app.log("GameLevelSave", "Current tentacles count: " + (result.tentacles != null ? result.tentacles.size : 0));
-                
-                for (int i = 0; i < originalResult.tentacles.size; i++) {
-                    Object origObj = originalResult.tentacles.get(i);
-                    String origId = generateObjectId(origObj, i);
-                    
-                    // Check if this ID exists in current tentacles
-                    boolean foundInCurrent = false;
-                    if (result.tentacles != null) {
-                        for (int j = 0; j < result.tentacles.size; j++) {
-                            Object currObj = result.tentacles.get(j);
-                            String currId = generateObjectId(currObj, j);
-                            
-                            if (origId.equals(currId)) {
-                                foundInCurrent = true;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    // If not found in current, it was killed
-                    if (!foundInCurrent) {
-                        collectedIds.add(origId);
-                        Gdx.app.log("GameLevelSave", "Detected DEAD: " + origId);
-                    }
-                }
+                Gdx.app.log("GameLevelSave", "Tentacles kept in array with dead state (no removal tracking needed)");
             }
             
             // Add current objects to candidates for state saving
@@ -501,18 +477,11 @@ public class GameLevelSave {
                 }
                 Gdx.app.log("GameLevelSave", "Collectibles: " + originalCount + " -> " + result.collectibles.size);
             }
-            // Remove from tentacles
+            // Don't remove tentacles - they're kept in array with dead=true state
+            // Tentacles will have their 'dead' field applied from saved state
+            // No removal needed for tentacles
             if (result.tentacles != null) {
-                int originalCount = result.tentacles.size;
-                for (int i = result.tentacles.size - 1; i >= 0; i--) {
-                    Object obj = result.tentacles.get(i);
-                    String id = generateObjectId(obj, i);
-                    if (sl.removedObjectIds.contains(id)) {
-                        result.tentacles.removeIndex(i);
-                        Gdx.app.log("GameLevelSave", "✓ Removed dead enemy: " + id);
-                    }
-                }
-                Gdx.app.log("GameLevelSave", "Tentacles: " + originalCount + " -> " + result.tentacles.size);
+                Gdx.app.log("GameLevelSave", "Tentacles kept in array (dead state will be applied from save)");
             }
         }
         
@@ -537,13 +506,34 @@ public class GameLevelSave {
             if (obj == null) continue;
             if (!obj.getClass().getSimpleName().equals(so.className)) continue;
             
-            // Try to match by ID first (for collectibles)
+            // Try to match by ID first (for collectibles and tentacles)
             boolean matched = false;
             try {
                 if (obj instanceof com.jjmc.chromashift.environment.collectible.Collectible c) {
                     if (c.getId() != null && c.getId().equals(so.uniqueId)) {
                         matched = true;
                     }
+                }
+                // Try uniqueId field for tentacles
+                if (!matched) {
+                    try {
+                        Field uidF = obj.getClass().getDeclaredField("uniqueId");
+                        uidF.setAccessible(true);
+                        Object uidVal = uidF.get(obj);
+                        if (uidVal != null && uidVal.toString().equals(so.uniqueId)) {
+                            matched = true;
+                        }
+                    } catch (Exception ignored2) {}
+                }
+                // Try getUniqueId method for tentacles
+                if (!matched) {
+                    try {
+                        java.lang.reflect.Method m = obj.getClass().getMethod("getUniqueId");
+                        Object uidVal = m.invoke(obj);
+                        if (uidVal != null && uidVal.toString().equals(so.uniqueId)) {
+                            matched = true;
+                        }
+                    } catch (Exception ignored2) {}
                 }
             } catch (Exception ignored) {}
             

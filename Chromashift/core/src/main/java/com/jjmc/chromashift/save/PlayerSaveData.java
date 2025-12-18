@@ -226,6 +226,7 @@ public class PlayerSaveData {
     /**
      * Restore from a map
      */
+    @SuppressWarnings("unchecked")
     public static PlayerSaveData fromMap(Map<String, Object> map) {
         PlayerSaveData data = new PlayerSaveData();
         if (map == null) return data;
