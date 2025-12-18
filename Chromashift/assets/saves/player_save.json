@@ -1,6 +1,6 @@
 {
-"x": 2176,
-"y": 1600,
+"x": 0,
+"y": -32,
 "velocityX": 0,
 "velocityY": 0,
 "facingLeft": false,
@@ -14,12 +14,12 @@
 "attacking": true,
 "airAttacking": false,
 "airAttackTimer": 0,
-"attackCooldownTimer": 0.57588506,
+"attackCooldownTimer": 0.6171989,
 "shield": 0,
 "keyCount": 0,
 "potionCount": 0,
-"respawnX": 2176,
-"respawnY": 1664,
+"respawnX": 0,
+"respawnY": 0,
 "respawnInvulRemaining": 0,
 "respawnStunRemaining": 0,
 "isStunned": false,
@@ -28,13 +28,13 @@
 "healthMax": 200,
 "skillQ": {
 	"skillName": "DashSkill",
-	"currentCooldown": -0.016227413,
+	"currentCooldown": -9.133294E-5,
 	"isActive": false,
 	"animationTimer": 0
 },
 "skillE": {
 	"skillName": "JumpSkill",
-	"currentCooldown": -0.015020629,
+	"currentCooldown": -0.0019228291,
 	"isActive": false,
 	"animationTimer": 0
 },

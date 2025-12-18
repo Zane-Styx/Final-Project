@@ -1,6 +1,8 @@
 {
   "levelPath": "levels/level3.json",
-  "timestamp": 1765896950084,
+  "timestamp": 1766035507389,
+  "spawnX": 0.0,
+  "spawnY": 0.0,
   "objects": {
     "items": [
       {
@@ -574,6 +576,186 @@
         }
       },
       {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2272_2336",
+        "x": 2272.0,
+        "y": 2336.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 2272.0,
+            "h": 32.0,
+            "y": 2336.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2304_2304",
+        "x": 2304.0,
+        "y": 2304.0,
+        "fields": {
+          "bounds": {
+            "w": 576.0,
+            "x": 2304.0,
+            "h": 32.0,
+            "y": 2304.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_2880_2304",
+        "x": 2880.0,
+        "y": 2304.0,
+        "fields": {
+          "bounds": {
+            "w": 576.0,
+            "x": 2880.0,
+            "h": 32.0,
+            "y": 2304.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3456_2304",
+        "x": 3456.0,
+        "y": 2304.0,
+        "fields": {
+          "bounds": {
+            "w": 480.0,
+            "x": 3456.0,
+            "h": 32.0,
+            "y": 2304.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-128_-480",
+        "x": -128.0,
+        "y": -480.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": -128.0,
+            "h": 32.0,
+            "y": -480.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3968_-480",
+        "x": 3968.0,
+        "y": -480.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 3968.0,
+            "h": 32.0,
+            "y": -480.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3968_2912",
+        "x": 3968.0,
+        "y": 2912.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 3968.0,
+            "h": 32.0,
+            "y": 2912.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-128_2912",
+        "x": -128.0,
+        "y": 2912.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": -128.0,
+            "h": 32.0,
+            "y": 2912.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-96_2912",
+        "x": -96.0,
+        "y": 2912.0,
+        "fields": {
+          "bounds": {
+            "w": 4064.0,
+            "x": -96.0,
+            "h": 32.0,
+            "y": 2912.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-96_-480",
+        "x": -96.0,
+        "y": -480.0,
+        "fields": {
+          "bounds": {
+            "w": 4064.0,
+            "x": -96.0,
+            "h": 32.0,
+            "y": -480.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_-128_-448",
+        "x": -128.0,
+        "y": -448.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": -128.0,
+            "h": 3360.0,
+            "y": -448.0
+          }
+        }
+      },
+      {
+        "className": "Wall",
+        "fullClassName": "com.jjmc.chromashift.environment.Wall",
+        "uniqueId": "Wall_3968_-448",
+        "x": 3968.0,
+        "y": -448.0,
+        "fields": {
+          "bounds": {
+            "w": 32.0,
+            "x": 3968.0,
+            "h": 3360.0,
+            "y": -448.0
+          }
+        }
+      },
+      {
         "className": "Door",
         "fullClassName": "com.jjmc.chromashift.environment.interactable.Door",
         "uniqueId": "Door_1920_96",
@@ -894,6 +1076,106 @@
         }
       },
       {
+        "className": "Mirror",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Mirror",
+        "uniqueId": "Mirror_3424_2336",
+        "x": 3424.0,
+        "y": 2336.0,
+        "fields": {
+          "angleDeg": 90.0,
+          "playerNearby": false,
+          "start": {
+            "x": 3440.0,
+            "y": 2336.0
+          },
+          "bounds": {
+            "w": 32.0,
+            "x": 3424.0,
+            "h": 32.0,
+            "y": 2336.0
+          },
+          "end": {
+            "x": 3440.0,
+            "y": 2368.0
+          }
+        }
+      },
+      {
+        "className": "Mirror",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Mirror",
+        "uniqueId": "Mirror_3936_-448",
+        "x": 3936.0,
+        "y": -448.0,
+        "fields": {
+          "angleDeg": 225.0,
+          "playerNearby": false,
+          "start": {
+            "x": 3963.3137,
+            "y": -420.68628
+          },
+          "bounds": {
+            "w": 32.0,
+            "x": 3936.0,
+            "h": 32.0,
+            "y": -448.0
+          },
+          "end": {
+            "x": 3940.6863,
+            "y": -443.31372
+          }
+        }
+      },
+      {
+        "className": "Mirror",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Mirror",
+        "uniqueId": "Mirror_3936_2880",
+        "x": 3936.0,
+        "y": 2880.0,
+        "fields": {
+          "angleDeg": 315.0,
+          "playerNearby": false,
+          "start": {
+            "x": 3940.6863,
+            "y": 2907.3137
+          },
+          "bounds": {
+            "w": 32.0,
+            "x": 3936.0,
+            "h": 32.0,
+            "y": 2880.0
+          },
+          "end": {
+            "x": 3963.3137,
+            "y": 2884.6863
+          }
+        }
+      },
+      {
+        "className": "Mirror",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Mirror",
+        "uniqueId": "Mirror_-96_2880",
+        "x": -96.0,
+        "y": 2880.0,
+        "fields": {
+          "angleDeg": 45.0,
+          "playerNearby": false,
+          "start": {
+            "x": -91.313705,
+            "y": 2884.6863
+          },
+          "bounds": {
+            "w": 32.0,
+            "x": -96.0,
+            "h": 32.0,
+            "y": 2880.0
+          },
+          "end": {
+            "x": -68.686295,
+            "y": 2907.3137
+          }
+        }
+      },
+      {
         "className": "Button",
         "fullClassName": "com.jjmc.chromashift.environment.interactable.Button",
         "uniqueId": "button_1",
@@ -930,13 +1212,79 @@
         }
       },
       {
+        "className": "Portal",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Portal",
+        "uniqueId": "Portal_3680_2298",
+        "x": 3680.0,
+        "y": 2298.0,
+        "fields": {
+          "playerNearby": false,
+          "lever2Active": false,
+          "interactionCooldown": 0.0,
+          "bounds": {
+            "w": 225.0,
+            "x": 3680.0,
+            "h": 225.0,
+            "y": 2298.0
+          },
+          "requiredLeverId2": "lever_2",
+          "state": "INACTIVE",
+          "lever1Active": false,
+          "hitbox": {
+            "w": 140.0,
+            "x": 3722.0,
+            "h": 154.0,
+            "y": 2328.0
+          },
+          "requiredLeverId1": "lever_1"
+        }
+      },
+      {
+        "className": "Lever",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Lever",
+        "uniqueId": "lever_1",
+        "x": 3584.0,
+        "y": 2336.0,
+        "fields": {
+          "horizontal": false,
+          "playerNearby": false,
+          "bounds": {
+            "w": 26.0,
+            "x": 3584.0,
+            "h": 32.0,
+            "y": 2336.0
+          },
+          "id": "lever_1",
+          "on": false
+        }
+      },
+      {
+        "className": "Lever",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Lever",
+        "uniqueId": "lever_2",
+        "x": 3648.0,
+        "y": 2336.0,
+        "fields": {
+          "horizontal": false,
+          "playerNearby": false,
+          "bounds": {
+            "w": 26.0,
+            "x": 3648.0,
+            "h": 32.0,
+            "y": 2336.0
+          },
+          "id": "lever_2",
+          "on": false
+        }
+      },
+      {
         "className": "Box",
         "fullClassName": "com.jjmc.chromashift.environment.interactable.Box",
-        "uniqueId": "Box_1476_96",
-        "x": 1476.0,
+        "uniqueId": "Box_1488_96",
+        "x": 1488.2562,
         "y": 96.0,
         "fields": {
-          "vx": 0.0,
+          "vx": 7.965401E-6,
           "vy": 0.0,
           "holdOffsetX": 0.0,
           "held": false,
@@ -950,11 +1298,11 @@
           "spawnX": 1476.0,
           "spawnY": 100.0,
           "inRange": false,
-          "x": 1476.0,
+          "x": 1488.2562,
           "width": 24.0,
           "bounds": {
             "w": 24.0,
-            "x": 1476.0,
+            "x": 1488.2562,
             "h": 24.0,
             "y": 96.0
           },
@@ -965,6 +1313,45 @@
             "y": -500.0
           },
           "y": 96.0,
+          "height": 24.0
+        }
+      },
+      {
+        "className": "Box",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Box",
+        "uniqueId": "Box_2276_2368",
+        "x": 2276.0,
+        "y": 2368.0,
+        "fields": {
+          "vx": 0.0,
+          "vy": 0.0,
+          "holdOffsetX": 0.0,
+          "held": false,
+          "holdOffsetY": 6.0,
+          "boxColor": {
+            "a": 1.0,
+            "r": 1.0,
+            "b": 0.0,
+            "g": 0.0
+          },
+          "spawnX": 2276.0,
+          "spawnY": 2372.0,
+          "inRange": false,
+          "x": 2276.0,
+          "width": 24.0,
+          "bounds": {
+            "w": 24.0,
+            "x": 2276.0,
+            "h": 24.0,
+            "y": 2368.0
+          },
+          "respawnArea": {
+            "w": 400.0,
+            "x": 2076.0,
+            "h": 800.0,
+            "y": 1972.0
+          },
+          "y": 2368.0,
           "height": 24.0
         }
       },
@@ -1462,6 +1849,395 @@
           "maxBounces": 8
         }
       },
+      {
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_2304_2336",
+        "x": 2304.0,
+        "y": 2336.0,
+        "fields": {
+          "rotation": 0.0,
+          "bounds": {
+            "w": 32.0,
+            "x": 2304.0,
+            "h": 32.0,
+            "y": 2336.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "Laser",
+        "fullClassName": "com.jjmc.chromashift.environment.interactable.Laser",
+        "uniqueId": "Laser_-96_-448",
+        "x": -96.0,
+        "y": -448.0,
+        "fields": {
+          "rotation": 0.0,
+          "bounds": {
+            "w": 32.0,
+            "x": -96.0,
+            "h": 32.0,
+            "y": -448.0
+          },
+          "maxLength": 1000.0,
+          "maxBounces": 8
+        }
+      },
+      {
+        "className": "Tentacle",
+        "fullClassName": "com.jjmc.chromashift.environment.enemy.Tentacle",
+        "uniqueId": "Tentacle_2496_2592_198594022314200",
+        "x": 2230.1843,
+        "y": 2313.649,
+        "fields": {
+          "hitPointsRemaining": 6,
+          "mouseInfluence": 0.3,
+          "tempTarget": {
+            "x": 8.5,
+            "y": -22.0
+          },
+          "stiffnessModAmplitude": 0.12,
+          "lifeTwitchAmplitude": 8.0,
+          "tipFollowLerp": 0.18,
+          "wasCurledLastFrame": false,
+          "dead": false,
+          "idleWavePropagation": 0.25,
+          "curlCenter": {
+            "x": 2252.202,
+            "y": 2335.6318
+          },
+          "maxHits": 6,
+          "sleeping": false,
+          "segments": 15,
+          "waveTipFactor": 3.0,
+          "isPlayerCaptured": false,
+          "tempDiff": {
+            "x": -8.265658,
+            "y": -8.699362
+          },
+          "waveBaseAmplitude": 200.0,
+          "springStiffness": 10.0,
+          "idleWaveFrequency": 1.4,
+          "staticMode": false,
+          "curlRadius": 40.0,
+          "suctionWaveOffset": 0.35,
+          "springDamping": 8.0,
+          "hasFullCurlCached": false,
+          "stiffnessModFrequency": 0.5,
+          "isCurledCached": false,
+          "mouseDistanceThreshold": 140.0,
+          "globalDamping": 0.992,
+          "suctionWaveSpeed": 3.0,
+          "targetAttract": 100.0,
+          "neighborVelocityBlend": 0.08,
+          "prevMouse": {
+            "x": 8.5,
+            "y": -22.0
+          },
+          "hasCapturedThisCurl": false,
+          "captureHitCounter": 0,
+          "anchor": {
+            "x": 2496.0,
+            "y": 2592.0
+          },
+          "bounds": {
+            "w": 287.81567,
+            "x": 2230.1843,
+            "h": 300.35107,
+            "y": 2313.649
+          },
+          "maxVelocity": 800.0,
+          "tempDir": {
+            "x": -0.68880486,
+            "y": -0.7249468
+          },
+          "tempForce": {
+            "x": -0.34856284,
+            "y": -0.3668521
+          },
+          "segmentLength": 12.0,
+          "time": 56.987385,
+          "uniqueId": "Tentacle_2496_2592_198594022314200",
+          "lifeTwitchFrequency": 2.2,
+          "curlDetectionThreshold": 0.6
+        }
+      },
+      {
+        "className": "Tentacle",
+        "fullClassName": "com.jjmc.chromashift.environment.enemy.Tentacle",
+        "uniqueId": "Tentacle_2784_2592_198594022364600",
+        "x": 2496.4924,
+        "y": 2319.8137,
+        "fields": {
+          "hitPointsRemaining": 6,
+          "mouseInfluence": 0.3,
+          "tempTarget": {
+            "x": 8.5,
+            "y": -22.0
+          },
+          "stiffnessModAmplitude": 0.12,
+          "lifeTwitchAmplitude": 8.0,
+          "tipFollowLerp": 0.18,
+          "wasCurledLastFrame": false,
+          "dead": false,
+          "idleWavePropagation": 0.25,
+          "curlCenter": {
+            "x": 2518.5088,
+            "y": 2341.796
+          },
+          "maxHits": 6,
+          "sleeping": false,
+          "segments": 15,
+          "waveTipFactor": 3.0,
+          "isPlayerCaptured": false,
+          "tempDiff": {
+            "x": -8.729425,
+            "y": -8.233901
+          },
+          "waveBaseAmplitude": 200.0,
+          "springStiffness": 10.0,
+          "idleWaveFrequency": 1.4,
+          "staticMode": false,
+          "curlRadius": 40.0,
+          "suctionWaveOffset": 0.35,
+          "springDamping": 8.0,
+          "hasFullCurlCached": false,
+          "stiffnessModFrequency": 0.5,
+          "isCurledCached": false,
+          "mouseDistanceThreshold": 140.0,
+          "globalDamping": 0.992,
+          "suctionWaveSpeed": 3.0,
+          "targetAttract": 100.0,
+          "neighborVelocityBlend": 0.08,
+          "prevMouse": {
+            "x": 8.5,
+            "y": -22.0
+          },
+          "hasCapturedThisCurl": false,
+          "captureHitCounter": 0,
+          "anchor": {
+            "x": 2784.0,
+            "y": 2592.0
+          },
+          "bounds": {
+            "w": 309.50757,
+            "x": 2496.4924,
+            "h": 294.18628,
+            "y": 2319.8137
+          },
+          "maxVelocity": 800.0,
+          "tempDir": {
+            "x": -0.7274521,
+            "y": -0.6861584
+          },
+          "tempForce": {
+            "x": -0.3681199,
+            "y": -0.34722364
+          },
+          "segmentLength": 12.0,
+          "time": 56.987385,
+          "uniqueId": "Tentacle_2784_2592_198594022364600",
+          "lifeTwitchFrequency": 2.2,
+          "curlDetectionThreshold": 0.6
+        }
+      },
+      {
+        "className": "Tentacle",
+        "fullClassName": "com.jjmc.chromashift.environment.enemy.Tentacle",
+        "uniqueId": "Tentacle_3072_2592_198594022382100",
+        "x": 2763.7332,
+        "y": 2325.6147,
+        "fields": {
+          "hitPointsRemaining": 6,
+          "mouseInfluence": 0.3,
+          "tempTarget": {
+            "x": 8.5,
+            "y": -22.0
+          },
+          "stiffnessModAmplitude": 0.12,
+          "lifeTwitchAmplitude": 8.0,
+          "tipFollowLerp": 0.18,
+          "wasCurledLastFrame": false,
+          "dead": false,
+          "idleWavePropagation": 0.25,
+          "curlCenter": {
+            "x": 2785.7476,
+            "y": 2347.5974
+          },
+          "maxHits": 6,
+          "sleeping": false,
+          "segments": 15,
+          "waveTipFactor": 3.0,
+          "isPlayerCaptured": false,
+          "tempDiff": {
+            "x": -9.122755,
+            "y": -7.795854
+          },
+          "waveBaseAmplitude": 200.0,
+          "springStiffness": 10.0,
+          "idleWaveFrequency": 1.4,
+          "staticMode": false,
+          "curlRadius": 40.0,
+          "suctionWaveOffset": 0.35,
+          "springDamping": 8.0,
+          "hasFullCurlCached": false,
+          "stiffnessModFrequency": 0.5,
+          "isCurledCached": false,
+          "mouseDistanceThreshold": 140.0,
+          "globalDamping": 0.992,
+          "suctionWaveSpeed": 3.0,
+          "targetAttract": 100.0,
+          "neighborVelocityBlend": 0.08,
+          "prevMouse": {
+            "x": 8.5,
+            "y": -22.0
+          },
+          "hasCapturedThisCurl": false,
+          "captureHitCounter": 0,
+          "anchor": {
+            "x": 3072.0,
+            "y": 2592.0
+          },
+          "bounds": {
+            "w": 330.26685,
+            "x": 2763.7332,
+            "h": 288.38525,
+            "y": 2325.6147
+          },
+          "maxVelocity": 800.0,
+          "tempDir": {
+            "x": -0.7602296,
+            "y": -0.6496545
+          },
+          "tempForce": {
+            "x": -0.38470662,
+            "y": -0.32875118
+          },
+          "segmentLength": 12.0,
+          "time": 56.987385,
+          "uniqueId": "Tentacle_3072_2592_198594022382100",
+          "lifeTwitchFrequency": 2.2,
+          "curlDetectionThreshold": 0.6
+        }
+      },
+      {
+        "className": "Tentacle",
+        "fullClassName": "com.jjmc.chromashift.environment.enemy.Tentacle",
+        "uniqueId": "Tentacle_3328_2592_198594022397300",
+        "x": 3001.942,
+        "y": 2330.4478,
+        "fields": {
+          "hitPointsRemaining": 6,
+          "mouseInfluence": 0.3,
+          "tempTarget": {
+            "x": 8.5,
+            "y": -22.0
+          },
+          "stiffnessModAmplitude": 0.12,
+          "lifeTwitchAmplitude": 8.0,
+          "tipFollowLerp": 0.18,
+          "wasCurledLastFrame": false,
+          "dead": false,
+          "idleWavePropagation": 0.25,
+          "curlCenter": {
+            "x": 3023.9553,
+            "y": 2352.431
+          },
+          "maxHits": 6,
+          "sleeping": false,
+          "segments": 15,
+          "waveTipFactor": 3.0,
+          "isPlayerCaptured": false,
+          "tempDiff": {
+            "x": -9.422404,
+            "y": -7.4309015
+          },
+          "waveBaseAmplitude": 200.0,
+          "springStiffness": 10.0,
+          "idleWaveFrequency": 1.4,
+          "staticMode": false,
+          "curlRadius": 40.0,
+          "suctionWaveOffset": 0.35,
+          "springDamping": 8.0,
+          "hasFullCurlCached": false,
+          "stiffnessModFrequency": 0.5,
+          "isCurledCached": false,
+          "mouseDistanceThreshold": 140.0,
+          "globalDamping": 0.992,
+          "suctionWaveSpeed": 3.0,
+          "targetAttract": 100.0,
+          "neighborVelocityBlend": 0.08,
+          "prevMouse": {
+            "x": 8.5,
+            "y": -22.0
+          },
+          "hasCapturedThisCurl": false,
+          "captureHitCounter": 0,
+          "anchor": {
+            "x": 3328.0,
+            "y": 2592.0
+          },
+          "bounds": {
+            "w": 348.0581,
+            "x": 3001.942,
+            "h": 283.55225,
+            "y": 2330.4478
+          },
+          "maxVelocity": 800.0,
+          "tempDir": {
+            "x": -0.78520036,
+            "y": -0.6192418
+          },
+          "tempForce": {
+            "x": -0.39734283,
+            "y": -0.31336114
+          },
+          "segmentLength": 12.0,
+          "time": 56.987385,
+          "uniqueId": "Tentacle_3328_2592_198594022397300",
+          "lifeTwitchFrequency": 2.2,
+          "curlDetectionThreshold": 0.6
+        }
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
       null,
       null,
       null,
@@ -1473,8 +2249,13 @@
       null,
       null
     ],
-    "size": 75,
+    "size": 101,
     "ordered": true
   },
-  "removedObjectIds": []
+  "removedObjectIds": [
+    "Tentacle_2496_2592_198659753320300",
+    "Tentacle_2784_2592_198659753347700",
+    "Tentacle_3072_2592_198659753356400",
+    "Tentacle_3328_2592_198659753363800"
+  ]
 }

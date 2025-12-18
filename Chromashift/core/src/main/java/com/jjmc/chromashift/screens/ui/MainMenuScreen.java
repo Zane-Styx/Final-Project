@@ -196,24 +196,41 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
     }
 
     private void loadGameFromSave(com.jjmc.chromashift.player.PlayerIO.PlayerState loaded) {
+        // Create screen with SAVED_IF_EXISTS mode - this will load the level save which already
+        // contains the correct spawn position and player state
         GameSceneScreen screen = new GameSceneScreen(
             loaded.currentLevel,
             com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS
         );
         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(screen);
         
+        // Restore visited levels list only
         Gdx.app.postRunnable(() -> {
-            if (screen.player != null) {
-                com.jjmc.chromashift.player.PlayerIO.applyToPlayer(screen.player, loaded);
-                if (loaded.visitedLevels != null) {
-                    screen.visitedLevels.clear();
-                    screen.visitedLevels.addAll(loaded.visitedLevels);
-                }
+            if (screen.player != null && loaded.visitedLevels != null) {
+                screen.visitedLevels.clear();
+                screen.visitedLevels.addAll(loaded.visitedLevels);
             }
         });
     }
 
+    /**
+     * Hard reset ALL persisted progress for a fresh New Game.
+     * Clears player save row + level override files + DB level_saves rows.
+     */
+    private void clearAllProgressForNewGame() {
+        try {
+            com.jjmc.chromashift.database.PlayerDAO.deletePlayerSave(1);
+        } catch (Exception ignored) {
+        }
+        try {
+            com.jjmc.chromashift.screens.levels.GameLevelSave.clearAllOverridesForNewGame(1);
+        } catch (Exception ignored) {
+        }
+    }
+
     private void startNewGame() {
+        // If Continue is pressed with no valid save, treat it as a true fresh start.
+        clearAllProgressForNewGame();
         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(new GameSceneScreen());
     }
 
@@ -225,9 +242,7 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
                     @Override
                     protected void result(Object obj) {
                         if (Boolean.TRUE.equals(obj)) {
-                            try {
-                                com.jjmc.chromashift.database.PlayerDAO.deletePlayerSave(1);
-                            } catch (Exception ignored) {}
+                            clearAllProgressForNewGame();
                             showColorChoiceDialog();
                         }
                     }
@@ -241,10 +256,13 @@ public class MainMenuScreen extends com.jjmc.chromashift.screens.ui.AbstractMenu
                     (stage.getHeight() - dlg.getHeight()) / 2f
                 );
             } else {
+                // Even if there's no player row, level overrides may still exist.
+                clearAllProgressForNewGame();
                 showColorChoiceDialog();
             }
         } catch (Exception e) {
             // If check fails, default to normal play flow
+            clearAllProgressForNewGame();
             showColorChoiceDialog();
         }
     }

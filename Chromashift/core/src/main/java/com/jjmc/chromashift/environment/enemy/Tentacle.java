@@ -18,6 +18,7 @@ public class Tentacle implements Enemy {
     private boolean staticMode = false;         // static render (no physics)
     private com.badlogic.gdx.utils.Array<com.jjmc.chromashift.environment.collectible.Collectible> dropTarget; // diamond spawn
     private final Rectangle bounds = new Rectangle();
+    private String uniqueId;                    // stable unique ID for save/load
     // Segment config
     private final int segments;
     private final float segmentLength = 12f;
@@ -96,6 +97,8 @@ public class Tentacle implements Enemy {
     public Tentacle(float x, float y, int segmentCount) {
         this.segments = Math.max(10, Math.min(50, segmentCount)); // Clamp between 10-50
         anchor = new Vector2(x, y);
+        // Generate stable unique ID based on position
+        this.uniqueId = "Tentacle_" + ((int)x) + "_" + ((int)y) + "_" + System.nanoTime();
 
         pos = new Vector2[segments];
         vel = new Vector2[segments];
@@ -705,6 +708,12 @@ public class Tentacle implements Enemy {
      */
     public int getSegmentCount() { return segments; }
     public boolean isSleeping() { return sleeping; }
+    
+    /**
+     * Get the unique ID of this tentacle.
+     * @return Unique ID string
+     */
+    public String getUniqueId() { return uniqueId; }
 
     /** Convenience: tip X */
     public float getTipX() { return pos[segments - 1].x; }

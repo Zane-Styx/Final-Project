@@ -28,9 +28,58 @@ public class GameLevelSave {
 
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
+    /**
+     * Clear all persisted level overrides and legacy workspace player save for a player.
+     *
+     * Why: New Game previously only deleted the player row, but per-level override files
+     * (and their copies in build resources) could still exist and be applied when
+     * advancing to other levels.
+     */
+    public static void clearAllOverridesForNewGame(int playerId) {
+        // 1) Delete workspace saves (assets/saves/levels/*.json and assets/saves/player_save.json)
+        try {
+            File assetsDir = findProjectAssetsDir();
+            if (assetsDir != null) {
+                deleteRecursively(new File(assetsDir, "saves/levels"));
+                deleteRecursively(new File(assetsDir, "saves/player_save.json"));
+            }
+        } catch (Exception ignored) {
+        }
+
+        // 2) Delete build-resource copies so Gdx.files.internal(...) can't still find them
+        try {
+            File buildRes = findBuildResourcesDir();
+            if (buildRes != null) {
+                deleteRecursively(new File(buildRes, "saves/levels"));
+                deleteRecursively(new File(buildRes, "saves/player_save.json"));
+            }
+        } catch (Exception ignored) {
+        }
+
+        // 3) Delete DB level saves (optional but keeps Continue clean)
+        try {
+            com.jjmc.chromashift.database.LevelDAO.deleteAllLevelSavesForPlayer(playerId);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static void deleteRecursively(File f) {
+        if (f == null || !f.exists()) return;
+        if (f.isDirectory()) {
+            File[] kids = f.listFiles();
+            if (kids != null) {
+                for (File k : kids) deleteRecursively(k);
+            }
+        }
+        //noinspection ResultOfMethodCallIgnored
+        f.delete();
+    }
+
     public static class SavedLevel {
         public String levelPath;
         public long timestamp;
+        public float spawnX;
+        public float spawnY;
         public Array<SavedObject> objects = new Array<>();
         public java.util.ArrayList<String> removedObjectIds = new java.util.ArrayList<>(); // removed/killed/collected IDs
     }
@@ -76,6 +125,8 @@ public class GameLevelSave {
             SavedLevel sl = new SavedLevel();
             sl.levelPath = levelPath;
             sl.timestamp = System.currentTimeMillis();
+            sl.spawnX = result.spawnX;
+            sl.spawnY = result.spawnY;
 
             // Load original to detect removals
             Gdx.app.log("GameLevelSave", "Loading original level to detect removed objects: " + levelPath);
@@ -284,7 +335,15 @@ public class GameLevelSave {
         
         // Try to get existing ID fields via reflection
         try {
-            try { Field idf = cls.getDeclaredField("id"); idf.setAccessible(true); Object v = idf.get(obj); if (v != null) uid = v.toString(); } catch (Exception ignored) {}
+            // Try uniqueId field first (for Tentacles)
+            try { Field uidF = cls.getDeclaredField("uniqueId"); uidF.setAccessible(true); Object v = uidF.get(obj); if (v != null) uid = v.toString(); } catch (Exception ignored) {}
+            if (uid == null) {
+                // Try getUniqueId method (for Tentacles)
+                try { java.lang.reflect.Method m = cls.getMethod("getUniqueId"); Object v = m.invoke(obj); if (v != null) uid = v.toString(); } catch (Exception ignored) {}
+            }
+            if (uid == null) {
+                try { Field idf = cls.getDeclaredField("id"); idf.setAccessible(true); Object v = idf.get(obj); if (v != null) uid = v.toString(); } catch (Exception ignored) {}
+            }
             if (uid == null) {
                 try { Field tid = cls.getDeclaredField("targetId"); tid.setAccessible(true); Object v = tid.get(obj); if (v != null) uid = v.toString(); } catch (Exception ignored) {}
             }
@@ -411,6 +470,11 @@ public class GameLevelSave {
         Gdx.app.log("GameLevelSave", "=== LOADING SAVED LEVEL STATE ===");
         Gdx.app.log("GameLevelSave", "Saved objects: " + sl.objects.size);
         Gdx.app.log("GameLevelSave", "Removed IDs: " + (sl.removedObjectIds != null ? sl.removedObjectIds.size() : 0));
+        
+        // Restore spawn coordinates
+        result.spawnX = sl.spawnX;
+        result.spawnY = sl.spawnY;
+        Gdx.app.log("GameLevelSave", "Restored spawn: (" + sl.spawnX + ", " + sl.spawnY + ")");
         
         // First, remove objects that were killed/collected
         if (sl.removedObjectIds != null && sl.removedObjectIds.size() > 0) {

@@ -251,7 +251,7 @@ public class LoadingScreen extends AbstractMenuScreen implements Screen {
 					postBlackHoldTimer += delta;
 					if (postBlackHoldTimer >= postBlackHoldDuration) {
 						try {
-							game.setScreen(new MainMenuScreen());
+							game.setScreen(new TestMenuScreen());
 						} catch (Exception e) {
 							Gdx.app.error("LoadingScreen", "Failed to switch to start screen", e);
 						}

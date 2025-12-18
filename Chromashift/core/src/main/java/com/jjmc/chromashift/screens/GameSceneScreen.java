@@ -85,7 +85,7 @@ public class GameSceneScreen implements Screen {
     public Array<String> visitedLevels = new Array<>();
     private com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode loadMode = com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL;
     // Camera zoom settings
-    private float desiredZoom = .8f;// <1 = zoom in a bit
+    private float desiredZoom = 2f;// <1 = zoom in a bit
     private float zoomLerpSpeed = 5f; // how fast camera zooms to target
 
     // Tentacle System
@@ -345,7 +345,18 @@ public class GameSceneScreen implements Screen {
 
         // Load saves only for continue flows; for new-game flows, clear any prior save
         // first
-        if (loadMode == com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS) {
+        // NOTE: DO NOT load player state here for SAVED_IF_EXISTS - it causes spawn coordinate bugs
+        // because the level save already positioned the player correctly via loaded.spawnX/Y
+        if (loadMode == com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL) {
+            // New game - delete any old saves
+            try {
+                com.jjmc.chromashift.database.PlayerDAO.deletePlayerSave(1);
+                Gdx.app.log("TestSceneScreen", "Previous save cleared for new game start");
+            } catch (Exception ignored) {
+                // If delete fails, continue with default new player
+            }
+        } else if (false) {
+            // DISABLED: This was causing spawn bugs by overriding the level's spawn position
             try {
                 com.jjmc.chromashift.database.PlayerDAO.loadPlayerStateFromDB(1, player);
                 // Also restore visited levels
@@ -359,6 +370,11 @@ public class GameSceneScreen implements Screen {
                 if (player != null) {
                     player.setKeyCount(0);
                 }
+
+                // Keep respawn marker + saved spawn in sync with the loaded respawn point.
+                // Otherwise the marker can show the JSON spawn while respawn uses the saved checkpoint.
+                playerSpawnX = player.getRespawnX();
+                playerSpawnY = player.getRespawnY();
             } catch (Exception ex) {
                 Gdx.app.log("TestSceneScreen", "Could not restore player state (first run?): " + ex.getMessage());
             }
@@ -366,6 +382,11 @@ public class GameSceneScreen implements Screen {
             try {
                 com.jjmc.chromashift.database.PlayerDAO.deletePlayerSave(1);
                 Gdx.app.log("TestSceneScreen", "Previous save cleared for new game start");
+                try {
+                    com.jjmc.chromashift.screens.levels.GameLevelSave.clearAllOverridesForNewGame(1);
+                    Gdx.app.log("TestSceneScreen", "Cleared per-level override saves for new game start");
+                } catch (Exception ignored2) {
+                }
             } catch (Exception ignored) {
                 // If delete fails, continue with default new player
             }
@@ -1239,6 +1260,13 @@ public class GameSceneScreen implements Screen {
     // ===== In-Game Pause Menu =====
     private void showPauseMenu() {
         paused = true;
+        // Auto-save when pausing
+        try {
+            saveAllState(currentLevelPath);
+            Gdx.app.log("GameSceneScreen", "Auto-saved on pause");
+        } catch (Exception e) {
+            Gdx.app.log("GameSceneScreen", "Auto-save on pause failed: " + e.getMessage());
+        }
         if (pauseDialog == null) {
             com.badlogic.gdx.scenes.scene2d.ui.Skin dSkin = new com.badlogic.gdx.scenes.scene2d.ui.Skin(
                     Gdx.files.internal("ui/uiskin.json"));
@@ -1431,13 +1459,78 @@ public class GameSceneScreen implements Screen {
 
         Gdx.app.log("GameSceneScreen", "Advancing from " + currentLevelPath + " to " + nextLevel);
 
-        // Auto-save all state before transitioning
-        saveAllState(nextLevel);
+        // Ensure progression tracking includes the next level
+        if (visitedLevels != null && !visitedLevels.contains(nextLevel, false)) {
+            visitedLevels.add(nextLevel);
+        }
+
+        // 1) Save current level state as-is (player coords belong to current level)
+        saveAllState(currentLevelPath);
+
+        // 2) Update the player save so "Continue" resumes in the next level at its spawn,
+        // instead of incorrectly restoring the previous level's coordinates into the next level.
+        savePlayerForLevelTransition(nextLevel);
 
         // Transition to next level (load saved state since we just saved)
         ((com.badlogic.gdx.Game) Gdx.app.getApplicationListener()).setScreen(
                 new GameSceneScreen(nextLevel,
                         com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.SAVED_IF_EXISTS));
+    }
+
+    /**
+     * Save the player's progress for a level transition.
+     *
+     * Critical: When advancing from level A -> level B, the player's current (x,y) are in
+     * level A coordinates. If we set PlayerState.currentLevel = level B without also
+     * moving the saved (x,y) to level B's spawn, then Continue will load level B and
+     * place the player at an invalid/wrong position.
+     */
+    private void savePlayerForLevelTransition(String nextLevelPath) {
+        if (nextLevelPath == null || player == null) return;
+        try {
+            float spawnX = 0f;
+            float spawnY = 0f;
+
+            // Load next level spawn from ORIGINAL (ignore overrides) so the spawn always matches the JSON spawn marker.
+            try {
+                com.jjmc.chromashift.screens.levels.LevelLoader.Result next =
+                        com.jjmc.chromashift.screens.levels.LevelLoader.loadFromWorkspace(
+                                nextLevelPath,
+                                com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+                spawnX = next.spawnX;
+                spawnY = next.spawnY;
+            } catch (Exception ex1) {
+                com.jjmc.chromashift.screens.levels.LevelLoader.Result next =
+                        com.jjmc.chromashift.screens.levels.LevelLoader.load(
+                                nextLevelPath,
+                                com.jjmc.chromashift.screens.levels.LevelLoader.LoadMode.ORIGINAL);
+                spawnX = next.spawnX;
+                spawnY = next.spawnY;
+            }
+
+            com.jjmc.chromashift.player.PlayerIO.PlayerState s =
+                    com.jjmc.chromashift.player.PlayerIO.capture(player, nextLevelPath, visitedLevels);
+
+            // Override position/respawn for the next level
+            s.x = spawnX;
+            s.y = spawnY;
+            s.velocityX = 0f;
+            s.velocityY = 0f;
+            s.onGround = false;
+            s.canJump = true;
+            s.dashing = false;
+            s.dashTimer = 0f;
+            s.respawnX = spawnX;
+            s.respawnY = spawnY;
+
+            // Persist
+            com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", s);
+            try {
+                com.jjmc.chromashift.database.PlayerDAO.savePlayerState(1, s);
+            } catch (Exception ignored) {
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -1469,11 +1562,11 @@ public class GameSceneScreen implements Screen {
      * Centralized auto-save routine for player and level.
      * Saves to workspace JSON and attempts DB writes via DAOs.
      */
-    private void saveAllState(String nextLevelPath) {
+    private void saveAllState(String currentLevelForSave) {
         try {
-            // Capture player with next level context and visited levels
+            // Capture player with current level context and visited levels
             com.jjmc.chromashift.player.PlayerIO.PlayerState playerState = com.jjmc.chromashift.player.PlayerIO
-                    .capture(player, nextLevelPath, visitedLevels);
+                    .capture(player, currentLevelForSave, visitedLevels);
 
             // Save player to workspace (legacy) and DAO (DB)
             com.jjmc.chromashift.player.PlayerIO.saveToWorkspace("player_save.json", playerState);
@@ -1490,6 +1583,9 @@ public class GameSceneScreen implements Screen {
             result.solids.addAll(solids);
             result.interactables.addAll(interactables);
             result.collectibles.addAll(collectibles);
+            if (tentacles != null) {
+                result.tentacles.addAll(tentacles);
+            }
             result.boss = (boss != null) ? boss : bossGuardian;
             result.spawnX = playerSpawnX;
             result.spawnY = playerSpawnY;

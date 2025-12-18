@@ -10,6 +10,27 @@ import java.util.List;
 
 public class LevelDAO {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+    /**
+     * Delete ALL saved level state for a player.
+     * This clears `level_saves` rows and any dependent `game_objects` rows.
+     */
+    public static void deleteAllLevelSavesForPlayer(int playerId) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Delete dependent objects first
+            String deleteObjectsSql = "DELETE FROM game_objects WHERE save_id IN (SELECT save_id FROM level_saves WHERE player_id = ?)";
+            try (PreparedStatement ps = conn.prepareStatement(deleteObjectsSql)) {
+                ps.setInt(1, playerId);
+                ps.executeUpdate();
+            }
+            // Delete level saves
+            String deleteSavesSql = "DELETE FROM level_saves WHERE player_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(deleteSavesSql)) {
+                ps.setInt(1, playerId);
+                ps.executeUpdate();
+            }
+        }
+    }
     
     /**
      * Register a level in the database
